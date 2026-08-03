@@ -20,46 +20,60 @@ export interface CanvasPreset {
 }
 
 export type ImageFitMode = "cover" | "contain" | "fill" | "smart";
+export type ElementType = "text" | "badge" | "image" | "button" | "logo" | "shape";
+export type ExportFormat = "png" | "jpg" | "webp" | "svg";
+export type ExportQuality = 1 | 2 | 3;
 
-export interface DesignTextElement {
+export interface CanvasElement {
   id: string;
-  type: "title" | "subtitle" | "description" | "custom";
-  text: string;
+  name: string;
+  type: ElementType;
   visible: boolean;
-  fontSize: number; // in px for base reference
-  fontFamily: "Orbitron" | "Rajdhani" | "Inter" | "Space Mono";
-  fontWeight: "bold" | "black" | "normal" | "semibold";
-  color: string;
-  textAlign: "left" | "center" | "right";
-  letterSpacing: number; // in px
-  lineHeight: number;
-  textTransform: "uppercase" | "none" | "capitalize";
-  x: number; // position percentage 0-100
-  y: number; // position percentage 0-100
+  locked: boolean;
+  x: number; // percentage (0-100)
+  y: number; // percentage (0-100)
+  width?: number; // percentage or px
+  height?: number; // percentage or px
+  rotation?: number; // degrees
+  opacity?: number; // 0 to 1
+  zIndex?: number;
+
+  // Text properties
+  text?: string;
+  fontSize?: number;
+  fontFamily?: "Orbitron" | "Rajdhani" | "Inter" | "Space Mono";
+  fontWeight?: "normal" | "semibold" | "bold" | "black";
+  color?: string;
+  textAlign?: "left" | "center" | "right";
+  letterSpacing?: number;
+  lineHeight?: number;
+  textTransform?: "uppercase" | "none" | "capitalize";
   gradientText?: boolean;
-}
 
-export interface DesignBadge {
-  id: string;
-  text: string;
-  visible: boolean;
-  bg: string;
-  textColor: string;
-  borderColor: string;
-  fontSize: number;
-  x: number;
-  y: number;
-}
+  // Badge / Tag properties
+  bg?: string;
+  textColor?: string;
+  borderColor?: string;
+  borderRadius?: number;
 
-export interface DesignCtaButton {
-  text: string;
-  visible: boolean;
-  bgGradient: string;
-  textColor: string;
-  borderRadius: number;
-  fontSize: number;
-  x: number;
-  y: number;
+  // Image properties
+  url?: string;
+  fitMode?: ImageFitMode;
+  scale?: number;
+  xOffset?: number;
+  yOffset?: number;
+  borderWidth?: number;
+  shadowGlow?: string;
+
+  // Button properties
+  bgGradient?: string;
+
+  // Logo properties
+  size?: number;
+  glow?: boolean;
+
+  // Shape properties
+  shapeType?: "rect" | "circle" | "line" | "glow-card";
 }
 
 export interface DesignBackground {
@@ -67,43 +81,12 @@ export interface DesignBackground {
   solidColor: string;
   gradientFrom: string;
   gradientTo: string;
-  gradientDirection: string; // "to-r", "to-br", "to-b", etc.
+  gradientDirection: string; // "to-r", "to-br", "to-b", "to-tr"
   pattern: "grid" | "scanline" | "dots" | "hexagons" | "none";
   patternOpacity: number;
   imageUrl?: string;
-}
-
-export interface DesignImageLayer {
-  url?: string;
-  fitMode: ImageFitMode;
-  scale: number; // 0.5 to 3.0
-  xOffset: number; // -100 to 100
-  yOffset: number; // -100 to 100
-  rotation: number; // degrees
-  borderRadius: number; // px
-  borderWidth: number;
-  borderColor: string;
-  shadowGlow: string; // e.g. "cyan", "purple", "pink", "orange", "none"
-  opacity: number; // 0 to 1
-  visible: boolean;
-}
-
-export interface DesignLogo {
-  visible: boolean;
-  text: string;
-  logoUrl?: string;
-  x: number;
-  y: number;
-  size: number;
-  glow: boolean;
-}
-
-export interface LayerItem {
-  id: string;
-  name: string;
-  type: "background" | "image" | "title" | "subtitle" | "description" | "badges" | "cta" | "logo" | "overlay";
-  visible: boolean;
-  locked: boolean;
+  imageOpacity?: number;
+  imageBlur?: number;
 }
 
 export interface DesignState {
@@ -113,23 +96,25 @@ export interface DesignState {
   width: number;
   height: number;
   background: DesignBackground;
-  image: DesignImageLayer;
-  texts: DesignTextElement[];
-  badges: DesignBadge[];
-  cta: DesignCtaButton;
-  logo: DesignLogo;
+  elements: CanvasElement[];
   showCyberBorders: boolean;
   showGlassPanel: boolean;
   glassOpacity: number;
   glassBlur: number;
-  layers: LayerItem[];
+  showGuides?: boolean;
+  showGrid?: boolean;
+  showSafeMargins?: boolean;
+  allowTransparentBackground?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface DesignTemplate {
   id: string;
   name: string;
-  category: "Portfolio" | "Blog" | "Store" | "Services" | "Case Study" | "Testimonial" | "Team" | "Hero Banner";
+  category: "Portfolio" | "Blog" | "Store" | "Services" | "Case Study" | "Testimonial" | "Hero Banner" | "Custom";
   description: string;
   previewColor: string;
-  state: Partial<DesignState>;
+  isCustom?: boolean;
+  state: DesignState;
 }
