@@ -1,0 +1,27 @@
+{
+  "title": "Jake",
+  "slug": "client-1-jake",
+  "company": "Dexur Games",
+  "category": "Roblox UGC",
+  "platform": "Roblox Studio (R15 Avatar Standard, UGC Marketplace)",
+  "software": "Blender",
+  "engagementType": "Custom Wardrobe Phase & Accessory Integration",
+  "milestoneStatus": "Deployed on Roblox Marketplace",
+  "iconName": "Flame",
+  "requirements": "Development of standard R15 layered apparel assets for the multiplayer sci-fi adventure game. Project required modeling an intricate scientist lab coat from scratch to comply with rigid caging systems. Specifications detailed custom inner and outer cages, specific identification badges, a specialized headlamp accessory, and designated non-texture zones to allow dynamic in-game team customization.",
+  "achievements": [
+    "Engineered double-layered cage meshes complying fully with the Roblox Avatar Standard",
+    "Optimized geometry to sub-4,000 polygon limit while maintaining crisp shape fidelity",
+    "Implemented a multizone material shader that allows runtime script-driven color adaptation"
+  ],
+  "websiteLink": "https://roblox.com",
+  "clientLogoUrl": "/lizzdo-logo.png",
+  "rating": 5,
+  "review": "Incredible asset creation pipeline. Our layered apparel fit perfectly over all player avatars without clipping.",
+  "published": true,
+  "featured": false,
+  "industry": "Roblox Studio (R15 Avatar Standard, UGC Marketplace)",
+  "project": "Custom Wardrobe Phase & Accessory Integration",
+  "completionDate": "Deployed on Roblox Marketplace",
+  "description": "Development of standard R15 layered apparel assets for the multiplayer sci-fi adventure game. Project required modeling an intricate scientist lab coat from scratch to comply with rigid caging systems. Specifications detailed custom inner and outer cages, specific identification badges, a specialized headlamp accessory, and designated non-texture zones to allow dynamic in-game team customization."
+}

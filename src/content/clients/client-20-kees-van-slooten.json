@@ -1,0 +1,27 @@
+{
+  "title": "Kees van Slooten",
+  "slug": "client-20-kees-van-slooten",
+  "company": "Van Slooten Maritime Models",
+  "category": "3D Printing",
+  "platform": "Precision Scale Fabrication (FDM & Resin)",
+  "software": "Blender, CAD Repair Suite",
+  "engagementType": "Mesh-to-Solid Shell Remanufacturing Partnership",
+  "milestoneStatus": "Commercial Production Pipeline Established",
+  "iconName": "Ship",
+  "requirements": "Conversion of an extensive series of zero-thickness 3D digital ship renders into high-precision, solid-body CAD models suitable for commercial physical scale reproduction. The benchmark scale tugboat required solid hulls, hollowed interiors with specific thickness margins, reinforced decorative rails, and the strategic removal of unprintable sub-meshes to produce modular, print-ready STL arrays.",
+  "achievements": [
+    "Remanufactured complex digital render graphics into solid-body hulls calibrated to scale standards",
+    "Segmented assemblies into standalone components to print fine resin details separate from FDM hulls",
+    "Unlocked a pipeline of fifteen-plus commercial maritime models for international collector networks"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Precision Scale Fabrication (FDM & Resin)",
+  "project": "Mesh-to-Solid Shell Remanufacturing Partnership",
+  "completionDate": "Commercial Production Pipeline Established",
+  "description": "Conversion of an extensive series of zero-thickness 3D digital ship renders into high-precision, solid-body CAD models suitable for commercial physical scale reproduction. The benchmark scale tugboat required solid hulls, hollowed interiors with specific thickness margins, reinforced decorative rails, and the strategic removal of unprintable sub-meshes to produce modular, print-ready STL arrays."
+}

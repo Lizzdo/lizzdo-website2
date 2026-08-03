@@ -1,0 +1,8 @@
+{
+  "title": "Can I manage the content myself?",
+  "question": "Can I manage the content myself?",
+  "category": "maintenance",
+  "answer": "Absolutely. We build customized CMS architectures (Sanity, WordPress, Strapi) allowing non-technical team members to safely publish blogs, products, and update imagery.",
+  "published": true,
+  "featured": false
+}

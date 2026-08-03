@@ -1,0 +1,22 @@
+{
+  "workflow": [
+    { "step": "01", "title": "DISCOVERY", "desc": "We analyze your vision, references, and technical requirements.", "color": "from-neon-cyan to-neon-purple" },
+    { "step": "02", "title": "STRATEGY", "desc": "Detailed roadmaps, style guides, and technical specs are established.", "color": "from-neon-purple to-neon-pink" },
+    { "step": "03", "title": "CREATION", "desc": "Our expert team brings your project to life with regular milestone updates.", "color": "from-neon-pink to-neon-orange" },
+    { "step": "04", "title": "DELIVERY", "desc": "Final files delivered in all formats with full commercial licenses.", "color": "from-neon-orange to-neon-green" }
+  ],
+  "trustSections": [
+    {
+      "icon": "Shield",
+      "title": "Quality Guaranteed",
+      "color": "text-neon-cyan",
+      "desc": "Every asset delivered by LIZZDO undergoes a rigorous quality check. We ensure clean topology, optimized textures, and engine-ready performance."
+    },
+    {
+      "icon": "Rocket",
+      "title": "Global Delivery",
+      "color": "text-neon-purple",
+      "desc": "We work with clients from indie studios to global brands. Our remote-first workflow ensures seamless communication and delivery across all timezones."
+    }
+  ]
+}

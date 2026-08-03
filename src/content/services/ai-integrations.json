@@ -1,0 +1,42 @@
+{
+  "title": "AI INTEGRATIONS",
+  "slug": "ai-integrations",
+  "description": "Integrate LLMs, custom machine learning endpoints, and conversational computer vision agents.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Service content goes here.",
+  "category": "AI & Data Science",
+  "icon": "Brain",
+  "color": "neon-green",
+  "features": [
+    "LLM API Chatbots",
+    "Computer Vision Tools",
+    "Neural Generation",
+    "Vector Search Databases"
+  ],
+  "tech": [
+    {
+      "name": "OpenAI",
+      "tooltip": "Used for AI assistants, automation systems, chatbots, and intelligent workflows.",
+      "iconName": "Brain"
+    },
+    {
+      "name": "LangChain",
+      "tooltip": "Framework for developing applications powered by language models.",
+      "iconName": "SiLangchain"
+    },
+    {
+      "name": "Python",
+      "tooltip": "Primary language for data, machine learning, and AI logic integration.",
+      "iconName": "SiPython"
+    },
+    {
+      "name": "TensorFlow",
+      "tooltip": "End-to-end open source machine learning platform.",
+      "iconName": "SiTensorflow"
+    }
+  ],
+  "price": "Starting From $2,000",
+  "base_price": 2000,
+  "published": true,
+  "featured": false
+}

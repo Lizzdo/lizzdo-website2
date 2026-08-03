@@ -1,0 +1,81 @@
+{
+  "hero": {
+    "headline": "CRAFTING",
+    "subtitle": "We are a creative studio specializing in immersive 3D experiences, cutting-edge web development, and visionary design.",
+    "primary_btn": "Start a Project",
+    "primary_url": "/contact",
+    "secondary_btn": "View Portfolio",
+    "secondary_url": "/portfolio",
+    "highlight": "DIGITAL EXCELLENCE"
+  },
+  "statistics": [
+    {
+      "label": "Digital Assets Created",
+      "value": "2,000+"
+    },
+    {
+      "label": "Projects Delivered",
+      "value": "1,000+"
+    },
+    {
+      "label": "Client Satisfaction",
+      "value": "98%"
+    },
+    {
+      "label": "Years Experience",
+      "value": "7+"
+    }
+  ],
+  "featured_services": {
+    "title": "OUR EXPERTISE",
+    "subtitle": "Comprehensive digital solutions tailored to your unique needs."
+  },
+  "featured_portfolio": {
+    "title": "FEATURED WORK",
+    "subtitle": "A curated selection of our most impactful projects."
+  },
+  "testimonials": {
+    "title": "CLIENT SUCCESS",
+    "list": [
+      {
+        "author": "Jane Doe",
+        "role": "CEO, TechCorp",
+        "quote": "Lizzdo completely transformed our digital presence. Their attention to detail is unmatched.",
+        "rating": 5,
+        "thumbnail": "/lizzdo-logo.png"
+      },
+      {
+        "author": "John Smith",
+        "role": "Marketing Director",
+        "quote": "The 3D experiences they built for our campaign doubled our engagement rate.",
+        "rating": 5,
+        "thumbnail": "/lizzdo-logo.png"
+      },
+      {
+        "author": "Alice Johnson",
+        "role": "Startup Founder",
+        "quote": "A truly visionary team. They understood our brand immediately.",
+        "rating": 5,
+        "thumbnail": "/lizzdo-logo.png"
+      }
+    ]
+  },
+  "cta": {
+    "headline": "READY TO START YOUR NEXT PROJECT?",
+    "subtitle": "Let's work together to create something extraordinary.",
+    "btn_text": "Get in Touch",
+    "btn_url": "/contact"
+  },
+  "featured_clients": {
+    "title": "TRUSTED BY LEADING BRANDS",
+    "subtitle": "We partner with visionary companies to build extraordinary digital experiences."
+  },
+  "faqs": {
+    "title": "COMMON QUESTIONS",
+    "subtitle": "Everything you need to know about working with us."
+  },
+  "featured_blog": {
+    "title": "LATEST FROM THE BLOG",
+    "subtitle": "Insights, tutorials, and news from our team."
+  }
+}

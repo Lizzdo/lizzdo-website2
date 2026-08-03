@@ -1,0 +1,8 @@
+{
+  "title": "What happens after the project launches?",
+  "question": "What happens after the project launches?",
+  "category": "maintenance",
+  "answer": "Post-launch, we monitor infrastructure stability, fix immediate edge-case bugs, and ensure the deployment meets our strict performance benchmarks under real-world traffic.",
+  "published": true,
+  "featured": false
+}

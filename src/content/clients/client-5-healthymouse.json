@@ -1,0 +1,27 @@
+{
+  "title": "Healthymouse",
+  "slug": "client-5-healthymouse",
+  "company": "Independent Game Creator",
+  "category": "Roblox UGC",
+  "platform": "Roblox Studio",
+  "software": "Blender, Roblox Avatar Setup",
+  "engagementType": "Stylized Outline Implementation & Asset Prep",
+  "milestoneStatus": "Ready-to-Deploy Assets Transferred",
+  "iconName": "Rocket",
+  "requirements": "Correction and optimization of a high-tech space helmet asset to apply an interactive cartoon-style rendering outline. The client required a perfectly calibrated black inverse hull surrounding the outer glass, precise color subdivision between the frame and the visor, and complete technical support resolving texture-linkage anomalies within game-engine nodes.",
+  "achievements": [
+    "Implemented a lightweight inverse-hull vertex outline technique that loads smoothly on mobile devices",
+    "Corrected viewport orientation issues and eliminated blue-tint rendering bugs",
+    "Provided step-by-step diagnostic media explaining real-time material integration"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Roblox Studio",
+  "project": "Stylized Outline Implementation & Asset Prep",
+  "completionDate": "Ready-to-Deploy Assets Transferred",
+  "description": "Correction and optimization of a high-tech space helmet asset to apply an interactive cartoon-style rendering outline. The client required a perfectly calibrated black inverse hull surrounding the outer glass, precise color subdivision between the frame and the visor, and complete technical support resolving texture-linkage anomalies within game-engine nodes."
+}

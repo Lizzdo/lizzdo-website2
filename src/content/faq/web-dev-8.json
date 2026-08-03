@@ -1,0 +1,8 @@
+{
+  "title": "Do you optimize websites for SEO?",
+  "question": "Do you optimize websites for SEO?",
+  "category": "web-dev",
+  "answer": "Yes, technical SEO is baked into our development process. We ensure proper semantic HTML, optimized Core Web Vitals, fast load times, structured data (JSON-LD), and accessible meta formatting.",
+  "published": true,
+  "featured": false
+}

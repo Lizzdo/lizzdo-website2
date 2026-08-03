@@ -1,0 +1,27 @@
+{
+  "title": "Golddirt",
+  "slug": "client-6-golddirt",
+  "company": "Independent Roblox Game Studio",
+  "category": "Roblox UGC",
+  "platform": "Roblox Studio (R15 Standard Rig)",
+  "software": "Blender",
+  "engagementType": "Full Character Generation & Bones Rigging",
+  "milestoneStatus": "Active R15 Rigs Operational",
+  "iconName": "Shield",
+  "requirements": "Complete character generation and skeletal rigging for dual protagonist figures based on hand-drawn concept drafts. The female and male figures required blocky anatomy styles with highly expressive stylized faces and customized combat boots. Deliverables required detailed vertex weight mapping for immediate engine utility (locomotion, climbing, jumping) and clean uncollapsed Blender files.",
+  "achievements": [
+    "Translated 2D concept art into clean, high-fidelity blocky 3D coordinates",
+    "Engineered immaculate skeletal bone weighing across all fifteen standard body parts",
+    "Delivered pre-packaged binary files directly compatible with default locomotion systems"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Roblox Studio (R15 Standard Rig)",
+  "project": "Full Character Generation & Bones Rigging",
+  "completionDate": "Active R15 Rigs Operational",
+  "description": "Complete character generation and skeletal rigging for dual protagonist figures based on hand-drawn concept drafts. The female and male figures required blocky anatomy styles with highly expressive stylized faces and customized combat boots. Deliverables required detailed vertex weight mapping for immediate engine utility (locomotion, climbing, jumping) and clean uncollapsed Blender files."
+}

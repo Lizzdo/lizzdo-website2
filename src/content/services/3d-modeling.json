@@ -1,0 +1,72 @@
+{
+  "title": "3D MODELING",
+  "slug": "3d-modeling",
+  "description": "High-poly & low-poly assets built with clean topology and proper UV mapping for any engine.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Crafting high-precision 3D models with clean edge loops, optimized quad topology, custom UV unwrap, and industry-standard PBR materials (Albedo, Normal, Roughness, Metallic, Ambient Occlusion). Perfect for real-time video game engines, AAA asset libraries, visual effects, and architectural visualization.",
+  "category": "Asset Generation",
+  "icon": "Box",
+  "color": "neon-cyan",
+  "features": [
+    "Clean Quad Topology & Retopology",
+    "Non-Overlapping UV Mapping",
+    "4K/8K PBR Texture Painting",
+    "High-Poly Digital Sculpting"
+  ],
+  "benefits": [
+    "Optimized draw-calls and performance in Unreal Engine / Unity",
+    "Photorealistic surface detailing and micro-displacement",
+    "Flexible export formats (.FBX, .OBJ, .GLTF, .BLEND)",
+    "Engine-ready collision meshes and LODs (Level of Detail)"
+  ],
+  "process": [
+    {
+      "step": "Concept & Reference Analysis",
+      "desc": "Analyze reference orthographics, scale requirements, and polycount targets."
+    },
+    {
+      "step": "High-Poly Sculpt & Blockout",
+      "desc": "Sculpt fine surface details, micro-creases, hard-surface bevels, and anatomical proportions."
+    },
+    {
+      "step": "Low-Poly Retopology & UV Unwrap",
+      "desc": "Optimize quad geometry and unwrap efficient UV islands with minimal distortion."
+    },
+    {
+      "step": "PBR Texturing & Bake",
+      "desc": "Bake normal/AO maps and apply realistic procedural materials in Substance Painter."
+    }
+  ],
+  "deliverables": [
+    "Low-Poly & High-Poly FBX/OBJ Model Files",
+    "Packed 4K PBR Texture Maps (PBR Metallic/Roughness)",
+    "Substance Painter / Blender Native Source Files",
+    "Rendered Portfolio Turntable Images"
+  ],
+  "gallery": [
+    "/lizzdo-logo.png",
+    "/lizzdo-logo.png"
+  ],
+  "tech": [
+    {
+      "name": "Blender",
+      "tooltip": "Industry-leading 3D modeling, animation, rendering, rigging, and asset creation software.",
+      "iconName": "SiBlender"
+    },
+    {
+      "name": "ZBrush",
+      "tooltip": "The standard for digital sculpting, creating high-poly organic models and characters.",
+      "iconName": "Layers"
+    },
+    {
+      "name": "Substance",
+      "tooltip": "Industry standard tool for 3D painting and PBR material authoring.",
+      "iconName": "Box"
+    }
+  ],
+  "price": "Starting From $350",
+  "base_price": 350,
+  "delivery_time": "5-7 Business Days",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,8 @@
+{
+  "title": "How do you handle Monetization systems?",
+  "question": "How do you handle Monetization systems?",
+  "category": "game-dev",
+  "answer": "We integrate Ads (AdMob, Unity Ads) and In-App Purchases (IAP) while maintaining player trust through balanced, non-predatory economy design.",
+  "published": true,
+  "featured": false
+}

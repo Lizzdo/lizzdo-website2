@@ -1,0 +1,27 @@
+{
+  "title": "Daniel Podaru",
+  "slug": "client-22-daniel-podaru",
+  "company": "Independent Indie Game Developer",
+  "category": "Unity Engine",
+  "platform": "Unity Engine (Core Locomotion & Animation Pipeline)",
+  "software": "Blender, Unity Engine",
+  "engagementType": "Long-Term Character Support Retainer",
+  "milestoneStatus": "Cinematic Dialogue System Fully Active",
+  "iconName": "Globe",
+  "requirements": "An extended, multi-phase technical engagement supporting a custom-branded main character avatar. Work spanned from creating the original protagonist sculpt to correcting severe skeletal distortion anomalies caused by auto-mapping tools. The final phase involved upgrading the character with custom rigging for lips, chin, and nose expressions and resolving material bleeding on in-game glasses.",
+  "achievements": [
+    "Upgraded a simple character framework to a performance-ready facial animation rig",
+    "Resolved skin shader bleed and texture boundary overlaps through meticulous coordinate corrections",
+    "Maintained professional communication and delivered key iterations under difficult project circumstances"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Unity Engine (Core Locomotion & Animation Pipeline)",
+  "project": "Long-Term Character Support Retainer",
+  "completionDate": "Cinematic Dialogue System Fully Active",
+  "description": "An extended, multi-phase technical engagement supporting a custom-branded main character avatar. Work spanned from creating the original protagonist sculpt to correcting severe skeletal distortion anomalies caused by auto-mapping tools. The final phase involved upgrading the character with custom rigging for lips, chin, and nose expressions and resolving material bleeding on in-game glasses."
+}

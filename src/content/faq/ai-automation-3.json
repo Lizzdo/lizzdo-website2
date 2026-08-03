@@ -1,0 +1,8 @@
+{
+  "title": "What AI models do you use?",
+  "question": "What AI models do you use?",
+  "category": "ai-automation",
+  "answer": "We are model-agnostic and select the best engine for the task, routinely utilizing OpenAI's GPT-4, Anthropic's Claude, Google's Gemini, or deployed open-source models like LLaMA.",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,27 @@
+{
+  "title": "Zarmian",
+  "slug": "client-2-zarmian",
+  "company": "Interactive Simulation Platform",
+  "category": "Unity Engine",
+  "platform": "Unity 6.0 LTS",
+  "software": "Character Creator 4, Blender, Unity Engine",
+  "engagementType": "Advanced Expression Mapping & Rig Refinement",
+  "milestoneStatus": "Pre-configured Unity Asset Package Delivered",
+  "iconName": "Cpu",
+  "requirements": "Development of realistic human actors designed for an immersive didactic simulation platform. The pilot asset required anatomical correction of pre-generated facial meshes, alignment of lips/teeth textures, and the rendering of numerous separate emotional states. The final deliverable had to include fluid idle motions and deploy as a seamless Unity package with unified material allocations.",
+  "achievements": [
+    "Resolved mesh misalignment and asymmetric mouth geometries of early-stage models",
+    "Designed anatomically calibrated emotional expression keys (blinking, breathing, facial drift)",
+    "Created a plug-and-play Unity package with shaders configured, eliminating compilation friction"
+  ],
+  "websiteLink": "https://unity.com",
+  "clientLogoUrl": "/lizzdo-logo.png",
+  "rating": 4.9,
+  "review": "We requested anatomically accurate rigs and the delivery was pristine. Reduced our engine compile errors entirely.",
+  "published": true,
+  "featured": false,
+  "industry": "Unity 6.0 LTS",
+  "project": "Advanced Expression Mapping & Rig Refinement",
+  "completionDate": "Pre-configured Unity Asset Package Delivered",
+  "description": "Development of realistic human actors designed for an immersive didactic simulation platform. The pilot asset required anatomical correction of pre-generated facial meshes, alignment of lips/teeth textures, and the rendering of numerous separate emotional states. The final deliverable had to include fluid idle motions and deploy as a seamless Unity package with unified material allocations."
+}

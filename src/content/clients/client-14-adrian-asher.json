@@ -1,0 +1,27 @@
+{
+  "title": "Adrian Asher",
+  "slug": "client-14-adrian-asher",
+  "company": "Independent Mobile App Studio",
+  "category": "Web & Animation",
+  "platform": "Mobile App Interfaces & WebGL",
+  "software": "Blender, WebGL Exporter",
+  "engagementType": "Chibi Mascot & Real-Time WebGL Prep",
+  "milestoneStatus": "Optimized WebGL Mascot Active",
+  "iconName": "Smartphone",
+  "requirements": "Development of a highly stylized chibi monkey mascot complete with tailored attire and an interactive briefcase prop featuring dynamic interior cash structures. The system required character modeling, fur texturing, skeleton rigging, and an animation displaying the case opening. The final asset was customized for integration as an interactive mobile splash display.",
+  "achievements": [
+    "Synthesized rich, dense hair textures into optimized formats to prevent WebGL frame drops",
+    "Rebuilt complex joint systems and hierarchies to fix client-side file corruption issues during export",
+    "Delivered a fully integrated WebGL-ready asset file designed for quick rendering"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Mobile App Interfaces & WebGL",
+  "project": "Chibi Mascot & Real-Time WebGL Prep",
+  "completionDate": "Optimized WebGL Mascot Active",
+  "description": "Development of a highly stylized chibi monkey mascot complete with tailored attire and an interactive briefcase prop featuring dynamic interior cash structures. The system required character modeling, fur texturing, skeleton rigging, and an animation displaying the case opening. The final asset was customized for integration as an interactive mobile splash display."
+}

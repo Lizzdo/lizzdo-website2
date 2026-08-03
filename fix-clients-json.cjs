@@ -1,0 +1,46 @@
+const fs = require('fs');
+const path = require('path');
+
+const dir = 'src/content/clients';
+if (fs.existsSync(dir)) {
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    if (file.endsWith('.json')) {
+      const filePath = path.join(dir, file);
+      let content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      
+      let modified = false;
+      if (content.published === undefined) {
+        content.published = true;
+        modified = true;
+      }
+      if (content.featured === undefined) {
+        content.featured = false;
+        modified = true;
+      }
+      // Migrate old fields to new fields
+      if (content.platform && !content.industry) {
+        content.industry = content.platform;
+        modified = true;
+      }
+      if (content.engagementType && !content.project) {
+        content.project = content.engagementType;
+        modified = true;
+      }
+      if (content.milestoneStatus && !content.completionDate) {
+        content.completionDate = content.milestoneStatus;
+        modified = true;
+      }
+      if (content.requirements && !content.description) {
+        content.description = content.requirements;
+        modified = true;
+      }
+      
+      if (modified) {
+        fs.writeFileSync(filePath, JSON.stringify(content, null, 2));
+      }
+    }
+  }
+  console.log("Updated clients json files");
+}

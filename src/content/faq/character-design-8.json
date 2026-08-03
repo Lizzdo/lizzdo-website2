@@ -1,0 +1,8 @@
+{
+  "title": "Do you use Blendshapes?",
+  "question": "Do you use Blendshapes?",
+  "category": "character-design",
+  "answer": "Yes, we integrate blendshapes (morph targets) for precise, controlled deformations like blinking, smiling, and breathing that work perfectly within game engines.",
+  "published": true,
+  "featured": false
+}

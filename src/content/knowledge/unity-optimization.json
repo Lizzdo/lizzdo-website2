@@ -1,0 +1,9 @@
+{
+  "title": "Unity Optimization Techniques",
+  "slug": "unity-optimization",
+  "category": "unity-dev",
+  "description": "Draw call batching, memory profiling, and DOTS explained.",
+  "author": "LIZZDO Tech Art",
+  "date": "May 25, 2026",
+  "readTime": "11 min read"
+}

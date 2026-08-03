@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Orbitron", sans-serif;
+  --font-future: "Rajdhani", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "Space Mono", monospace;
+
+  --color-neon-cyan: #00f5ff;
+  --color-neon-purple: #a855f7;
+  --color-neon-pink: #ff006e;
+  --color-neon-green: #00ff88;
+  --color-neon-orange: #ff9500;
+  --color-neon-blue: #0ea5e9;
+  --color-dark-navy: #0a0e27;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-black text-white font-sans overflow-x-hidden;
+  }
+  body.menu-open {
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  .grid-bg {
+    @apply fixed inset-0 pointer-events-none z-0;
+    background-image: 
+        linear-gradient(rgba(0, 245, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: grid-move 20s linear infinite;
+  }
+
+  .scanline {
+    @apply fixed inset-0 pointer-events-none z-1;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0, 245, 255, 0.05) 50%, transparent 100%);
+    animation: scan 8s linear infinite;
+  }
+
+  .holo-text {
+    background: linear-gradient(45deg, #00f5ff, #a855f7, #ff006e, #00ff88, #00f5ff);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-flow 8s ease infinite;
+    filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.5));
+  }
+
+  .glitch {
+    @apply relative inline-block;
+  }
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    @apply absolute inset-0 opacity-80;
+  }
+
+  .glitch::before {
+    animation: glitch-1 2.5s infinite;
+    @apply text-neon-cyan -z-1;
+  }
+
+  .glitch::after {
+    animation: glitch-2 2.5s infinite;
+    @apply text-neon-pink -z-2;
+  }
+
+  .glass-panel {
+    @apply bg-dark-navy/40 backdrop-blur-md border border-white/10 transition-all duration-300;
+  }
+
+  .glass-panel:hover {
+    @apply border-neon-cyan/40 shadow-[0_0_20px_rgba(0,245,255,0.2)];
+  }
+
+  .cyber-line {
+    @apply h-[2px] w-full relative overflow-hidden;
+    background: linear-gradient(90deg, transparent, #00f5ff, transparent);
+  }
+
+  .cyber-line::before {
+    content: '';
+    @apply absolute w-[30%] h-full bg-white/80;
+    animation: line-scan 2s linear infinite;
+  }
+
+  /* WooCommerce Cart Plugin Overrides */
+  .xoo-wsc-modal,
+  .side-cart-woocommerce,
+  .cart-side,
+  .wp-block-woocommerce-mini-cart-contents,
+  .wc-block-mini-cart__drawer,
+  .cart-drawer,
+  #cart-drawer,
+  .wac-drawer {
+      position: fixed !important;
+      inset: 0 !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 999999 !important;
+  }
+
+  body.cart-open #site-navigation,
+  body.xoo-wsc-cart-active #site-navigation,
+  body.xt_woofc-active #site-navigation,
+  body.wc-block-mini-cart-is-open #site-navigation,
+  body.has-cart-open #site-navigation {
+      z-index: 40 !important;
+  }
+
+  body.cart-open,
+  body.xoo-wsc-cart-active,
+  body.xt_woofc-active,
+  body.wc-block-mini-cart-is-open,
+  body.has-cart-open {
+      overflow: hidden !important;
+  }
+
+  .floating-cart-button {
+      position: fixed !important;
+      bottom: 20px !important;
+      right: 20px !important;
+      z-index: 99999 !important;
+  }
+}
+
+@keyframes grid-move {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes gradient-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes glitch-1 {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-3px, 3px); }
+  40% { transform: translate(-3px, -3px); }
+  60% { transform: translate(3px, 3px); }
+  80% { transform: translate(3px, -3px); }
+}
+
+@keyframes glitch-2 {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(3px, -3px); }
+  40% { transform: translate(3px, 3px); }
+  60% { transform: translate(-3px, -3px); }
+  80% { transform: translate(-3px, 3px); }
+}
+
+@keyframes line-scan {
+  0% { left: -30%; }
+  100% { left: 130%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-black border-l border-neon-cyan/20;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gradient-to-b from-neon-cyan to-neon-purple rounded-full shadow-[0_0_10px_rgba(0,245,255,0.5)];
+}
+@plugin "@tailwindcss/typography";

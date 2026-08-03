@@ -1,0 +1,8 @@
+{
+  "title": "How secure are your backend systems?",
+  "question": "How secure are your backend systems?",
+  "category": "cloud-backend",
+  "answer": "We adhere strictly to OWASP security guidelines, implementing encrypted data-at-rest, secure JWT authentication, rate-limiting, and rigorous data validation to prevent injection attacks.",
+  "published": true,
+  "featured": false
+}

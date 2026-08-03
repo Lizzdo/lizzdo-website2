@@ -1,0 +1,27 @@
+{
+  "title": "Apex Analytics Group",
+  "slug": "client-25-apex-analytics-group",
+  "company": "Enterprise Intelligence Guild",
+  "category": "AI & Data Science",
+  "platform": "Server-Side Cognitive Compute Engines & Vector Pipelines",
+  "software": "Python, Gemini API SDK, LangChain, Pinecone, FastAPI",
+  "engagementType": "LLM Cognitive Agent & Semantic Grounding Architecture",
+  "milestoneStatus": "Enterprise API Service Active",
+  "iconName": "Bot",
+  "requirements": "Integration of advanced server-side cognitive agents capable of processing unstructured corporate technical data sheets, rendering contextual answers, and validating spatial/coordinate compliance. The system required robust semantic grounding via dynamic vector search databases and a low-latency API proxy layer to guarantee cryptographic security.",
+  "achievements": [
+    "Implemented a high-performance vector ingestion pipeline resolving massive document arrays into multi-dimensional embeddings",
+    "Engineered an intelligent retrieval-augmented generation engine utilizing Gemini LLM APIs for contextual technical responses",
+    "Developed a robust FastAPI proxy server implementing token limit protection and strict credential isolation rules"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Server-Side Cognitive Compute Engines & Vector Pipelines",
+  "project": "LLM Cognitive Agent & Semantic Grounding Architecture",
+  "completionDate": "Enterprise API Service Active",
+  "description": "Integration of advanced server-side cognitive agents capable of processing unstructured corporate technical data sheets, rendering contextual answers, and validating spatial/coordinate compliance. The system required robust semantic grounding via dynamic vector search databases and a low-latency API proxy layer to guarantee cryptographic security."
+}

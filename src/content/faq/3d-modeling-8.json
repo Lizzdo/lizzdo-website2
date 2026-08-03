@@ -1,0 +1,8 @@
+{
+  "title": "Do you offer Retopology services?",
+  "question": "Do you offer Retopology services?",
+  "category": "3d-modeling",
+  "answer": "We take dense sculpted meshes (like ZBrush sculpts) and manually rebuild clean, edge-loop-driven topology to ensure the model deforms perfectly during animation.",
+  "published": true,
+  "featured": false
+}

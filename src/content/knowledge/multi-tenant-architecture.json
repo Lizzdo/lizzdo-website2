@@ -1,0 +1,9 @@
+{
+  "title": "Multi-Tenant Architecture Explained",
+  "slug": "multi-tenant-architecture",
+  "category": "saas-dev",
+  "description": "Deep dive into isolating databases in modern B2B SaaS applications.",
+  "author": "LIZZDO Engineering",
+  "date": "Mar 18, 2026",
+  "readTime": "12 min read"
+}

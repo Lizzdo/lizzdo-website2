@@ -1,0 +1,8 @@
+{
+  "title": "Do you build cross-platform games?",
+  "question": "Do you build cross-platform games?",
+  "category": "game-dev",
+  "answer": "We design control schemes, UI layouts, and optimization pipelines to ensure the game feels native whether the player is on PC, Mobile, or Console.",
+  "published": true,
+  "featured": false
+}

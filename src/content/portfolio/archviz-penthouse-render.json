@@ -1,0 +1,17 @@
+{
+  "title": "ARCHVIZ PENTHOUSE RENDER",
+  "slug": "archviz-penthouse-render",
+  "description": "A fully interactive, ray-traced architectural visualization of a futuristic penthouse, allowing clients to change materials in real-time.",
+  "thumbnail": "/lizzdo-logo.png",
+  "gallery": [
+    "/lizzdo-logo.png",
+    "/lizzdo-logo.png"
+  ],
+  "categories": [
+    "UNREAL ENGINE",
+    "3D MODELING"
+  ],
+  "body": "\n### Challenge\nThe real estate firm required a walkthrough of an unbuilt property that looked indistinguishable from a photograph, running at 60fps.\n\n### Solution\nWe utilized Unreal Engine 5's Lumen for global illumination and Nanite for hyper-detailed foliage models, bypassing traditional baking times.\n\n### Results\n- Photoreal Quality\n- Dynamic Lighting\n- VR Compatible\n\n### Technologies Used\n- Unreal Engine 5\n- 3ds Max\n- V-Ray\n\n### Client\nAura Real Estate\n",
+  "published": true,
+  "featured": false
+}

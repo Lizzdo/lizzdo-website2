@@ -1,0 +1,27 @@
+{
+  "title": "Abelotto",
+  "slug": "client-3-abelotto",
+  "company": "Avatar Customization Market",
+  "category": "Roblox UGC",
+  "platform": "Roblox Studio (R6 & R15 Humanoid Standard)",
+  "software": "Blender",
+  "engagementType": "Interlocking Geometry Optimization & Mesh Reconstruction",
+  "milestoneStatus": "Catalog Optimization Active",
+  "iconName": "Sword",
+  "requirements": "Creation of a precision-matched back accessory representing a secondary interlocking shell for a sword collection. The asset required custom texture restyling to fit a clean silver-and-black palette matching existing high-end cosmetic packages. Core work centered on geometry stabilization, eliminating visible seams, and preventing runtime clipping when combined with catalog elements.",
+  "achievements": [
+    "Designed zero-tolerance interlocking geometry fits over default catalog models",
+    "Baked custom high-resolution silver metallic PBR textures for realistic reflectance",
+    "Packaged final files into a drag-and-drop format with full accessory placement testing scripts"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Roblox Studio (R6 & R15 Humanoid Standard)",
+  "project": "Interlocking Geometry Optimization & Mesh Reconstruction",
+  "completionDate": "Catalog Optimization Active",
+  "description": "Creation of a precision-matched back accessory representing a secondary interlocking shell for a sword collection. The asset required custom texture restyling to fit a clean silver-and-black palette matching existing high-end cosmetic packages. Core work centered on geometry stabilization, eliminating visible seams, and preventing runtime clipping when combined with catalog elements."
+}

@@ -1,0 +1,113 @@
+{
+  "company": {
+    "headline": "ABOUT LIZZDO",
+    "subtitle": "Pioneering the future of digital experiences through creativity, code, and 3D innovation.",
+    "image": "/lizzdo-logo.png"
+  },
+  "stats": [
+    {
+      "label": "Digital Assets Created",
+      "value": "2,000+"
+    },
+    {
+      "label": "Projects Delivered",
+      "value": "1,000+"
+    },
+    {
+      "label": "Client Satisfaction",
+      "value": "98%"
+    },
+    {
+      "label": "Years Experience",
+      "value": "7+"
+    }
+  ],
+  "values": [
+    {
+      "title": "Precision",
+      "icon": "Target",
+      "desc": "We obsess over every polygon, ensuring clean topology and optimal performance."
+    },
+    {
+      "title": "Innovation",
+      "icon": "Lightbulb",
+      "desc": "We push the boundaries of 3D technology, from AI-assisted modeling to real-time rendering."
+    },
+    {
+      "title": "Quality",
+      "icon": "Star",
+      "desc": "Every asset is test-validated for its target engine, ensuring a seamless integration."
+    },
+    {
+      "title": "Global Reach",
+      "icon": "Globe",
+      "desc": "Based in Peshawar, delivering world-class 3D solutions to creators worldwide."
+    },
+    {
+      "title": "Speed",
+      "icon": "Zap",
+      "desc": "Our optimized workflow allows for industry-leading turnaround times without sacrificing quality."
+    },
+    {
+      "title": "Integrity",
+      "icon": "Shield",
+      "desc": "Transparent pricing, clear communication, and full commercial licensing on all work."
+    }
+  ],
+  "timeline": [
+    {
+      "year": "2020",
+      "title": "The Beginning",
+      "description": "Lizzdo was founded with a focus on 3D design and web development."
+    },
+    {
+      "year": "2022",
+      "title": "Expansion",
+      "description": "Expanded our services to include comprehensive game environments."
+    }
+  ],
+  "story": "Founded with a vision to bridge the gap between creative artistry and technical excellence, Lizzdo has grown into a leading digital studio. We specialize in bringing ambitious ideas to life across web, mobile, and 3D platforms.",
+  "mission": "Our mission is to empower creators and businesses with cutting-edge digital solutions that inspire, engage, and deliver measurable results.",
+  "vision": "To be the globally recognized standard for digital craftsmanship, where imagination meets flawless execution.",
+  "company_info": {
+    "name": "Building the Future of",
+    "tagline": "Digital Experiences",
+    "short_desc": "Founded with a vision to bridge the gap between creative artistry and technical excellence, Lizzdo h...",
+    "full_story": "Founded with a vision to bridge the gap between creative artistry and technical excellence, Lizzdo has grown into a leading digital studio. We specialize in bringing ambitious ideas to life across web, mobile, and 3D platforms.",
+    "logo": "/lizzdo-logo.png",
+    "image": "/lizzdo-logo.png",
+    "location": "Peshawar, Pakistan",
+    "email": "hello@lizzdo.com",
+    "phone": "+92 3XX XXXXXXX",
+    "website": "https://lizzdo.com",
+    "founded_year": "2020"
+  },
+  "mission_section": {
+    "title": "OUR PURPOSE",
+    "heading": "Our Mission",
+    "description": "Our mission is to empower creators and businesses with cutting-edge digital solutions that inspire, engage, and deliver measurable results.",
+    "image": ""
+  },
+  "vision_section": {
+    "title": "OUR FUTURE",
+    "heading": "Our Vision",
+    "description": "To be the globally recognized standard for digital craftsmanship, where imagination meets flawless execution.",
+    "image": ""
+  },
+  "story_section": {
+    "heading": "CRAFTING REALITY",
+    "content": "Founded with a vision to bridge the gap between creative artistry and technical excellence, Lizzdo has grown into a leading digital studio. We specialize in bringing ambitious ideas to life across web, mobile, and 3D platforms.",
+    "images": [],
+    "milestones": [
+      {
+        "milestone": "2020",
+        "desc": "Founded in Peshawar"
+      },
+      {
+        "milestone": "2022",
+        "desc": "Expanded to 3D services"
+      }
+    ],
+    "supporting_text": "We are passionate about design and technology."
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Can you build subscription systems?",
+  "question": "Can you build subscription systems?",
+  "category": "ecommerce",
+  "answer": "We integrate recurring billing logic using platforms like ReCharge for Shopify, Stripe Billing, or custom subscription engines for physical boxes or digital goods.",
+  "published": true,
+  "featured": false
+}

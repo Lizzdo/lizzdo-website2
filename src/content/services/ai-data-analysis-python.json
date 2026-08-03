@@ -1,0 +1,37 @@
+{
+  "title": "AI DATA ANALYSIS & PYTHON",
+  "slug": "ai-data-analysis-python",
+  "description": "Predictive model training, data analysis scraping, custom scripts, and fast Django/FastAPI engines.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Service content goes here.",
+  "category": "AI & Data Science",
+  "icon": "Database",
+  "color": "neon-orange",
+  "features": [
+    "Scraping & Cleaning",
+    "Machine Learning Training",
+    "Automation Scripts",
+    "FastAPI Handlers"
+  ],
+  "tech": [
+    {
+      "name": "Python",
+      "tooltip": "Primary language for data, machine learning, and automation.",
+      "iconName": "SiPython"
+    },
+    {
+      "name": "FastAPI",
+      "tooltip": "Modern, fast web framework for building APIs with Python.",
+      "iconName": "SiFastapi"
+    },
+    {
+      "name": "Pandas",
+      "tooltip": "Fast, powerful, flexible data analysis and manipulation tool.",
+      "iconName": "SiPandas"
+    }
+  ],
+  "price": "Starting From $1,400",
+  "base_price": 1400,
+  "published": true,
+  "featured": false
+}

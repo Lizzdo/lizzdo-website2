@@ -1,0 +1,8 @@
+{
+  "title": "How do you design Game Characters?",
+  "question": "How do you design Game Characters?",
+  "category": "character-design",
+  "answer": "Game character design involves a rigid pipeline: concept silhouettes, modeling, retopology focusing on joint deformation, PBR texturing, and engine implementation.",
+  "published": true,
+  "featured": false
+}

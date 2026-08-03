@@ -1,0 +1,8 @@
+{
+  "title": "What are Game Animations?",
+  "question": "What are Game Animations?",
+  "category": "animation-vfx",
+  "answer": "We provide in-engine animation logic, configuring state machines, blend trees, and root motion to ensure gameplay feels responsive and physically grounded.",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,8 @@
+{
+  "title": "How do you handle Cloud infrastructure?",
+  "question": "How do you handle Cloud infrastructure?",
+  "category": "cloud-backend",
+  "answer": "We deploy scalable infrastructure leveraging AWS, Google Cloud, or Microsoft Azure. We specialize in serverless functions, load balancing, and container orchestration.",
+  "published": true,
+  "featured": false
+}

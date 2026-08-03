@@ -1,0 +1,8 @@
+{
+  "title": "How is Metadata generated?",
+  "question": "How is Metadata generated?",
+  "category": "nft-web3",
+  "answer": "Our proprietary generation software assigns rarities through mathematical weighted logic, ensuring no duplicates exist while securely outputting accurate IPFS-ready JSON metadata.",
+  "published": true,
+  "featured": false
+}

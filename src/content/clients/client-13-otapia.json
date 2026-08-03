@@ -1,0 +1,27 @@
+{
+  "title": "Otapia",
+  "slug": "client-13-otapia",
+  "company": "Isravag / TA Racing",
+  "category": "Web & Animation",
+  "platform": "High-Resolution Motion Graphics Teasers",
+  "software": "Blender (Cycles Render Engine)",
+  "engagementType": "Teaser Animation & Organic FX Pipelines",
+  "milestoneStatus": "Rebranded Motion Graphics Published",
+  "iconName": "Activity",
+  "requirements": "Design and transition of a complex mechanical character mascot, 'The Engine', from flat concept art into a full 3D asset with moving mouth-wheels and fire-nozzles. Production expanded to create the cinematic product teaser, choreographing character entries, jumps, interactive emblem collisions, and reactive fire VFX. A mid-production brand realignment required rebuilding all identity maps swiftly.",
+  "achievements": [
+    "Resolved 2D-to-3D projection inconsistencies in mechanical nut and sprocket dimensions",
+    "Simulated highly realistic fire and particulate smoke using engine-native physics nodes",
+    "Successfully adapted active animation pipelines to accommodate mid-production updates"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "High-Resolution Motion Graphics Teasers",
+  "project": "Teaser Animation & Organic FX Pipelines",
+  "completionDate": "Rebranded Motion Graphics Published",
+  "description": "Design and transition of a complex mechanical character mascot, 'The Engine', from flat concept art into a full 3D asset with moving mouth-wheels and fire-nozzles. Production expanded to create the cinematic product teaser, choreographing character entries, jumps, interactive emblem collisions, and reactive fire VFX. A mid-production brand realignment required rebuilding all identity maps swiftly."
+}

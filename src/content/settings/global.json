@@ -1,0 +1,100 @@
+{
+  "site_name": "Lizzdo",
+  "logo": "",
+  "favicon": "",
+  "nav": [
+    {
+      "label": "HOME",
+      "url": "/"
+    },
+    {
+      "label": "SERVICES",
+      "url": "/services"
+    },
+    {
+      "label": "PORTFOLIO",
+      "url": "/portfolio"
+    },
+    {
+      "label": "CLIENTS",
+      "url": "/clients"
+    },
+    {
+      "label": "STORE",
+      "url": "/store"
+    },
+    {
+      "label": "BLOG",
+      "url": "/blog"
+    },
+    {
+      "label": "ABOUT",
+      "url": "/about"
+    }
+  ],
+  "footer_text": "Lizzdo Studio is a premium 3D design and web development agency. We craft digital experiences, games, and brand identities that stand out.",
+  "copyright": "© 2026 Lizzdo. All rights reserved.",
+  "contact": {
+    "location": "Peshawar, Pakistan (Global Remote)",
+    "email": "hello@lizzdo.com",
+    "phone": "+92 3XX XXXXXXX"
+  },
+  "social": [
+    {
+      "platform": "Facebook",
+      "url": "https://www.facebook.com/lizzdo0",
+      "icon": "Facebook"
+    },
+    {
+      "platform": "Instagram",
+      "url": "https://www.instagram.com/lizzdo0",
+      "icon": "Instagram"
+    },
+    {
+      "platform": "X",
+      "url": "https://x.com/Lizzdo0",
+      "icon": "XIcon"
+    },
+    {
+      "platform": "LinkedIn",
+      "url": "https://www.linkedin.com/company/lizzdo/",
+      "icon": "Linkedin"
+    },
+    {
+      "platform": "Behance",
+      "url": "https://www.behance.net/lizzdo",
+      "icon": "BehanceIcon"
+    }
+  ],
+  "company_name": "Lizzdo",
+  "tagline": "Creative Studio",
+  "default_title": "Lizzdo | Creative Studio",
+  "default_description": "We build beautiful digital products.",
+  "default_og_image": "",
+  "footer_nav": [
+    {
+      "label": "Terms of Service",
+      "url": "/legal/terms-of-service"
+    },
+    {
+      "label": "Privacy Policy",
+      "url": "/legal/privacy-policy"
+    },
+    {
+      "label": "Data Compliance",
+      "url": "/legal/data-compliance"
+    },
+    {
+      "label": "Cookie Policy",
+      "url": "/legal/cookie-policy"
+    },
+    {
+      "label": "Acceptable Use Policy",
+      "url": "/legal/acceptable-use"
+    },
+    {
+      "label": "Disclaimer",
+      "url": "/legal/disclaimer"
+    }
+  ]
+}

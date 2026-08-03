@@ -1,0 +1,8 @@
+{
+  "title": "Do you handle Marketplace integration?",
+  "question": "Do you handle Marketplace integration?",
+  "category": "nft-web3",
+  "answer": "We integrate Web3 wallets (MetaMask, WalletConnect) into your website to allow seamless minting and construct custom marketplace logic via smart contracts.",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,27 @@
+{
+  "title": "Helix Biotech",
+  "slug": "client-26-helix-biotech",
+  "company": "Genomics Research Hub",
+  "category": "AI & Data Science",
+  "platform": "Python Machine Learning Engine & Automated Analytics Middleware",
+  "software": "Python, Pandas, NumPy, Scikit-Learn, FastAPI",
+  "engagementType": "Automated Data Refinement & Predictive Classifier Deployment",
+  "milestoneStatus": "High-Throughput Compute Core Integrated",
+  "iconName": "Activity",
+  "requirements": "Engineering an automated high-throughput data cleaning and predictive machine learning classifier system for bio-marker datasets. The client required reliable automated extraction scripts, robust feature engineering modules, and a highly scalable RESTful API deployment that outputs real-time predictive indices based on incoming multidimensional vectors.",
+  "achievements": [
+    "Structured high-performance pandas datasets processing millions of unstructured telemetry data rows in under-second loops",
+    "Trained Scikit-Learn predictive classifiers with comprehensive confusion-matrix validation reporting",
+    "Constructed a highly scalable asynchronous FastAPI system facilitating multithreaded network requests safely"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Python Machine Learning Engine & Automated Analytics Middleware",
+  "project": "Automated Data Refinement & Predictive Classifier Deployment",
+  "completionDate": "High-Throughput Compute Core Integrated",
+  "description": "Engineering an automated high-throughput data cleaning and predictive machine learning classifier system for bio-marker datasets. The client required reliable automated extraction scripts, robust feature engineering modules, and a highly scalable RESTful API deployment that outputs real-time predictive indices based on incoming multidimensional vectors."
+}

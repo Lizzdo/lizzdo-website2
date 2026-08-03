@@ -1,0 +1,8 @@
+{
+  "title": "Do you build headless websites?",
+  "question": "Do you build headless websites?",
+  "category": "web-dev",
+  "answer": "Yes, we specialize in headless architectures utilizing Next.js or React on the frontend with backend CMS platforms like Sanity, Strapi, or headless WordPress for maximum performance and security.",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Do you implement multiplayer systems in Unreal?",
+  "question": "Do you implement multiplayer systems in Unreal?",
+  "category": "unreal-dev",
+  "answer": "We architect authoritative dedicated server models and client-side prediction in C++ to support secure, fast-paced multiplayer combat and interaction.",
+  "published": true,
+  "featured": false
+}

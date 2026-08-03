@@ -1,0 +1,39 @@
+{
+  "headline": "START A PROJECT",
+  "subtitle": "Ready to bring your vision to life? Fill out the form below and our team will get back to you within 24 hours.",
+  "location": "Peshawar, Pakistan\nAvailable for remote work globally",
+  "phone": "+92 3XX XXXXXXX\nMon - Fri, 9AM - 6PM PKT",
+  "socials": [
+    {
+      "name": "Facebook",
+      "url": "https://www.facebook.com/lizzdo0",
+      "icon": "Facebook"
+    },
+    {
+      "name": "Instagram",
+      "url": "https://www.instagram.com/lizzdo0",
+      "icon": "Instagram"
+    },
+    {
+      "name": "X",
+      "url": "https://x.com/Lizzdo0",
+      "icon": "XIcon"
+    },
+    {
+      "name": "LinkedIn",
+      "url": "https://www.linkedin.com/company/lizzdo/",
+      "icon": "Linkedin"
+    },
+    {
+      "name": "Behance",
+      "url": "https://www.behance.net/lizzdo",
+      "icon": "BehanceIcon"
+    }
+  ],
+  "email": "hello@lizzdo.com",
+  "companyName": "Lizzdo Studio",
+  "whatsapp": "",
+  "googleMapsUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1m2!1s0x38d917b90f0e79cf%3A0xa816b2637f8ce5da!2sPeshawar%2C%20Khyber%20Pakhtunkhwa%2C%20Pakistan!5e0!3m2!1sen!2s!4v1714154425439!5m2!1sen!2s",
+  "formTitle": "Send us a Message",
+  "formDescription": "We'll get back to you as soon as possible."
+}

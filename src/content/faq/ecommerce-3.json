@@ -1,0 +1,8 @@
+{
+  "title": "Can you build custom stores from scratch?",
+  "question": "Can you build custom stores from scratch?",
+  "category": "ecommerce",
+  "answer": "For businesses outgrowing standard platforms, we build fully custom e-commerce engines using Node.js and React, providing total ownership over the checkout flow and database.",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Do you set up Analytics integrations?",
+  "question": "Do you set up Analytics integrations?",
+  "category": "game-dev",
+  "answer": "We implement advanced telemetry using tools like GameAnalytics to track player behavior, monitor drop-off points, and tweak difficulty curves based on real data.",
+  "published": true,
+  "featured": false
+}

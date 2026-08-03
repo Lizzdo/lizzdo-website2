@@ -1,0 +1,72 @@
+{
+  "title": "3D ANIMATION",
+  "slug": "3d-animation",
+  "description": "Rigging and lifelike animations for characters, cinematic trailers, and product demonstrations.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Bring your characters and concepts to life with broadcast-ready 3D animation. We specialize in custom character rigging, expressive face motion capture cleanup, keyframe character animation, dynamic particle simulation, and cinematic commercial production.",
+  "category": "Motion & Rigging",
+  "icon": "Video",
+  "color": "neon-purple",
+  "features": [
+    "Custom Character Rigging & Weighting",
+    "Keyframe & Mocap Refinement",
+    "VFX & Particle Dynamics",
+    "Cinematic Camera Work & Lighting"
+  ],
+  "benefits": [
+    "Hyper-realistic movement and character personality",
+    "Production-ready FBX/USD format exports for engines",
+    "High-impact cinematic marketing teasers",
+    "Seamless blend of physics simulation & keyframe polish"
+  ],
+  "process": [
+    {
+      "step": "Storyboarding & Animatic",
+      "desc": "Define shot list, timing, camera beats, and audio synchronization."
+    },
+    {
+      "step": "Rigging & Controls",
+      "desc": "Build inverse kinematics (IK/FK) character rigs with custom facial blendshapes."
+    },
+    {
+      "step": "Animation & Polish",
+      "desc": "Execute primary poses, secondary motion, overlapping action, and facial sync."
+    },
+    {
+      "step": "Lighting & Final Render",
+      "desc": "Apply raytraced studio lighting, post-processing VFX, and multi-pass compositor export."
+    }
+  ],
+  "deliverables": [
+    "Full HD / 4K ProRES & MP4 Video Exports",
+    "Rigged FBX / Blend / Maya Scene Files",
+    "FBX Animation Clip Files for Game Engines",
+    "Composited After Effects Source Project"
+  ],
+  "gallery": [
+    "/lizzdo-logo.png",
+    "/lizzdo-logo.png"
+  ],
+  "tech": [
+    {
+      "name": "Cinema 4D",
+      "tooltip": "Professional 3D modeling, animation, simulation and rendering software.",
+      "iconName": "SiCinema4d"
+    },
+    {
+      "name": "After Effects",
+      "tooltip": "Used for cinematic post-processing, VFX, and motion graphics.",
+      "iconName": "Video"
+    },
+    {
+      "name": "Maya",
+      "tooltip": "Industry standard software for 3D animation and character rigging.",
+      "iconName": "Video"
+    }
+  ],
+  "price": "Starting From $950",
+  "base_price": 950,
+  "delivery_time": "2-3 Weeks",
+  "published": true,
+  "featured": false
+}

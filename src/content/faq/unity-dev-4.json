@@ -1,0 +1,8 @@
+{
+  "title": "Can you implement multiplayer systems?",
+  "question": "Can you implement multiplayer systems?",
+  "category": "unity-dev",
+  "answer": "Yes, we engineer robust multiplayer architectures using Netcode for GameObjects, Photon (PUN/Fusion), or custom dedicated servers for lag-free competitive gameplay.",
+  "published": true,
+  "featured": false
+}

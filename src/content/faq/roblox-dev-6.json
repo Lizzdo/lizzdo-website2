@@ -1,0 +1,8 @@
+{
+  "title": "Do you provide Roblox scripting?",
+  "question": "Do you provide Roblox scripting?",
+  "category": "roblox-dev",
+  "answer": "Our Lua engineers write efficient, modular server and local client scripts for complex game loops, weapon systems, data stores, and anti-cheat infrastructures.",
+  "published": true,
+  "featured": false
+}

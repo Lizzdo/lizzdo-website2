@@ -1,0 +1,27 @@
+{
+  "title": "Louie",
+  "slug": "client-9-louie",
+  "company": "Web3 & NFT Game Development Studio",
+  "category": "Unity Engine",
+  "platform": "Unity Engine & Custom WebGL Builds",
+  "software": "Blender, Unity Engine, Substance Painter",
+  "engagementType": "Multi-Year Enterprise Retainer",
+  "milestoneStatus": "Long-Term Integration Complete",
+  "iconName": "Layers",
+  "requirements": "Comprehensive character and asset creation across a multi-year partnership. Projects ranged from creating base protagonist figures modeled after triple-A fantasy archetypes with separate, modular hair/beard assets, to crafting intricate dark warrior and goddess armor sets. The contract also covered shader setup, alpha cutout maps for glowing segments, and extensive material node optimizations.",
+  "achievements": [
+    "Supplied fully modular outfits with interchangeable mesh layers for dynamic visual adjustments",
+    "Configured sophisticated PBR materials with custom lighting nodes for crystal-emission highlights",
+    "Authored extensive technical documentation enabling seamless in-engine materials configuration"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Unity Engine & Custom WebGL Builds",
+  "project": "Multi-Year Enterprise Retainer",
+  "completionDate": "Long-Term Integration Complete",
+  "description": "Comprehensive character and asset creation across a multi-year partnership. Projects ranged from creating base protagonist figures modeled after triple-A fantasy archetypes with separate, modular hair/beard assets, to crafting intricate dark warrior and goddess armor sets. The contract also covered shader setup, alpha cutout maps for glowing segments, and extensive material node optimizations."
+}

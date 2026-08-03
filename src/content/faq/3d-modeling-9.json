@@ -1,0 +1,8 @@
+{
+  "title": "How do you perform 3D Optimization?",
+  "question": "How do you perform 3D Optimization?",
+  "category": "3d-modeling",
+  "answer": "We drastically reduce vertex counts, bake complex geometry details into normal maps, and pack UV atlases efficiently to lower memory overhead without sacrificing visual quality.",
+  "published": true,
+  "featured": false
+}

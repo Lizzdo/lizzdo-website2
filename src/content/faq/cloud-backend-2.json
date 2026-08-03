@@ -1,0 +1,8 @@
+{
+  "title": "Do you build custom APIs?",
+  "question": "Do you build custom APIs?",
+  "category": "cloud-backend",
+  "answer": "Yes, we design secure, well-documented RESTful and GraphQL APIs acting as the central intelligence bridge between your mobile apps, frontend web, and databases.",
+  "published": true,
+  "featured": false
+}

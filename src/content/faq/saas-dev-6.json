@@ -1,0 +1,8 @@
+{
+  "title": "Can your SaaS platforms integrate external APIs?",
+  "question": "Can your SaaS platforms integrate external APIs?",
+  "category": "saas-dev",
+  "answer": "Yes, we architect SaaS platforms to seamlessly consume external APIs and also develop secure, documented public API layers so your users can integrate your software into their own workflows.",
+  "published": true,
+  "featured": false
+}

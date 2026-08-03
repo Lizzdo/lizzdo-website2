@@ -1,0 +1,42 @@
+{
+  "title": "APP DEVELOPMENT",
+  "slug": "app-development",
+  "description": "Premium, fluid and native mobile application designs for Apple iOS and Google Android.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Service content goes here.",
+  "category": "Digital Platforms",
+  "icon": "Smartphone",
+  "color": "neon-purple",
+  "features": [
+    "iOS App Dev",
+    "Android App Dev",
+    "Cross-Platform Flutter",
+    "Cloud Sync Dev"
+  ],
+  "tech": [
+    {
+      "name": "Flutter",
+      "tooltip": "Google's UI toolkit for natively compiled applications across mobile, web, and desktop.",
+      "iconName": "SiFlutter"
+    },
+    {
+      "name": "React Native",
+      "tooltip": "Framework for building native apps using React.",
+      "iconName": "SiReact"
+    },
+    {
+      "name": "Android",
+      "tooltip": "Native mobile development.",
+      "iconName": "SiAndroid"
+    },
+    {
+      "name": "Firebase",
+      "tooltip": "App development platform.",
+      "iconName": "SiFirebase"
+    }
+  ],
+  "price": "Starting From $1,800",
+  "base_price": 1800,
+  "published": true,
+  "featured": false
+}

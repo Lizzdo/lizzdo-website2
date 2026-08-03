@@ -1,0 +1,14 @@
+{
+  "title": "Roblox Engine Evolution: Beyond the Blocks",
+  "slug": "roblox-engine-evolution",
+  "description": "Exploring the technical leaps in Roblox Studio that allow for AAA-style environments.",
+  "thumbnail": "/lizzdo-logo.png",
+  "date": "2026-04-05T00:00:00Z",
+  "author": "Marcus Johnson",
+  "category": [
+    "Game Dev"
+  ],
+  "body": "<p>The landscape of interactive digital environments has shifted dramatically. Roblox is no longer just a platform for simple blocky games. With the latest updates to the Luau engine and the introduction of advanced lighting systems, creators are building experiences that rival standalone indie titles.</p>\n      \n      <h3>Atmospheric Scattering and Volumetric Lighting</h3>\n      <p>The new lighting tools in Roblox Studio allow for incredibly moody and realistic environments. We've been experimenting with these features to create cyberpunk cityscapes that feel dense, humid, and alive.</p>\n      \n      <h3>Optimizing for Millions</h3>\n      <p>The challenge in Roblox development is always optimization. How do you deliver high-fidelity visuals to a player on a mobile device? Our latest workflow involves custom mesh LODs (Level of Detail) and aggressive texture memory management.</p>",
+  "published": true,
+  "order": 0
+}

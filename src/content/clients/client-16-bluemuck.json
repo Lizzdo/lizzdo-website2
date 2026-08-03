@@ -1,0 +1,27 @@
+{
+  "title": "Bluemuck",
+  "slug": "client-16-bluemuck",
+  "company": "Independent Game Studio",
+  "category": "Unity Engine",
+  "platform": "Unity HDRP Engine & Mixamo Systems",
+  "software": "Blender, Mixamo, Unity Engine",
+  "engagementType": "Heavy Mesh Optimization & Skeletal Alignment",
+  "milestoneStatus": "Ready-to-Animate HDRP Asset Delivered",
+  "iconName": "Ghost",
+  "requirements": "Optimization and redesign of multiple complex character assets. The primary horror creature required intensive polygon reduction from a massive scene payload down to low-latency limits, while consolidating fragmented objects into four unified material domains. The skeletal structure had to be fully configured to support major automated web-animation databases without visual clipping.",
+  "achievements": [
+    "Reduced file overhead by ninety-eight percent while preserving critical normal and skin details",
+    "Consolidated massive multi-material assets into highly efficient material assignments",
+    "Engineered automated-animation-ready rigging to replace corrupted third-party weight maps"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Unity HDRP Engine & Mixamo Systems",
+  "project": "Heavy Mesh Optimization & Skeletal Alignment",
+  "completionDate": "Ready-to-Animate HDRP Asset Delivered",
+  "description": "Optimization and redesign of multiple complex character assets. The primary horror creature required intensive polygon reduction from a massive scene payload down to low-latency limits, while consolidating fragmented objects into four unified material domains. The skeletal structure had to be fully configured to support major automated web-animation databases without visual clipping."
+}

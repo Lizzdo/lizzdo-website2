@@ -1,0 +1,8 @@
+{
+  "title": "Do you handle Unity asset creation?",
+  "question": "Do you handle Unity asset creation?",
+  "category": "unity-dev",
+  "answer": "Our in-house 3D modeling team works directly with our Unity developers to create perfectly scaled, rigged, and optimized PBR assets natively ready for engine implementation.",
+  "published": true,
+  "featured": false
+}

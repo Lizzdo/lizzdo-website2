@@ -1,0 +1,12 @@
+{
+  "title": "Blender 5.1.1 Workflow: From Concept to Production",
+  "slug": "blender-5-1",
+  "date": "2026-07-31T00:00:00Z",
+  "description": "Discover our refined Blender 5.1.1 workflow for creating highly optimized, production-ready 3D models for games and animation.",
+  "author": "LIZZDO Team",
+  "image": "/images/blog/blender-5-1.jpg",
+  "tags": ["Blender", "3D Modeling", "Workflow", "Tutorial"],
+  "body": "<p>When Blender 5.1.1 was released, it introduced game-changing improvements to the sculpting tools and asset management. For our studio, adapting to these changes meant overhauling our entire asset pipeline from the ground up to ensure maximum efficiency.</p><h3>Revolutionized Sculpting Workflow</h3><p>The updated multiresolution modifier and dynamic topology features allow our artists to push polygon limits without crashing the system. In this article, we dive deep into the specific brushed and custom hotkeys we use for rapid concept modeling.</p><h3>Optimized UV Unwrapping</h3><p>Gone are the days of manual seam placement for every minor prop. The AI-assisted UV unwrapping tool saves hours of manual labor, letting us focus on what really matters: high-quality texturing and storytelling.</p>",
+  "published": true,
+  "order": 1
+}

@@ -1,0 +1,37 @@
+{
+  "title": "UNITY & UNREAL",
+  "slug": "unity-unreal",
+  "description": "Engine-ready assets and full level construction for high-end PC and console games.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Service content goes here.",
+  "category": "Game Engines",
+  "icon": "Cpu",
+  "color": "neon-blue",
+  "features": [
+    "Level Design",
+    "Shader Development",
+    "Asset Integration",
+    "Optimization"
+  ],
+  "tech": [
+    {
+      "name": "Unity",
+      "tooltip": "Professional game engine used for mobile games, PC games, AR/VR experiences, and simulations.",
+      "iconName": "SiUnity"
+    },
+    {
+      "name": "Unreal Engine",
+      "tooltip": "Advanced real-time 3D creation tool for photoreal visuals and immersive experiences.",
+      "iconName": "SiUnrealengine"
+    },
+    {
+      "name": "C#",
+      "tooltip": "Primary programming language for developing performant scripts in Unity.",
+      "iconName": "Code"
+    }
+  ],
+  "price": "Starting From $1,600",
+  "base_price": 1600,
+  "published": true,
+  "featured": false
+}

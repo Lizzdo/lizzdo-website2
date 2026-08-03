@@ -1,0 +1,8 @@
+{
+  "title": "What is a Design System?",
+  "question": "What is a Design System?",
+  "category": "uiux-design",
+  "answer": "Instead of drawing screens, we build a cohesive component library (buttons, inputs, font hierarchies) in Figma, ensuring visual consistency as the project scales.",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Do you use multi-tenant architectures?",
+  "question": "Do you use multi-tenant architectures?",
+  "category": "saas-dev",
+  "answer": "Yes, we design secure multi-tenant database infrastructures ensuring strict data isolation between your customers while maintaining a highly scalable and maintainable codebase.",
+  "published": true,
+  "featured": false
+}

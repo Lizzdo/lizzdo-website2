@@ -1,0 +1,8 @@
+{
+  "title": "Do you update the software?",
+  "question": "Do you update the software?",
+  "category": "maintenance",
+  "answer": "Yes, under maintenance contracts, we actively patch security vulnerabilities, update framework dependencies (e.g., React or Node versions), and ensure integration APIs remain valid.",
+  "published": true,
+  "featured": false
+}

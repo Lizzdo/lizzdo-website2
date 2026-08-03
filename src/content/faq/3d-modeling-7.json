@@ -1,0 +1,8 @@
+{
+  "title": "What is PBR texturing?",
+  "question": "What is PBR texturing?",
+  "category": "3d-modeling",
+  "answer": "We use Physically Based Rendering (PBR) workflows via Substance Painter to author materials (albedo, roughness, metallic, normal) that react accurately to lighting in any engine.",
+  "published": true,
+  "featured": false
+}

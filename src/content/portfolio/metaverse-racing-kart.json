@@ -1,0 +1,16 @@
+{
+  "title": "METAVERSE RACING KART",
+  "slug": "metaverse-racing-kart",
+  "description": "A high-performance stylized vehicle system scripted in Luau for a massive multiplayer Roblox racing experience.",
+  "thumbnail": "/lizzdo-logo.png",
+  "gallery": [
+    "/lizzdo-logo.png"
+  ],
+  "categories": [
+    "ROBLOX",
+    "GAME DEV"
+  ],
+  "body": "\n### Challenge\nDeveloping a physics-based drifting mechanic within Roblox's engine that felt arcade-like but didn't suffer from server latency during 64-player races.\n\n### Solution\nWe decoupled the vehicle physics from the server, running predictive client-side motion while smoothly interpolating position data to prevent rubber-banding.\n\n### Results\n- 64 Player Support\n- Client-Side Prediction\n- 0.5s Latency Handling\n\n### Technologies Used\n- Roblox Studio\n- Luau\n- Maya\n\n### Client\nPixel Drift Studios\n",
+  "published": true,
+  "featured": false
+}

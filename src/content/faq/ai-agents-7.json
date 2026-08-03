@@ -1,0 +1,8 @@
+{
+  "title": "Can AI Agents use company documents?",
+  "question": "Can AI Agents use company documents?",
+  "category": "ai-agents",
+  "answer": "Using RAG (Retrieval-Augmented Generation) infrastructure, we train agents directly on your PDFs, company wikis, and SOPs so they provide hyper-accurate answers based strictly on your proprietary data.",
+  "published": true,
+  "featured": false
+}

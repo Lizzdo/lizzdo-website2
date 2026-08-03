@@ -1,0 +1,77 @@
+{
+  "title": "WEB DEVELOPMENT",
+  "slug": "web-development",
+  "description": "Interactive e-commerce web storefronts, highly custom Shopify models, and next-gen portfolios.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Building futuristic, ultra-fast web applications, custom e-commerce storefronts, 3D WebGL interactive experiences, and content-managed portals. Optimized for 100/100 Lighthouse performance, mobile responsiveness, seamless SEO, and headless CMS integrations.",
+  "category": "Digital Platforms",
+  "icon": "Code",
+  "color": "neon-cyan",
+  "features": [
+    "Full-Stack React & Next.js Applications",
+    "Headless E-Commerce & Shopify Integration",
+    "3D Canvas & WebGL Interactive Shader FX",
+    "Decap CMS & Headless Content Management"
+  ],
+  "benefits": [
+    "Sub-second page loading speeds and lightning fast navigation",
+    "Full responsive design matching all desktop and mobile displays",
+    "Built-in SEO metadata, OpenGraph cards, and schema tags",
+    "Easy self-editing content management interface"
+  ],
+  "process": [
+    {
+      "step": "Architecture & Wireframing",
+      "desc": "Map user journeys, data schemas, component tree, and responsive grid layouts."
+    },
+    {
+      "step": "UI/UX & Shader Prototyping",
+      "desc": "Design dark futuristic UI components, glassmorphism panels, and smooth Framer Motion animations."
+    },
+    {
+      "step": "Frontend & CMS Integration",
+      "desc": "Develop type-safe React code, connect CMS hooks, and build API endpoints."
+    },
+    {
+      "step": "Performance Audit & Deployment",
+      "desc": "Optimize bundle sizes, audit accessibility, test mobile touch gestures, and deploy to Cloudflare Pages / Vercel."
+    }
+  ],
+  "deliverables": [
+    "Clean TypeScript Source Code Repository",
+    "Configured Decap / Sanity / Headless CMS Admin Portal",
+    "Production Automated CI/CD Deployment Script",
+    "Complete Technical Documentation & Brand Guidelines"
+  ],
+  "gallery": [
+    "/lizzdo-logo.png",
+    "/lizzdo-logo.png"
+  ],
+  "tech": [
+    {
+      "name": "React",
+      "tooltip": "Industry-standard UI library for building interactive user interfaces.",
+      "iconName": "SiReact"
+    },
+    {
+      "name": "Next.js",
+      "tooltip": "React framework for production grade, optimized applications.",
+      "iconName": "SiNextdotjs"
+    },
+    {
+      "name": "Node.js",
+      "tooltip": "Backend runtime environment for fast, scalable network applications.",
+      "iconName": "SiNodedotjs"
+    },
+    {
+      "name": "WordPress",
+      "tooltip": "World's most popular content management system.",
+      "iconName": "SiWordpress"
+    }
+  ],
+  "price": "Starting From $1,200",
+  "base_price": 1200,
+  "delivery_time": "2 Weeks",
+  "published": true,
+  "featured": false
+}

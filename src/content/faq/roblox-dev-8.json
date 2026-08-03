@@ -1,0 +1,8 @@
+{
+  "title": "How do you optimize for Roblox?",
+  "question": "How do you optimize for Roblox?",
+  "category": "roblox-dev",
+  "answer": "We strictly manage memory limits, Streaming Enabled properties, and mesh collision geometries to ensure the game runs smoothly for Mobile and low-end PC players.",
+  "published": true,
+  "featured": false
+}

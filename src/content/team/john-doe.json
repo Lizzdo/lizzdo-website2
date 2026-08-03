@@ -1,0 +1,21 @@
+{
+  "order": 1,
+  "name": "John Doe",
+  "role": "Lead Developer",
+  "bio": "Expert in 3D web technologies with 10 years of experience.",
+  "thumbnail": "/lizzdo-logo.png",
+  "socials": [
+    {
+      "platform": "Twitter",
+      "url": "https://twitter.com",
+      "icon": "Twitter"
+    },
+    {
+      "platform": "GitHub",
+      "url": "https://github.com",
+      "icon": "Github"
+    }
+  ],
+  "active": true,
+  "github": "https://github.com"
+}

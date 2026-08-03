@@ -1,0 +1,27 @@
+{
+  "title": "Aetheria Labs",
+  "slug": "client-24-aetheria-labs",
+  "company": "Digital Wellness Ecosystem",
+  "category": "Web & App Dev",
+  "platform": "Mobile Operating Systems (iOS & Android)",
+  "software": "Flutter, React Native, Swift, Kotlin",
+  "engagementType": "Seamless Cross-Platform Application Architecture",
+  "milestoneStatus": "Application Live Globals",
+  "iconName": "Smartphone",
+  "requirements": "Crafting a premium, fluid cross-platform mobile application dedicated to guided bio-regulatory and cognitive wellness routines. The application required highly sophisticated, low-latency fluid page transitions, offline-first local data synchronization, real-time background sound mixers, and dynamic interactive ambient animations responding to user breathing rates.",
+  "achievements": [
+    "Engineered premium custom physics-based UI page transitions and tactile responses inside native rendering loops",
+    "Developed offline-first data synchronization layers and background-thread sound mixers for consistent audio feedback",
+    "Optimized initial execution sequences to allow rapid load cycles across multiple mobile device generations"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Mobile Operating Systems (iOS & Android)",
+  "project": "Seamless Cross-Platform Application Architecture",
+  "completionDate": "Application Live Globals",
+  "description": "Crafting a premium, fluid cross-platform mobile application dedicated to guided bio-regulatory and cognitive wellness routines. The application required highly sophisticated, low-latency fluid page transitions, offline-first local data synchronization, real-time background sound mixers, and dynamic interactive ambient animations responding to user breathing rates."
+}

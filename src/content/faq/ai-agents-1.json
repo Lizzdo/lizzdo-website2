@@ -1,0 +1,8 @@
+{
+  "title": "What are AI Agents?",
+  "question": "What are AI Agents?",
+  "category": "ai-agents",
+  "answer": "Unlike simple chatbots, AI Agents are autonomous systems capable of understanding intent, querying internal databases in real-time, executing multistep logic, and taking actions (like booking a meeting) on behalf of the user.",
+  "published": true,
+  "featured": false
+}

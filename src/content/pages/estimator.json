@@ -1,0 +1,40 @@
+{
+  "title": "Instant Project Estimator",
+  "subtitle": "Calculate an immediate budget window for your 3D modeling, animation, mobile app, web platform, game, or AI project.",
+  "faq_title": "Project Estimator FAQ",
+  "faq_subtitle": "Everything you need to know about our pricing, estimations, and project consultation process.",
+  "faqs": [
+    {
+      "question": "How accurate is the estimate?",
+      "answer": "Our estimator calculates real-time price ranges using base rates and complexity multipliers configured directly in our operational database. While highly accurate for single or standard workflows, complex multi-disciplinary projects receive a refined formal quote after a 30-minute discovery consultation."
+    },
+    {
+      "question": "Is this estimate a final quotation?",
+      "answer": "No, the estimator provides an initial benchmark window. Once you click 'Request Quote', your parameters are pre-filled into our project intake form, enabling our technical leads to prepare a detailed, binding statement of work tailored to your exact technical specifications."
+    },
+    {
+      "question": "Can I combine multiple services in one project?",
+      "answer": "Yes! Many client projects span sequential creative pipelines — such as 3D Modeling → Rigging → Animation → Texturing → Game Engine Integration, or Web UI/UX → Full-Stack API → Mobile App → AI Agent Integration. Select your primary service in the estimator, and you can detail all complementary pipeline stages in your inquiry form or during discovery."
+    },
+    {
+      "question": "What happens after I request a quote?",
+      "answer": "Your estimated parameters and project details are instantly routed to our team. A senior producer will review your requirements, confirm technical feasibility, and respond within 24 hours to schedule a brief discovery video call or send a formal proposal."
+    },
+    {
+      "question": "Can I request a custom budget or phased delivery?",
+      "answer": "Absolutely. If you have a strict milestone budget, we can architect your project into modular phases (MVP → Phase 1 → Scale), prioritizing high-impact features first while remaining aligned with your target budget constraints."
+    },
+    {
+      "question": "How are timelines calculated?",
+      "answer": "Timelines are calculated based on service benchmark duration and delivery urgency (Flexible, Standard, Priority, or Rush). Rush orders allocate dedicated sprint engineering capacity to fast-track production without compromising QA or code/asset standards."
+    },
+    {
+      "question": "Are revisions included in the estimate?",
+      "answer": "Yes! All standard estimates include 2 to 3 structured review rounds per milestone phase to ensure final deliverables align 100% with your art direction and technical acceptance criteria."
+    },
+    {
+      "question": "Can I update my requirements later?",
+      "answer": "Of course. Software and 3D pipelines are naturally iterative. If scope changes during production, we issue clear change requests with transparent pricing updates before work begins."
+    }
+  ]
+}

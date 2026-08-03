@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LIZZDO Content Manager | Decap CMS</title>
+  </head>
+  <body>
+    <!-- Enable manual initialization to prevent race conditions or double mounts -->
+    <script>
+      window.CMS_MANUAL_INIT = true;
+    </script>
+    <!-- Decap CMS Core Library -->
+    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <!-- Initialize Decap CMS after script load -->
+    <script>
+      if (window.CMS) {
+        window.CMS.init();
+      }
+    </script>
+  </body>
+</html>
+

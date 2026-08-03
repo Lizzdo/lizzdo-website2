@@ -1,0 +1,9 @@
+{
+  "title": "Multiplayer Game Architecture",
+  "slug": "multiplayer-architecture",
+  "category": "unity-dev",
+  "description": "Client-prediction, server-authoritative logic, and rollback netcode.",
+  "author": "LIZZDO Network Architecture",
+  "date": "May 01, 2026",
+  "readTime": "14 min read"
+}

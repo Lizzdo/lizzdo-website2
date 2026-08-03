@@ -1,0 +1,476 @@
+site_url: https://lizzdo.com
+display_url: https://lizzdo.com
+
+# Backend Configuration for Decap CMS + GitHub + Cloudflare Pages
+backend:
+  name: github
+  repo: LIZZDO/lizzdo-website
+  branch: main
+  base_url: https://lizzdo-cms-auth.lets3do.workers.dev # Base URL for Cloudflare Worker OAuth Proxy
+  auth_endpoint: auth                          # OAuth login endpoint
+
+media_folder: "public/uploads"
+public_folder: "/uploads"
+
+collections:
+  - name: "services"
+    label: "Services"
+    folder: "src/content/services"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "title"
+    slug: "{{slug}}"
+    fields:
+      - {label: "Service Title", name: "title", widget: "string"}
+      - {label: "URL Slug", name: "slug", widget: "string"}
+      - {label: "Short Description", name: "description", widget: "text"}
+      - {label: "Full Description", name: "body", widget: "markdown", required: false}
+      - {label: "Service Icon", name: "icon", widget: "string", required: false}
+      - {label: "Color Theme", name: "color", widget: "string", required: false, default: "neon-cyan"}
+      - {label: "Featured Image", name: "thumbnail", widget: "image", required: false}
+      - {label: "Gallery Images", name: "gallery", widget: "list", field: {label: "Image", name: "image", widget: "image"}, required: false}
+      - {label: "Category", name: "category", widget: "string", required: false}
+      - {label: "Tags", name: "tags", widget: "list", required: false}
+      - {label: "Features", name: "features", widget: "list", required: false}
+      - {label: "Deliverables", name: "deliverables", widget: "list", required: false}
+      - {label: "Software or Technologies Used", name: "tech", widget: "list", fields: [{label: "Name", name: "name", widget: "string"}, {label: "Tooltip", name: "tooltip", widget: "text"}, {label: "Icon Name", name: "iconName", widget: "string"}], required: false}
+      - {label: "Estimated Delivery Time", name: "delivery_time", widget: "string", required: false}
+      - {label: "Starting Price", name: "price", widget: "string", required: false}
+      - {label: "Numeric Base Price for Estimator ($)", name: "base_price", widget: "number", value_type: "float", required: false}
+      - {label: "Call-to-Action Button Text", name: "cta_text", widget: "string", required: false}
+      - {label: "Call-to-Action Button URL", name: "cta_url", widget: "string", required: false}
+      - {label: "Featured Status", name: "featured", widget: "boolean", default: false, required: false}
+      - {label: "Published or Draft Status", name: "published", widget: "boolean", default: true, required: false}
+      - {label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0, required: false}
+      - {label: "SEO Title", name: "seo_title", widget: "string", required: false}
+      - {label: "SEO Description", name: "seo_description", widget: "text", required: false}
+      - {label: "Open Graph Image", name: "og_image", widget: "image", required: false}
+  - name: "portfolio"
+    label: "Portfolio Projects"
+    folder: "src/content/portfolio"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "title"
+    slug: "{{slug}}"
+    fields:
+      - {label: "Project Title", name: "title", widget: "string"}
+      - {label: "URL Slug", name: "slug", widget: "string"}
+      - {label: "Short Description", name: "description", widget: "text", required: false}
+      - {label: "Full Description", name: "body", widget: "markdown", required: false}
+      - {label: "Featured Image", name: "thumbnail", widget: "image", required: false}
+      - {label: "Gallery Images", name: "gallery", widget: "list", field: {label: "Image", name: "image", widget: "image"}, required: false}
+      - {label: "Project Video URL (YouTube/Vimeo)", name: "video", widget: "string", required: false}
+      - {label: "Legacy Videos", name: "videos", widget: "list", field: {label: "Video URL", name: "url", widget: "string"}, required: false}
+      - {label: "Categories", name: "categories", widget: "list", required: false}
+      - {label: "Tags", name: "tags", widget: "list", required: false}
+      - {label: "Client Name", name: "client", widget: "string", required: false}
+      - {label: "Industry", name: "industry", widget: "string", required: false}
+      - {label: "Software Used", name: "software", widget: "list", required: false}
+      - {label: "Technologies", name: "technologies", widget: "list", required: false}
+      - {label: "Project Date", name: "date", widget: "string", required: false}
+      - {label: "Project Duration", name: "duration", widget: "string", required: false}
+      - {label: "My Role", name: "role", widget: "string", required: false}
+      - {label: "Project Goals", name: "goals", widget: "text", required: false}
+      - {label: "Challenges", name: "challenges", widget: "text", required: false}
+      - {label: "Solution", name: "solution", widget: "text", required: false}
+      - {label: "Results", name: "results", widget: "text", required: false}
+      - {label: "External Website", name: "website", widget: "string", required: false}
+      - {label: "GitHub Repository", name: "github", widget: "string", required: false}
+      - {label: "Download Files", name: "download_link", widget: "string", required: false}
+      - {label: "SEO Title", name: "seo_title", widget: "string", required: false}
+      - {label: "SEO Description", name: "seo_description", widget: "text", required: false}
+      - {label: "Open Graph Image", name: "og_image", widget: "image", required: false}
+      - {label: "Featured Project", name: "featured", widget: "boolean", default: false, required: false}
+      - {label: "Published/Hide", name: "published", widget: "boolean", default: true, required: false}
+      - {label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0, required: false}
+  - name: "store"
+    label: "Store Products"
+    folder: "src/content/store"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "title"
+    slug: "{{slug}}"
+    fields:
+      - {label: "Product Name", name: "title", widget: "string"}
+      - {label: "URL Slug", name: "slug", widget: "string"}
+      - {label: "Short Description", name: "description", widget: "text", required: false}
+      - {label: "Full Description", name: "body", widget: "markdown", required: false}
+      - {label: "Featured Image", name: "thumbnail", widget: "image", required: false}
+      - {label: "Gallery Images", name: "gallery", widget: "list", field: {label: "Image", name: "image", widget: "image"}, required: false}
+      - {label: "Product Preview Video URL", name: "video", widget: "string", required: false}
+      - {label: "Categories", name: "category", widget: "list", required: false}
+      - {label: "Tags", name: "tags", widget: "list", required: false}
+      - {label: "Price", name: "price", widget: "number", value_type: "float", required: false}
+      - {label: "Sale Price", name: "sale_price", widget: "number", value_type: "float", required: false}
+      - {label: "Product Type", name: "product_type", widget: "string", required: false}
+      - {label: "SKU", name: "sku", widget: "string", required: false}
+      - {label: "Version", name: "version", widget: "string", required: false}
+      - {label: "File Size", name: "file_size", widget: "string", required: false}
+      - {label: "File Format", name: "format", widget: "string", required: false}
+      - {label: "Compatibility", name: "compatibility", widget: "list", required: false}
+      - {label: "System Requirements", name: "requirements", widget: "text", required: false}
+      - {label: "Features", name: "features", widget: "list", required: false}
+      - {label: "Included Files", name: "included_files", widget: "list", required: false}
+      - {label: "Documentation URL", name: "documentation", widget: "string", required: false}
+      - {label: "Installation Guide URL", name: "installation", widget: "string", required: false}
+      - {label: "Download Demo URL", name: "demo_url", widget: "string", required: false}
+      - {label: "External URL", name: "external_url", widget: "string", required: false}
+      - {label: "Buy Now URL", name: "buy_url", widget: "string", required: false}
+      - {label: "Contact for Customization URL", name: "customization_url", widget: "string", required: false}
+      - {label: "SEO Title", name: "seo_title", widget: "string", required: false}
+      - {label: "SEO Description", name: "seo_description", widget: "text", required: false}
+      - {label: "Open Graph Image", name: "og_image", widget: "image", required: false}
+      - {label: "Featured Product", name: "featured", widget: "boolean", default: false, required: false}
+      - {label: "Published/Hide", name: "published", widget: "boolean", default: true, required: false}
+      - {label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0, required: false}
+  - name: "blog"
+    label: "Blog Posts"
+    folder: "src/content/blog"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "title"
+    slug: "{{slug}}"
+    fields:
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "Slug", name: "slug", widget: "string"}
+      - {label: "Featured Image", name: "thumbnail", widget: "image", required: false}
+      - {label: "Gallery Images", name: "gallery", widget: "list", field: {label: "Image", name: "image", widget: "image"}, required: false}
+      - {label: "Author", name: "author", widget: "string", required: false}
+      - {label: "Author Photo", name: "author_photo", widget: "image", required: false}
+      - {label: "Publish Date", name: "date", widget: "datetime"}
+      - {label: "Last Updated", name: "last_updated", widget: "datetime", required: false}
+      - {label: "Short Description", name: "description", widget: "text", required: false}
+      - {label: "Full Content", name: "body", widget: "markdown", required: false}
+      - {label: "Categories", name: "category", widget: "list", required: false}
+      - {label: "Tags", name: "tags", widget: "list", required: false}
+      - {label: "Featured Post", name: "featured", widget: "boolean", default: false, required: false}
+      - {label: "Reading Time", name: "readTime", widget: "string", required: false}
+      - {label: "Table of Contents", name: "toc", widget: "boolean", default: false, required: false}
+      - {label: "Related Posts", name: "related_posts", widget: "list", required: false}
+      - {label: "SEO Title", name: "seo_title", widget: "string", required: false}
+      - {label: "SEO Description", name: "seo_description", widget: "text", required: false}
+      - {label: "Open Graph Image", name: "og_image", widget: "image", required: false}
+      - {label: "Canonical URL", name: "canonical_url", widget: "string", required: false}
+      - {label: "Published/Draft Status", name: "published", widget: "boolean", default: true, required: false}
+      - {label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0, required: false}
+  - name: "clients"
+    label: "Clients"
+    folder: "src/content/clients"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "title"
+    slug: "{{slug}}"
+    fields:
+      - {label: "Client Name", name: "title", widget: "string"}
+      - {label: "Company Logo", name: "clientLogoUrl", widget: "image", required: false}
+      - {label: "Cover Image", name: "coverImage", widget: "image", required: false}
+      - {label: "Company Website", name: "websiteLink", widget: "string", required: false}
+      - {label: "Company Description", name: "description", widget: "text", required: false}
+      - {label: "Industry", name: "industry", widget: "string", required: false}
+      - {label: "Country", name: "country", widget: "string", required: false}
+      - {label: "Project Completed", name: "project", widget: "string", required: false}
+      - {label: "Project Category", name: "category", widget: "string", required: false}
+      - {label: "Completion Date", name: "completionDate", widget: "string", required: false}
+      - {label: "Testimonial", name: "review", widget: "text", required: false}
+      - {label: "Client Contact Name", name: "contactName", widget: "string", required: false}
+      - {label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0, required: false}
+      - {label: "Featured Client", name: "featured", widget: "boolean", default: false, required: false}
+      - {label: "Published/Hide", name: "published", widget: "boolean", default: true, required: false}
+  - name: "team"
+    label: "Team Members"
+    folder: "src/content/team"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "name"
+    slug: "{{slug}}"
+    fields:
+      - {label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0, required: false}
+      - {label: "Active Status", name: "active", widget: "boolean", default: true, required: false}
+      - {label: "Full Name", name: "name", widget: "string"}
+      - {label: "Job Title or Position", name: "role", widget: "string"}
+      - {label: "Short Biography", name: "bio", widget: "text"}
+      - {label: "Profile Photo", name: "thumbnail", widget: "image", required: false}
+      - {label: "Email", name: "email", widget: "string", required: false}
+      - {label: "LinkedIn URL", name: "linkedin", widget: "string", required: false}
+      - {label: "GitHub URL", name: "github", widget: "string", required: false}
+      - {label: "Instagram URL", name: "instagram", widget: "string", required: false}
+      - {label: "Website URL", name: "website", widget: "string", required: false}
+      - {label: "Legacy Social Links", name: "socials", widget: "list", fields: [{label: "Platform", name: "platform", widget: "string"}, {label: "URL", name: "url", widget: "string"}, {label: "Icon", name: "icon", widget: "string"}], required: false}
+  - name: "faq"
+    label: "FAQs"
+    folder: "src/content/faq"
+    create: true
+    extension: "json"
+    format: "json"
+    identifier_field: "question"
+    slug: "{{slug}}"
+    fields:
+      - {label: "Question", name: "question", widget: "string"}
+      - {label: "Answer", name: "answer", widget: "markdown"}
+      - {label: "Category", name: "category", widget: "string"}
+      - {label: "Tags", name: "tags", widget: "list", required: false}
+      - {label: "Display Order", name: "order", widget: "number", value_type: "int", default: 0, required: false}
+      - {label: "Featured FAQ", name: "featured", widget: "boolean", default: false, required: false}
+      - {label: "Published/Hide", name: "published", widget: "boolean", default: true, required: false}
+  - name: "pages"
+    label: "Pages"
+    files:
+      - file: "src/content/pages/home.json"
+        label: "Home Page"
+        name: "home"
+        fields:
+          - {label: "Hero Section", name: "hero", widget: "object", fields: [
+              {label: "Headline", name: "headline", widget: "string"},
+              {label: "Highlighted Text", name: "highlight", widget: "string", required: false},
+              {label: "Subtitle", name: "subtitle", widget: "string", required: false},
+              {label: "Description", name: "description", widget: "text", required: false},
+              {label: "Primary Button Text", name: "primary_btn", widget: "string"},
+              {label: "Primary Button URL", name: "primary_url", widget: "string"},
+              {label: "Secondary Button Text", name: "secondary_btn", widget: "string", required: false},
+              {label: "Secondary Button URL", name: "secondary_url", widget: "string", required: false},
+              {label: "Hero Image or Media", name: "hero_image", widget: "image", required: false}
+            ]}
+          - {label: "Featured Services Section", name: "featured_services", widget: "object", fields: [
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Subtitle", name: "subtitle", widget: "text", required: false},
+              {label: "Selected Services", name: "services_list", widget: "relation", collection: "services", search_fields: ["title"], value_field: "slug", display_fields: ["title"], multiple: true, required: false},
+              {label: "Button Text", name: "btn_text", widget: "string", required: false},
+              {label: "Button URL", name: "btn_url", widget: "string", required: false}
+            ]}
+          - {label: "Featured Portfolio Section", name: "featured_portfolio", widget: "object", fields: [
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Subtitle", name: "subtitle", widget: "text", required: false},
+              {label: "Selected Portfolio", name: "portfolio_list", widget: "relation", collection: "portfolio", search_fields: ["title"], value_field: "slug", display_fields: ["title"], multiple: true, required: false},
+              {label: "Button Text", name: "btn_text", widget: "string", required: false},
+              {label: "Button URL", name: "btn_url", widget: "string", required: false}
+            ]}
+          - {label: "Featured Clients Section", name: "featured_clients", widget: "object", fields: [
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Subtitle", name: "subtitle", widget: "text", required: false},
+              {label: "Selected Clients", name: "clients_list", widget: "relation", collection: "clients", search_fields: ["title"], value_field: "slug", display_fields: ["title"], multiple: true, required: false}
+            ]}
+          - {label: "Statistics", name: "statistics", widget: "list", fields: [
+              {label: "Value", name: "value", widget: "string"},
+              {label: "Label", name: "label", widget: "string"},
+              {label: "Icon", name: "icon", widget: "string", required: false}
+            ]}
+          - {label: "Testimonials Section", name: "testimonials", widget: "object", fields: [
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Testimonials List", name: "list", widget: "list", fields: [
+                {label: "Client Name", name: "author", widget: "string"},
+                {label: "Job Title or Company", name: "role", widget: "string", required: false},
+                {label: "Profile Image", name: "thumbnail", widget: "image", required: false},
+                {label: "Testimonial Text", name: "quote", widget: "text"},
+                {label: "Rating", name: "rating", widget: "number", value_type: "int", min: 1, max: 5, required: false}
+              ], required: false}
+            ]}
+          - {label: "FAQs Section", name: "faqs", widget: "object", fields: [
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Subtitle", name: "subtitle", widget: "text", required: false},
+              {label: "Selected FAQs", name: "faqs_list", widget: "relation", collection: "faq", search_fields: ["question"], value_field: "slug", display_fields: ["question"], multiple: true, required: false},
+              {label: "Button Text", name: "btn_text", widget: "string", required: false},
+              {label: "Button URL", name: "btn_url", widget: "string", required: false}
+            ]}
+          - {label: "Featured Blog Section", name: "featured_blog", widget: "object", fields: [
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Subtitle", name: "subtitle", widget: "text", required: false},
+              {label: "Selected Blogs", name: "blog_list", widget: "relation", collection: "blog", search_fields: ["title"], value_field: "slug", display_fields: ["title"], multiple: true, required: false},
+              {label: "Button Text", name: "btn_text", widget: "string", required: false},
+              {label: "Button URL", name: "btn_url", widget: "string", required: false}
+            ]}
+          - {label: "Call to Action", name: "cta", widget: "object", fields: [
+              {label: "Headline", name: "headline", widget: "string"},
+              {label: "Description", name: "description", widget: "text", required: false},
+              {label: "Button Text", name: "btn_text", widget: "string"},
+              {label: "Button URL", name: "btn_url", widget: "string"},
+              {label: "Background Image", name: "bg_image", widget: "image", required: false}
+            ]}
+      - file: "src/content/pages/about.json"
+        label: "About Page"
+        name: "about"
+        fields:
+          - {label: "Company Information", name: "company_info", widget: "object", fields: [
+              {label: "Company Name", name: "name", widget: "string", required: false},
+              {label: "Company Tagline", name: "tagline", widget: "string", required: false},
+              {label: "Short Company Description", name: "short_desc", widget: "text", required: false},
+              {label: "Full Company Story", name: "full_story", widget: "text", required: false},
+              {label: "Company Logo", name: "logo", widget: "image", required: false},
+              {label: "Company Image", name: "image", widget: "image", required: false},
+              {label: "Company Location", name: "location", widget: "string", required: false},
+              {label: "Company Email", name: "email", widget: "string", required: false},
+              {label: "Company Phone Number", name: "phone", widget: "string", required: false},
+              {label: "Company Website", name: "website", widget: "string", required: false},
+              {label: "Founded Year", name: "founded_year", widget: "string", required: false}
+            ]}
+          - {label: "Mission Section", name: "mission_section", widget: "object", fields: [
+              {label: "Section Title", name: "title", widget: "string", required: false},
+              {label: "Mission Heading", name: "heading", widget: "string", required: false},
+              {label: "Mission Description", name: "description", widget: "text", required: false},
+              {label: "Mission Image or Icon", name: "image", widget: "image", required: false}
+            ]}
+          - {label: "Vision Section", name: "vision_section", widget: "object", fields: [
+              {label: "Section Title", name: "title", widget: "string", required: false},
+              {label: "Vision Heading", name: "heading", widget: "string", required: false},
+              {label: "Vision Description", name: "description", widget: "text", required: false},
+              {label: "Vision Image or Icon", name: "image", widget: "image", required: false}
+            ]}
+          - {label: "Company Story Section", name: "story_section", widget: "object", fields: [
+              {label: "Section Heading", name: "heading", widget: "string", required: false},
+              {label: "Full Story Content", name: "content", widget: "markdown", required: false},
+              {label: "Images", name: "images", widget: "list", field: {label: "Image", name: "image", widget: "image"}, required: false},
+              {label: "Important Milestones", name: "milestones", widget: "list", fields: [{label: "Milestone", name: "milestone", widget: "string"}, {label: "Description", name: "desc", widget: "text"}], required: false},
+              {label: "Supporting Text", name: "supporting_text", widget: "text", required: false}
+            ]}
+          - {label: "Company Timeline", name: "timeline", widget: "list", fields: [
+              {label: "Year or Date", name: "year", widget: "string"},
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Description", name: "description", widget: "text"},
+              {label: "Image or Icon", name: "image", widget: "image", required: false},
+              {label: "Display Order", name: "order", widget: "number", value_type: "int", required: false, default: 0}
+            ]}
+          - {label: "Legacy Company Info (Do not remove, for backwards compatibility)", name: "company", widget: "object", fields: [
+              {label: "Headline", name: "headline", widget: "string", required: false},
+              {label: "Subtitle", name: "subtitle", widget: "text", required: false},
+              {label: "Image", name: "image", widget: "image", required: false}
+            ], required: false}
+          - {label: "Legacy Stats", name: "stats", widget: "list", fields: [{label: "Label", name: "label", widget: "string"}, {label: "Value", name: "value", widget: "string"}], required: false}
+          - {label: "Legacy Values", name: "values", widget: "list", fields: [{label: "Title", name: "title", widget: "string"}, {label: "Icon", name: "icon", widget: "string"}, {label: "Description", name: "desc", widget: "text"}], required: false}
+          - {label: "Legacy Story", name: "story", widget: "markdown", required: false}
+          - {label: "Legacy Mission", name: "mission", widget: "markdown", required: false}
+          - {label: "Legacy Vision", name: "vision", widget: "markdown", required: false}
+      - file: "src/content/pages/services.json"
+        label: "Services Page"
+        name: "services"
+        fields:
+          - {label: "Workflow", name: "workflow", widget: "list", fields: [{label: "Step", name: "step", widget: "string"}, {label: "Title", name: "title", widget: "string"}, {label: "Description", name: "desc", widget: "text"}, {label: "Color", name: "color", widget: "string"}]}
+          - {label: "Trust Sections", name: "trustSections", widget: "list", fields: [{label: "Icon", name: "icon", widget: "string"}, {label: "Title", name: "title", widget: "string"}, {label: "Color", name: "color", widget: "string"}, {label: "Description", name: "desc", widget: "text"}]}
+      - file: "src/content/pages/portfolio.json"
+        label: "Portfolio Page"
+        name: "portfolio"
+        fields:
+          - {label: "Headline", name: "headline", widget: "string"}
+          - {label: "Subtitle", name: "subtitle", widget: "text"}
+
+      - file: "src/content/pages/store.json"
+        label: "Store Page"
+        name: "store"
+        fields:
+          - {label: "Headline", name: "headline", widget: "string"}
+          - {label: "Subtitle", name: "subtitle", widget: "text"}
+
+      - file: "src/content/pages/blog.json"
+        label: "Blog Page"
+        name: "blog"
+        fields:
+          - {label: "Headline", name: "headline", widget: "string"}
+          - {label: "Subtitle", name: "subtitle", widget: "text"}
+
+      - file: "src/content/pages/clients.json"
+        label: "Clients Page"
+        name: "clients"
+        fields:
+          - {label: "Headline", name: "headline", widget: "string"}
+          - {label: "Subtitle", name: "subtitle", widget: "text"}
+
+      - file: "src/content/pages/faq.json"
+        label: "FAQ Page"
+        name: "faq"
+        fields:
+          - {label: "Headline", name: "headline", widget: "string"}
+          - {label: "Subtitle", name: "subtitle", widget: "text"}
+
+      - file: "src/content/pages/contact.json"
+        label: "Contact Page"
+        name: "contact"
+        fields:
+          - {label: "Contact Page Heading", name: "headline", widget: "string"}
+          - {label: "Contact Description", name: "subtitle", widget: "text"}
+          - {label: "Company Name", name: "companyName", widget: "string", required: false}
+          - {label: "Contact Email", name: "email", widget: "string", required: false}
+          - {label: "Additional Contact Emails", name: "emails", widget: "list", field: {label: "Email Address", widget: "string"}, required: false}
+          - {label: "Phone Number", name: "phone", widget: "string", required: false}
+          - {label: "WhatsApp Number", name: "whatsapp", widget: "string", required: false}
+          - {label: "Office Address", name: "location", widget: "text", required: false}
+          - {label: "Google Maps Embed URL", name: "googleMapsUrl", widget: "string", required: false}
+          - {label: "Business Hours", name: "hours", widget: "text", required: false}
+          - {label: "Contact Form Title", name: "formTitle", widget: "string", required: false}
+          - {label: "Contact Form Description", name: "formDescription", widget: "text", required: false}
+          - {label: "Socials", name: "socials", widget: "list", fields: [{label: "Name", name: "name", widget: "string"}, {label: "URL", name: "url", widget: "string"}, {label: "Icon", name: "icon", widget: "string"}], required: false}
+      - file: "src/content/pages/estimator.json"
+        label: "Project Estimator Page"
+        name: "estimator"
+        fields:
+          - {label: "Page Title", name: "title", widget: "string"}
+          - {label: "Page Subtitle", name: "subtitle", widget: "text"}
+          - {label: "FAQ Section Title", name: "faq_title", widget: "string"}
+          - {label: "FAQ Section Subtitle", name: "faq_subtitle", widget: "text"}
+          - {label: "FAQs List", name: "faqs", widget: "list", fields: [
+              {label: "Question", name: "question", widget: "string"},
+              {label: "Answer", name: "answer", widget: "text"}
+            ]}
+
+  - name: "settings"
+    label: "Global Settings"
+    files:
+      - file: "src/content/settings/global.json"
+        label: "Global Settings"
+        name: "global"
+        fields:
+          - {label: "Website Name", name: "site_name", widget: "string"}
+          - {label: "Website Tagline", name: "tagline", widget: "string", required: false}
+          - {label: "Company Name", name: "company_name", widget: "string", required: false}
+          - {label: "Company Description", name: "company_info", widget: "text", required: false}
+          - {label: "Logo", name: "logo", widget: "image", required: false}
+          - {label: "Favicon", name: "favicon", widget: "image", required: false}
+          - {label: "Default SEO Title", name: "default_title", widget: "string", required: false}
+          - {label: "Default SEO Description", name: "default_description", widget: "text", required: false}
+          - {label: "Default Open Graph Image", name: "default_og_image", widget: "image", required: false}
+          - {label: "Copyright Text", name: "copyright", widget: "string", required: false}
+          - {label: "Footer Text", name: "footer_text", widget: "text", required: false}
+          - {label: "Navigation Menu", name: "nav", widget: "list", fields: [
+              {label: "Label", name: "label", widget: "string"},
+              {label: "URL", name: "url", widget: "string"}
+            ]}
+          - {label: "Footer Menu", name: "footer_nav", widget: "list", fields: [
+              {label: "Label", name: "label", widget: "string"},
+              {label: "URL", name: "url", widget: "string"}
+            ], required: false}
+          - {label: "Social Media Links", name: "social", widget: "list", fields: [
+              {label: "Platform", name: "platform", widget: "string"},
+              {label: "Icon", name: "icon", widget: "string"},
+              {label: "URL", name: "url", widget: "string"}
+            ], required: false}
+          - {label: "Google Analytics ID", name: "ga_id", widget: "string", required: false}
+          - {label: "Google Tag Manager ID", name: "gtm_id", widget: "string", required: false}
+      - file: "src/content/settings/estimator.json"
+        label: "Project Estimator Settings"
+        name: "estimator"
+        fields:
+          - {label: "Badge Label", name: "badge", widget: "string", default: "INSTANT ESTIMATOR"}
+          - {label: "Title Prefix", name: "title_prefix", widget: "string", default: "PLAN YOUR"}
+          - {label: "Title Highlight", name: "title_highlight", widget: "string", default: "PROJECT"}
+          - {label: "Subtitle / Description", name: "subtitle", widget: "text"}
+          - {label: "Disclaimer / Note", name: "disclaimer", widget: "string"}
+          - {label: "Currency Symbol", name: "currency_symbol", widget: "string", default: "$"}
+          - {label: "Minimum Estimate Factor (e.g. 0.85 for -15%)", name: "min_bound_factor", widget: "number", value_type: "float", default: 0.85}
+          - {label: "Maximum Estimate Factor (e.g. 1.25 for +25%)", name: "max_bound_factor", widget: "number", value_type: "float", default: 1.25}
+          - {label: "Complexity Levels", name: "complexities", widget: "list", fields: [
+              {label: "ID (e.g. low, medium, high)", name: "id", widget: "string"},
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Price Multiplier", name: "mult", widget: "number", value_type: "float"},
+              {label: "Description", name: "desc", widget: "string"},
+              {label: "Icon Name", name: "icon", widget: "string", required: false}
+            ]}
+          - {label: "Timeline Options", name: "timelines", widget: "list", fields: [
+              {label: "ID (e.g. flex, standard, priority, rush)", name: "id", widget: "string"},
+              {label: "Title", name: "title", widget: "string"},
+              {label: "Price Multiplier", name: "mult", widget: "number", value_type: "float"},
+              {label: "Description", name: "desc", widget: "string"},
+              {label: "Icon Name", name: "icon", widget: "string", required: false}
+            ]}

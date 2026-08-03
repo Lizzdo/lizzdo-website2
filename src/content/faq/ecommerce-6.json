@@ -1,0 +1,8 @@
+{
+  "title": "Do you handle shipping integrations?",
+  "question": "Do you handle shipping integrations?",
+  "category": "ecommerce",
+  "answer": "We implement dynamic shipping APIs (FedEx, UPS, USPS, DHL) to provide real-time rates, automated label generation, and comprehensive order tracking.",
+  "published": true,
+  "featured": false
+}

@@ -1,0 +1,27 @@
+{
+  "title": "Eddie C",
+  "slug": "client-18-eddie-c",
+  "company": "Dave's Hot Chicken (Restaurant Franchise)",
+  "category": "3D Printing",
+  "platform": "Rapid Prototyping & Physical Fabrication",
+  "software": "Blender, STL Exporter",
+  "engagementType": "Physical Bobblehead Line Preparation",
+  "milestoneStatus": "Print-Ready STL Models Sent",
+  "iconName": "Trophy",
+  "requirements": "Translation of vector outline designs (EPS/AI files) into high-fidelity 3D assets for physical bobblehead merchandise. The deliverables consisted of a custom rockstar silhouette with accompanying stage equipment, guitars, and accessory pieces measured to a target six-inch display spec. The geometry had to be entirely watertight to comply with physical printing constraints.",
+  "achievements": [
+    "Successfully extruded flat vector artwork into rich, fully balanced three-dimensional forms",
+    "Created completely solid, watertight meshes without self-intersecting manifolds",
+    "Optimized file formats to support immediate slicing on industrial 3D printing equipment"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Rapid Prototyping & Physical Fabrication",
+  "project": "Physical Bobblehead Line Preparation",
+  "completionDate": "Print-Ready STL Models Sent",
+  "description": "Translation of vector outline designs (EPS/AI files) into high-fidelity 3D assets for physical bobblehead merchandise. The deliverables consisted of a custom rockstar silhouette with accompanying stage equipment, guitars, and accessory pieces measured to a target six-inch display spec. The geometry had to be entirely watertight to comply with physical printing constraints."
+}

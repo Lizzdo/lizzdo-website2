@@ -1,0 +1,27 @@
+{
+  "title": "Ed H",
+  "slug": "client-7-ed-h",
+  "company": "Lunar Frontier Operations",
+  "category": "Roblox UGC",
+  "platform": "Roblox Studio (R15 Custom Avatar Build)",
+  "software": "Blender",
+  "engagementType": "Hard-Surface Modeling & Character Integration",
+  "milestoneStatus": "Custom Integration Finalized",
+  "iconName": "Anchor",
+  "requirements": "Multi-stage production of a premium sci-fi hard-surface space suit avatar. The design required a glass-visor helmet, front-strap harnesses, and integrated brand badges under a strict sub-4,000 polygon allocation. A subsequent stage involved complete rigging, data-weight processing, and implementation support within custom data-panel systems to bypass default engine boundaries.",
+  "achievements": [
+    "Produced flawless hard-surface sci-fi suit elements optimized for severe run-time constraints",
+    "Successfully converted a static hard-surface asset into a fully active skinned skeleton",
+    "Overcame rigid validator checks through custom rigging and systematic bone re-indexing"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Roblox Studio (R15 Custom Avatar Build)",
+  "project": "Hard-Surface Modeling & Character Integration",
+  "completionDate": "Custom Integration Finalized",
+  "description": "Multi-stage production of a premium sci-fi hard-surface space suit avatar. The design required a glass-visor helmet, front-strap harnesses, and integrated brand badges under a strict sub-4,000 polygon allocation. A subsequent stage involved complete rigging, data-weight processing, and implementation support within custom data-panel systems to bypass default engine boundaries."
+}

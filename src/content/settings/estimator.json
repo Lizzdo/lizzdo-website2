@@ -1,0 +1,63 @@
+{
+  "badge": "INSTANT ESTIMATOR",
+  "title_prefix": "PLAN YOUR",
+  "title_highlight": "PROJECT",
+  "subtitle": "Get an immediate estimate for your 3D and high-tech software requirements. Transparent pricing for premium digital assets and systems.",
+  "disclaimer": "*Final price confirmed after 30-min discovery call.",
+  "currency_symbol": "$",
+  "min_bound_factor": 0.85,
+  "max_bound_factor": 1.25,
+  "complexities": [
+    {
+      "id": "low",
+      "title": "Basic / Low Poly",
+      "mult": 1.0,
+      "desc": "Simple Detail",
+      "icon": "Layers"
+    },
+    {
+      "id": "medium",
+      "title": "Standard / Custom",
+      "mult": 1.9,
+      "desc": "Highly Detailed",
+      "icon": "Cpu"
+    },
+    {
+      "id": "high",
+      "title": "Advanced / Premium",
+      "mult": 3.8,
+      "desc": "Enterprise Grade",
+      "icon": "Zap"
+    }
+  ],
+  "timelines": [
+    {
+      "id": "flex",
+      "title": "Flexible",
+      "mult": 1.0,
+      "desc": "Standard Delivery",
+      "icon": "Clock"
+    },
+    {
+      "id": "standard",
+      "title": "Standard",
+      "mult": 1.2,
+      "desc": "Balanced Schedule",
+      "icon": "Calendar"
+    },
+    {
+      "id": "priority",
+      "title": "Priority",
+      "mult": 1.5,
+      "desc": "Fast Track Production",
+      "icon": "Zap"
+    },
+    {
+      "id": "rush",
+      "title": "Rush / Priority",
+      "mult": 2.0,
+      "desc": "Express Priority Processing",
+      "icon": "Zap"
+    }
+  ]
+}

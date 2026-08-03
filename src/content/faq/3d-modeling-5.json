@@ -1,0 +1,8 @@
+{
+  "title": "What are Low-poly vs High-poly assets?",
+  "question": "What are Low-poly vs High-poly assets?",
+  "category": "3d-modeling",
+  "answer": "Low-poly refers to optimized models meant for real-time engines like mobile games, while High-poly models contain millions of polygons used for ultra-detailed cinematic rendering or normal map baking.",
+  "published": true,
+  "featured": false
+}

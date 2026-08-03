@@ -1,0 +1,8 @@
+{
+  "title": "Do you improve website speed?",
+  "question": "Do you improve website speed?",
+  "category": "web-dev",
+  "answer": "Yes, we perform thorough performance audits and optimization, addressing render-blocking resources, unoptimized media, and database queries to achieve exceptional Lighthouse scores.",
+  "published": true,
+  "featured": false
+}

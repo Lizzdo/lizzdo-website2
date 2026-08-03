@@ -1,0 +1,8 @@
+{
+  "title": "Do you use Unreal Engine for this?",
+  "question": "Do you use Unreal Engine for this?",
+  "category": "arch-vis",
+  "answer": "Yes. By building the property in Unreal Engine 5, we transcend static renders, allowing the client to freely walk through the building in real-time, changing materials or lighting dynamically.",
+  "published": true,
+  "featured": false
+}

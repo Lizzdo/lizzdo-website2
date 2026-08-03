@@ -1,0 +1,54 @@
+{
+  "title": "NEON CITY CYBERPUNK RIG",
+  "slug": "neon-city-cyberpunk-rig",
+  "description": "A massive, fully rigged, modular cyberpunk character mesh with custom glowing wireframes and low-poly optimization for Unity HDRP.",
+  "thumbnail": "/lizzdo-logo.png",
+  "gallery": [
+    "/lizzdo-logo.png",
+    "/lizzdo-logo.png",
+    "/lizzdo-logo.png"
+  ],
+  "categories": [
+    "3D MODELING",
+    "UNITY FRAMEWORK"
+  ],
+  "body": "\n### Challenge\nThe client needed a photorealistic humanoid asset that could run on mobile platforms without sacrificing the high-definition neon subsurface scattering materials. The polygon count had to be strictly under 15,000 tris.\n\n### Solution\nWe engineered a robust custom shader pipeline combined with a baked texture workflow, reducing draw calls by 80% while retaining the glowing emission maps.\n\n### Results\n- 15k Tri Limit Respected\n- 60 FPS on Mobile\n- Custom Shaders Built\n\n### Technologies Used\n- Blender\n- Unity HDRP\n- Substance Painter\n\n### Client\nVoid Interactive Games\n",
+  "client": "Void Interactive Games",
+  "industry": "Gaming & Entertainment",
+  "date": "2025-10-15T00:00:00Z",
+  "duration": "3 Weeks",
+  "role": "Lead 3D Artist & Technical Director",
+  "software": [
+    "Blender",
+    "Substance Painter",
+    "Unity HDRP",
+    "ZBrush"
+  ],
+  "tech": [
+    "C#",
+    "HLSL",
+    "Shader Graph"
+  ],
+  "skills": [
+    "Hard Surface Modeling",
+    "Retopology",
+    "Rigging",
+    "Material Authoring"
+  ],
+  "tags": [
+    "Cyberpunk",
+    "Character Design",
+    "Real-time"
+  ],
+  "status": "Completed",
+  "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "external_website": "https://lizzdo.com",
+  "github": "https://github.com/lizzdo",
+  "features": [
+    "Fully modular armor system",
+    "Optimized topology (<15k tris)",
+    "Custom subsurface scattering shaders"
+  ],
+  "published": true,
+  "featured": false
+}

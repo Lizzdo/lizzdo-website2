@@ -1,0 +1,8 @@
+{
+  "title": "What databases do you use?",
+  "question": "What databases do you use?",
+  "category": "cloud-backend",
+  "answer": "We select the right tool for the data: PostgreSQL for complex relational schemas, MongoDB for flexible documents, Redis for high-speed caching, and Pinecone for AI vector search.",
+  "published": true,
+  "featured": false
+}

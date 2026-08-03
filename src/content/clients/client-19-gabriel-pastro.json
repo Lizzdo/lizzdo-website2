@@ -1,0 +1,27 @@
+{
+  "title": "Gabriel Pastro",
+  "slug": "client-19-gabriel-pastro",
+  "company": "Independent Game Studio (Brazil)",
+  "category": "Unity Engine",
+  "platform": "Unity HDRP Engine",
+  "software": "Blender, Photoshop, Unity Engine",
+  "engagementType": "Protagonist Sculpt & Artistic Vision Realization",
+  "milestoneStatus": "Dynamic Prototype In-Engine",
+  "iconName": "Heart",
+  "requirements": "Development of a stylized humanoid main character for an emotional narrative adventure. The character was designed to evoke a fine-art aesthetic, utilizing custom painted brushstroke patterns mimicking physical oil paints. Technical requirements mandated a black character palette with glowing emblems on the back and a specialized eyelid structure allowing programmatic blink controls.",
+  "achievements": [
+    "Designed a legally independent, custom visual hero based on original reference artwork",
+    "Authored hand-painted oil brushstroke detail textures that adapt dynamically to HDRP lights",
+    "Programmed specialized 4-bone eyelid control layers to support smooth facial expressions"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Unity HDRP Engine",
+  "project": "Protagonist Sculpt & Artistic Vision Realization",
+  "completionDate": "Dynamic Prototype In-Engine",
+  "description": "Development of a stylized humanoid main character for an emotional narrative adventure. The character was designed to evoke a fine-art aesthetic, utilizing custom painted brushstroke patterns mimicking physical oil paints. Technical requirements mandated a black character palette with glowing emblems on the back and a specialized eyelid structure allowing programmatic blink controls."
+}

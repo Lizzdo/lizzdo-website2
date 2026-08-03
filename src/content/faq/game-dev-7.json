@@ -1,0 +1,8 @@
+{
+  "title": "Can you integrate Leaderboards and Matchmaking?",
+  "question": "Can you integrate Leaderboards and Matchmaking?",
+  "category": "game-dev",
+  "answer": "Yes, we utilize backend systems like PlayFab, GameSparks, or custom Node.js servers to drive global leaderboards, skill-based matchmaking, and player progression storage.",
+  "published": true,
+  "featured": false
+}

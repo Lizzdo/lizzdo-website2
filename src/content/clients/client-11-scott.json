@@ -1,0 +1,27 @@
+{
+  "title": "Scott",
+  "slug": "client-11-scott",
+  "company": "Digital Tech Startup",
+  "category": "Web & Animation",
+  "platform": "Web Frontend / Animated Web Assets",
+  "software": "Blender, After Effects, Lottie Suite",
+  "engagementType": "Mascot Creation & Web Vector Animation",
+  "milestoneStatus": "Interiors & Dynamic Web Loop Online",
+  "iconName": "Bot",
+  "requirements": "Design of multiple 3D corporate robot mascot entities (HiveBot and Natterbot) for web integration. Work required character reconstruction, color calibration, multi-perspective studio orthographic renderings on solid backgrounds, and full skeletal coordination. The concluding phase delivered looped hover cycles and eye-gaze tracking animations calibrated to match exact web-palette hex codes.",
+  "achievements": [
+    "Created highly recognizable robotic characters incorporating fluid animation rig chains",
+    "Solved compression-induced color-bleeding constraints on specific hex backgrounds",
+    "Provided direct consulting on optimal modern vector container formats for ultra-fast load times"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "Web Frontend / Animated Web Assets",
+  "project": "Mascot Creation & Web Vector Animation",
+  "completionDate": "Interiors & Dynamic Web Loop Online",
+  "description": "Design of multiple 3D corporate robot mascot entities (HiveBot and Natterbot) for web integration. Work required character reconstruction, color calibration, multi-perspective studio orthographic renderings on solid backgrounds, and full skeletal coordination. The concluding phase delivered looped hover cycles and eye-gaze tracking animations calibrated to match exact web-palette hex codes."
+}

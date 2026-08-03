@@ -1,0 +1,8 @@
+{
+  "title": "What backend languages do you use?",
+  "question": "What backend languages do you use?",
+  "category": "cloud-backend",
+  "answer": "We architect powerful backend logic primarily using Node.js, Python (Django/FastAPI), and Go, depending on the scale and performance requirements of the task.",
+  "published": true,
+  "featured": false
+}

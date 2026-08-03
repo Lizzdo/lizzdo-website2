@@ -1,0 +1,32 @@
+{
+  "title": "3D PRINTING PREP",
+  "slug": "3d-printing-prep",
+  "description": "Water-tight models, slicing, and support generation for physical production.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Service content goes here.",
+  "category": "Fabrication",
+  "icon": "Printer",
+  "color": "neon-orange",
+  "features": [
+    "Water-tight Meshes",
+    "Manual Supports",
+    "Scale Validation",
+    "Slicing Profiles"
+  ],
+  "tech": [
+    {
+      "name": "Lychee Slicer",
+      "tooltip": "Advanced resin slicing software for complex 3D prints.",
+      "iconName": "Layers"
+    },
+    {
+      "name": "Cura",
+      "tooltip": "Industry standard 3D printer slicing software.",
+      "iconName": "Printer"
+    }
+  ],
+  "price": "Starting From $180",
+  "base_price": 180,
+  "published": true,
+  "featured": false
+}

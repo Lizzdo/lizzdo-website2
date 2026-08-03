@@ -1,0 +1,8 @@
+{
+  "title": "Do you provide hosting assistance?",
+  "question": "Do you provide hosting assistance?",
+  "category": "web-dev",
+  "answer": "We assist with deploying your application to optimal, secure cloud environments such as Vercel, AWS, Google Cloud, or specialized WordPress managed hosting, depending on your stack.",
+  "published": true,
+  "featured": false
+}

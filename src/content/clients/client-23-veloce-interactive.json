@@ -1,0 +1,27 @@
+{
+  "title": "Veloce Interactive",
+  "slug": "client-23-veloce-interactive",
+  "company": "Luxury Commerce Consortium",
+  "category": "Web & App Dev",
+  "platform": "React / Next.js Custom Storefront with Interactive 3D WebGL Embeds",
+  "software": "React, Tailwind CSS, Three.js, Shopify Storefront API",
+  "engagementType": "Next-Generation Interactive Storefront Architecture",
+  "milestoneStatus": "Production Environment Active",
+  "iconName": "Globe",
+  "requirements": "Development of an interactive, ultra-high-performance headless commerce portal featuring a real-time, interactive 3D product customization viewer for curated digital collectibles and premium garments. The platform required flawless responsiveness, complex state synchronization with the shopping cart, and rapid asset load optimization to ensure a luxurious customer journey.",
+  "achievements": [
+    "Built a custom Three.js engine module rendering high-fidelity interactive 3D apparel models with custom texture updates",
+    "Optimized dynamic WebGL assets and server-side configurations to satisfy rigorous performance criteria",
+    "Structured an enterprise-grade state machine synchronization connecting custom 3D configurators with Shopify e-commerce APIs"
+  ],
+  "websiteLink": "",
+  "clientLogoUrl": "",
+  "rating": 5,
+  "review": "",
+  "published": true,
+  "featured": false,
+  "industry": "React / Next.js Custom Storefront with Interactive 3D WebGL Embeds",
+  "project": "Next-Generation Interactive Storefront Architecture",
+  "completionDate": "Production Environment Active",
+  "description": "Development of an interactive, ultra-high-performance headless commerce portal featuring a real-time, interactive 3D product customization viewer for curated digital collectibles and premium garments. The platform required flawless responsiveness, complex state synchronization with the shopping cart, and rapid asset load optimization to ensure a luxurious customer journey."
+}

@@ -1,0 +1,37 @@
+{
+  "title": "ROBLOX DEVELOPMENT",
+  "slug": "roblox-development",
+  "description": "Full-stack Roblox development from level design to complex Lua scripting and mechanics.",
+  "thumbnail": "/lizzdo-logo.png",
+  "body": "Service content goes here.",
+  "category": "Game Engines",
+  "icon": "Gamepad2",
+  "color": "neon-green",
+  "features": [
+    "Map Construction",
+    "Custom Lua Scripts",
+    "UI/UX Design",
+    "Game Optimization"
+  ],
+  "tech": [
+    {
+      "name": "Roblox Studio",
+      "tooltip": "The essential building tool to create experiences on the Roblox platform.",
+      "iconName": "SiRobloxstudio"
+    },
+    {
+      "name": "Lua",
+      "tooltip": "Lightweight scripting language used to program game logic and mechanics.",
+      "iconName": "SiLua"
+    },
+    {
+      "name": "Blender",
+      "tooltip": "Used for high-quality custom mesh and accessory creation.",
+      "iconName": "SiBlender"
+    }
+  ],
+  "price": "Starting From $1,200",
+  "base_price": 1200,
+  "published": true,
+  "featured": false
+}

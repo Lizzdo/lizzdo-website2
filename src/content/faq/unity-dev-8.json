@@ -1,0 +1,8 @@
+{
+  "title": "How do you handle game optimization?",
+  "question": "How do you handle game optimization?",
+  "category": "unity-dev",
+  "answer": "We employ strict profiling techniques to bake lighting, reduce draw calls, implement LOD systems, and optimize garbage collection, ensuring maximum FPS across target devices.",
+  "published": true,
+  "featured": false
+}
