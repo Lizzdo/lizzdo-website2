@@ -145,26 +145,28 @@ export interface DesignBackground {
 }
 
 export type CornerStyle =
+  | "square-corner"
+  | "rounded-corner"
+  | "sharp-45"
+  | "cut-corner"
+  | "cyber-hud"
   | "minimal"
+  | "double-corner"
+  | "technical-drawing"
+  | "blueprint"
+  | "custom-blank"
   | "thin-line"
   | "thick-border"
-  | "cyber-hud"
-  | "blueprint"
-  | "technical-drawing"
   | "gaming"
   | "sci-fi"
   | "neon"
   | "glass"
   | "premium-corporate"
-  | "double-corner"
-  | "rounded-corner"
-  | "square-corner"
   | "geometric"
   | "futuristic"
   | "industrial"
   | "modern-ui"
   | "elegant"
-  | "custom-blank"
   // Legacy aliases for backward compatibility
   | "cyber-bracket"
   | "tech-cross"
@@ -195,8 +197,8 @@ export interface IndividualCornerConfig {
   thickness: number; // e.g. 1 to 16 px
   angle?: number; // rotation angle degrees (0, 90, 180, 270 or custom)
   inset?: number; // spacing from outer border/edge (0 to 60 px)
-  offsetX?: number; // independent horizontal position shift (-50 to 50 px)
-  offsetY?: number; // independent vertical position shift (-50 to 50 px)
+  offsetX?: number; // independent horizontal position shift (-100 to 100 px)
+  offsetY?: number; // independent vertical position shift (-100 to 100 px)
   radius?: number; // corner radius for rounded styles (0 to 50 px)
   color: string; // main fill/stroke color
   borderColor?: string; // secondary stroke border color
@@ -205,6 +207,7 @@ export interface IndividualCornerConfig {
   opacity?: number; // 0 to 1
   blur?: number; // 0 to 20 px blur filter
   borderStyle?: "solid" | "dashed" | "dotted" | "double";
+  snappingEnabled?: boolean;
   outerShadowColor?: string;
   outerShadowBlur?: number;
   outerShadowOffsetX?: number;
@@ -217,6 +220,7 @@ export interface CornerDecorationConfig extends IndividualCornerConfig {
   enabled: boolean; // Master toggle
   inset?: number; // default spacing from outer border
   syncAllCorners: boolean; // linked vs unlinked independent editing
+  snappingEnabled?: boolean;
   tl?: Partial<IndividualCornerConfig>;
   tr?: Partial<IndividualCornerConfig>;
   bl?: Partial<IndividualCornerConfig>;
@@ -244,16 +248,27 @@ export type FramePresetId =
 export interface FrameConfig {
   preset: FramePresetId;
   enabled: boolean;
-  width: number; // 1 to 40 px
+  width: number; // uniform border width 1 to 40 px
+  borderWidthHorizontal?: number; // separate horizontal border thickness
+  borderWidthVertical?: number; // separate vertical border thickness
   color: string;
   gradientFrom?: string;
   gradientTo?: string;
   opacity: number; // 0 to 1
   radius: number; // 0 to 50 px
   glow?: string;
+  glowSpread?: number;
+  glowColor?: string;
   animated?: boolean;
   innerPadding?: number;
-  borderStyle?: "solid" | "dashed" | "dotted" | "double";
+  borderStyle?: "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge";
+  
+  // Secondary Inner Border Layer
+  innerBorderEnabled?: boolean;
+  innerBorderWidth?: number;
+  innerBorderColor?: string;
+  innerBorderOffset?: number;
+  innerBorderStyle?: "solid" | "dashed" | "dotted" | "double";
 }
 
 export interface CustomCornerPreset {

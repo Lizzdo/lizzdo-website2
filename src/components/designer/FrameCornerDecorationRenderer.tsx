@@ -13,49 +13,53 @@ interface Props {
 }
 
 export const CORNER_STYLE_LABELS: Record<CornerStyle, { name: string; category: string; description: string }> = {
-  // 20 Primary Required Presets
-  "minimal": { name: "Minimal", category: "Minimal", description: "Ultra-thin clean hairline corner angle" },
-  "thin-line": { name: "Thin Line", category: "Minimal", description: "Fine dual offset accent lines" },
-  "thick-border": { name: "Thick Border", category: "Industrial", description: "Bold solid corner accent block" },
-  "cyber-hud": { name: "Cyber HUD", category: "Futuristic", description: "Sci-Fi tactical HUD target bracket with reticle ticks" },
-  "blueprint": { name: "Blueprint", category: "Technical", description: "Engineering rule grid lines with measurement ticks" },
-  "technical-drawing": { name: "Technical Drawing", category: "Technical", description: "Drafting crosshair with corner chamfer" },
-  "gaming": { name: "Gaming", category: "Gaming", description: "Esports carbon shield with notched corner armor" },
-  "sci-fi": { name: "Sci-Fi", category: "Futuristic", description: "High-tech energy conduit bracket with node rings" },
-  "neon": { name: "Neon", category: "Glow", description: "Vivid radiant glowing neon arc with gradient aura" },
-  "glass": { name: "Glass", category: "Modern", description: "Soft translucent frosted glass sleeve with highlight rim" },
-  "premium-corporate": { name: "Premium Corporate", category: "Luxury", description: "Metallic champagne gold dual bevel corner" },
-  "double-corner": { name: "Double Corner", category: "Classic", description: "Parallel concentric double wire brackets" },
-  "rounded-corner": { name: "Rounded Corner", category: "Modern", description: "Smooth rounded capsule arc with soft drop shadow" },
-  "square-corner": { name: "Square Corner", category: "Clean", description: "Precise right-angle square block with inner cutout" },
-  "geometric": { name: "Geometric", category: "Luxury", description: "Rhombus diamond node with intersecting lines" },
-  "futuristic": { name: "Futuristic", category: "Futuristic", description: "Multi-segmented rail with status indicator nodes" },
-  "industrial": { name: "Industrial", category: "Industrial", description: "Stepped dual-notch heavy bracket" },
-  "modern-ui": { name: "Modern UI", category: "Modern", description: "Clean capsule pill floating bars" },
-  "elegant": { name: "Elegant", category: "Luxury", description: "Curved ornate scroll flourish" },
-  "custom-blank": { name: "Custom Blank", category: "Blank", description: "Simple base target box ready for custom tuning" },
+  // 9 Primary Requested Styles
+  "square-corner": { name: "Square Corner", category: "Square & Sharp", description: "Precise right-angle square block with clean outline" },
+  "rounded-corner": { name: "Rounded Corner", category: "Rounded & Cut", description: "Smooth rounded capsule arc with adjustable radius" },
+  "sharp-45": { name: "Sharp 45° Corner", category: "Square & Sharp", description: "Crisp 45-degree diagonal chamfer cut corner" },
+  "cut-corner": { name: "Cut Corner", category: "Rounded & Cut", description: "Inward stepped notch cut corner bracket" },
+  "cyber-hud": { name: "Cyber HUD Corner", category: "Cyber & HUD", description: "Sci-Fi HUD target reticle bracket with crosshair ticks" },
+  "minimal": { name: "Minimal Thin Corner", category: "Minimal & Thin", description: "Ultra-thin clean hairline corner angle" },
+  "double-corner": { name: "Double-Line Corner", category: "Double & Tech", description: "Concentric parallel dual-line corner brackets" },
+  "technical-drawing": { name: "Technical/Wireframe", category: "Double & Tech", description: "Drafting crosshair with metric measurement ticks" },
+  "custom-blank": { name: "Custom User-Defined", category: "Custom", description: "Editable target box ready for custom fine-tuning" },
+
+  // Additional Specialized Presets
+  "blueprint": { name: "Blueprint Rule", category: "Double & Tech", description: "Engineering rule grid lines with measurement ticks" },
+  "thin-line": { name: "Thin Line", category: "Minimal & Thin", description: "Fine dual offset accent lines" },
+  "thick-border": { name: "Thick Border Block", category: "Square & Sharp", description: "Bold solid corner accent block" },
+  "gaming": { name: "Gaming Armor", category: "Cyber & HUD", description: "Esports carbon shield with notched corner armor" },
+  "sci-fi": { name: "Sci-Fi Conduit", category: "Cyber & HUD", description: "High-tech energy conduit bracket with node rings" },
+  "neon": { name: "Neon Arc Glow", category: "Cyber & HUD", description: "Vivid radiant glowing neon arc with gradient aura" },
+  "glass": { name: "Frosted Glass Rim", category: "Rounded & Cut", description: "Translucent frosted glass sleeve with highlight rim" },
+  "premium-corporate": { name: "Champagne Gold Bevel", category: "Square & Sharp", description: "Metallic gold dual bevel corner" },
+  "geometric": { name: "Diamond Node", category: "Square & Sharp", description: "Rhombus diamond node with intersecting lines" },
+  "futuristic": { name: "Segmented Rail", category: "Cyber & HUD", description: "Multi-segmented rail with status indicator nodes" },
+  "industrial": { name: "Industrial Dual Notch", category: "Rounded & Cut", description: "Stepped dual-notch heavy bracket" },
+  "modern-ui": { name: "Modern Capsule Pill", category: "Rounded & Cut", description: "Clean capsule pill floating bars" },
+  "elegant": { name: "Ornate Flourish", category: "Minimal & Thin", description: "Curved ornate scroll flourish" },
 
   // Legacy Aliases
-  "cyber-bracket": { name: "Cyber Bracket", category: "Futuristic", description: "Classic tech L-bracket with endpoint dots" },
-  "tech-cross": { name: "Tech Crosshair", category: "Futuristic", description: "Target crosshair with corner brackets" },
-  "chamfer-notch": { name: "Chamfer Notch", category: "Industrial", description: "45° angled corner cut with notch" },
-  "dots-bracket": { name: "Dots Matrix", category: "Minimal", description: "Dotted LED matrix corner bracket" },
-  "minimal-angle": { name: "Minimal Angle", category: "Minimal", description: "Ultra-thin clean hairline angle" },
-  "double-wire": { name: "Double Wire", category: "Technical", description: "Dual concentric parallel wire brackets" },
-  "neon-glow": { name: "Neon Arc", category: "Glow", description: "Vivid rounded arc with radiant glow" },
-  "orbit-ring": { name: "Orbit Ring", category: "HUD", description: "Circular reticle with crosshair ticks" },
-  "heavy-bracket": { name: "Heavy Block", category: "Gaming", description: "Bold industrial corner block" },
-  "frame-corner": { name: "Frame Sleeve", category: "Classic", description: "Traditional photo mount corner sleeve" },
-  "arrow-corner": { name: "Corner Arrow", category: "HUD", description: "Inward pointing chevron arrow" },
-  "segmented-rail": { name: "Segmented Rail", category: "Technical", description: "Dashed segmented corner rails" },
-  "shield-corner": { name: "Shield Vertex", category: "Gaming", description: "Metallic shield emblem corner" },
-  "diamond-corner": { name: "Diamond Node", category: "Luxury", description: "Rhombus diamond node emblem" },
-  "target-reticle": { name: "Target Reticle", category: "HUD", description: "HUD target reticle with arcs" },
-  "blueprint-grid": { name: "Blueprint Rule", category: "Blueprint", description: "Engineering rule tick-marks" },
-  "dual-notch": { name: "Dual Notch", category: "Industrial", description: "Double-stepped notched corner bracket" },
-  "modern-pill": { name: "Modern Capsule", category: "Modern", description: "Floating capsule pill corner bar" },
-  "decorative-flourish": { name: "Ornate Flourish", category: "Luxury", description: "Elegant curved ornamental scroll" },
-  "accent-dash": { name: "Triple Dash", category: "Minimal", description: "Offset triple dash accent bars" },
+  "cyber-bracket": { name: "Cyber Bracket", category: "Cyber & HUD", description: "Classic tech L-bracket with endpoint dots" },
+  "tech-cross": { name: "Tech Crosshair", category: "Cyber & HUD", description: "Target crosshair with corner brackets" },
+  "chamfer-notch": { name: "Chamfer Notch", category: "Square & Sharp", description: "45° angled corner cut with notch" },
+  "dots-bracket": { name: "Dots Matrix", category: "Minimal & Thin", description: "Dotted LED matrix corner bracket" },
+  "minimal-angle": { name: "Minimal Angle", category: "Minimal & Thin", description: "Ultra-thin clean hairline angle" },
+  "double-wire": { name: "Double Wire", category: "Double & Tech", description: "Dual concentric parallel wire brackets" },
+  "neon-glow": { name: "Neon Arc", category: "Cyber & HUD", description: "Vivid rounded arc with radiant glow" },
+  "orbit-ring": { name: "Orbit Ring", category: "Cyber & HUD", description: "Circular reticle with crosshair ticks" },
+  "heavy-bracket": { name: "Heavy Block", category: "Square & Sharp", description: "Bold industrial corner block" },
+  "frame-corner": { name: "Frame Sleeve", category: "Square & Sharp", description: "Traditional photo mount corner sleeve" },
+  "arrow-corner": { name: "Corner Arrow", category: "Cyber & HUD", description: "Inward pointing chevron arrow" },
+  "segmented-rail": { name: "Segmented Rail", category: "Double & Tech", description: "Dashed segmented corner rails" },
+  "shield-corner": { name: "Shield Vertex", category: "Cyber & HUD", description: "Metallic shield emblem corner" },
+  "diamond-corner": { name: "Diamond Node", category: "Square & Sharp", description: "Rhombus diamond node emblem" },
+  "target-reticle": { name: "Target Reticle", category: "Cyber & HUD", description: "HUD target reticle with arcs" },
+  "blueprint-grid": { name: "Blueprint Rule", category: "Double & Tech", description: "Engineering rule tick-marks" },
+  "dual-notch": { name: "Dual Notch", category: "Rounded & Cut", description: "Double-stepped notched corner bracket" },
+  "modern-pill": { name: "Modern Capsule", category: "Rounded & Cut", description: "Floating capsule pill corner bar" },
+  "decorative-flourish": { name: "Ornate Flourish", category: "Minimal & Thin", description: "Elegant curved ornamental scroll" },
+  "accent-dash": { name: "Triple Dash", category: "Minimal & Thin", description: "Offset triple dash accent bars" },
 };
 
 export const DEFAULT_CORNER_CONFIG: CornerDecorationConfig = {
@@ -173,6 +177,49 @@ export function SingleCornerSvg({
   // SVG content renderer
   const renderSvgContent = () => {
     switch (style) {
+      case "sharp-45":
+      case "chamfer-notch":
+        return (
+          <g>
+            <path
+              d={`M0 ${armLen} V${armLen * 0.4} L${armLen * 0.4} 0 H${armLen}`}
+              fill="none"
+              stroke={color}
+              strokeWidth={thickness}
+              strokeDasharray={strokeDash}
+            />
+            <path
+              d={`M${thickness * 2} ${armLen * 0.8} L${armLen * 0.8} ${thickness * 2}`}
+              fill="none"
+              stroke={borderColor}
+              strokeWidth={Math.max(1, thickness * 0.6)}
+              opacity={0.8}
+            />
+          </g>
+        );
+
+      case "cut-corner":
+      case "dual-notch":
+        return (
+          <g>
+            <path
+              d={`M0 ${armLen} V${armLen * 0.5} H${armLen * 0.5} V0 H${armLen}`}
+              fill="none"
+              stroke={color}
+              strokeWidth={thickness}
+              strokeDasharray={strokeDash}
+            />
+            <rect
+              x={armLen * 0.15}
+              y={armLen * 0.15}
+              width={armLen * 0.3}
+              height={armLen * 0.3}
+              fill={borderColor}
+              opacity={0.4}
+            />
+          </g>
+        );
+
       case "minimal":
       case "minimal-angle":
         return (
@@ -524,59 +571,66 @@ export function FrameCornerDecorationRenderer({
     >
       {/* 1. PROFESSIONAL FRAME LIBRARY RENDERER */}
       {frame.enabled && frame.preset !== "none" && (
-        <div
-          className={`absolute pointer-events-none transition-all ${
-            frame.animated ? "animate-pulse" : ""
-          }`}
-          style={{
-            inset: `${frame.innerPadding || 0}px`,
-            borderRadius: `${frame.radius}px`,
-            opacity: frame.opacity,
-            zIndex: 40,
-            ...(frame.preset === "glassmorphism"
-              ? {
-                  border: `${frame.width}px solid rgba(255, 255, 255, 0.25)`,
-                  boxShadow: `inset 0 0 20px rgba(255, 255, 255, 0.2), ${frame.glow || "0 0 30px rgba(0, 245, 255, 0.3)"}`,
-                  backdropFilter: "blur(12px)",
-                }
-              : frame.preset === "neon"
-              ? {
-                  border: `${frame.width}px solid ${frame.color}`,
-                  boxShadow: `0 0 25px ${frame.color}, inset 0 0 15px ${frame.color}`,
-                }
-              : frame.preset === "gradient-borders"
-              ? {
-                  border: `${frame.width}px solid transparent`,
-                  borderImage: `linear-gradient(135deg, ${frame.gradientFrom || "#00f5ff"}, ${frame.gradientTo || "#a855f7"}) 1`,
-                }
-              : frame.preset === "double-borders"
-              ? {
-                  border: `${frame.width}px double ${frame.color}`,
-                  boxShadow: frame.glow,
-                }
-              : frame.preset === "blueprint"
-              ? {
-                  border: `${frame.width}px dashed ${frame.color || "#3b82f6"}`,
-                  boxShadow: "inset 0 0 10px rgba(59, 130, 246, 0.3)",
-                }
-              : frame.preset === "hud"
-              ? {
-                  border: `${frame.width}px solid ${frame.color || "#00f5ff"}`,
-                  boxShadow: "0 0 15px rgba(0, 245, 255, 0.4)",
-                  borderStyle: frame.borderStyle || "solid",
-                }
-              : frame.preset === "premium-product"
-              ? {
-                  border: `${frame.width}px solid transparent`,
-                  borderImage: "linear-gradient(135deg, #f59e0b, #fef3c7, #d97706) 1",
-                  boxShadow: "0 10px 30px rgba(245, 158, 11, 0.2)",
-                }
-              : {
-                  border: `${frame.width}px ${frame.borderStyle || "solid"} ${frame.color}`,
-                  boxShadow: frame.glow,
-                }),
-          }}
-        />
+        <>
+          {/* Primary Outer Border */}
+          <div
+            className={`absolute pointer-events-none transition-all ${
+              frame.animated ? "animate-pulse" : ""
+            }`}
+            style={{
+              inset: `${frame.innerPadding || 0}px`,
+              borderRadius: `${frame.radius}px`,
+              opacity: frame.opacity,
+              zIndex: 40,
+              borderWidth: `${frame.borderWidthVertical ?? frame.width}px ${frame.borderWidthHorizontal ?? frame.width}px`,
+              borderStyle: frame.borderStyle || "solid",
+              borderColor: frame.color,
+              boxShadow: frame.glowColor ? `0 0 ${frame.glowSpread || 15}px ${frame.glowColor}` : frame.glow,
+              ...(frame.preset === "glassmorphism"
+                ? {
+                    borderColor: "rgba(255, 255, 255, 0.25)",
+                    boxShadow: `inset 0 0 20px rgba(255, 255, 255, 0.2), ${frame.glow || "0 0 30px rgba(0, 245, 255, 0.3)"}`,
+                    backdropFilter: "blur(12px)",
+                  }
+                : frame.preset === "neon"
+                ? {
+                    borderColor: frame.color,
+                    boxShadow: `0 0 25px ${frame.color}, inset 0 0 15px ${frame.color}`,
+                  }
+                : frame.preset === "gradient-borders"
+                ? {
+                    borderImage: `linear-gradient(135deg, ${frame.gradientFrom || "#00f5ff"}, ${frame.gradientTo || "#a855f7"}) 1`,
+                  }
+                : frame.preset === "double-borders"
+                ? {
+                    borderStyle: "double",
+                  }
+                : frame.preset === "blueprint"
+                ? {
+                    borderStyle: "dashed",
+                    borderColor: frame.color || "#3b82f6",
+                    boxShadow: "inset 0 0 10px rgba(59, 130, 246, 0.3)",
+                  }
+                : {}),
+            }}
+          />
+
+          {/* Secondary Inner Border Layer */}
+          {frame.innerBorderEnabled && (
+            <div
+              className="absolute pointer-events-none transition-all"
+              style={{
+                inset: `${(frame.innerPadding || 0) + (frame.innerBorderOffset || 8)}px`,
+                borderRadius: `${Math.max(0, frame.radius - (frame.innerBorderOffset || 8))}px`,
+                borderWidth: `${frame.innerBorderWidth || 1}px`,
+                borderStyle: frame.innerBorderStyle || "solid",
+                borderColor: frame.innerBorderColor || frame.color,
+                opacity: frame.opacity * 0.8,
+                zIndex: 41,
+              }}
+            />
+          )}
+        </>
       )}
 
       {/* 2. CUSTOMIZABLE & DECOUPLED CORNER DECORATIONS */}
