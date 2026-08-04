@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 interface ElementInspectorProps {
-  element: CanvasElement;
+  element: CanvasElement | null;
   onChange: (updated: CanvasElement) => void;
   onDelete: (id: string) => void;
   onMoveUp: (id: string) => void;
@@ -45,6 +45,18 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
   onMoveUp,
   onMoveDown,
 }) => {
+  if (!element) {
+    return (
+      <div className="p-6 text-center text-gray-500 font-mono text-xs space-y-3">
+        <Sliders className="w-8 h-8 text-neon-cyan mx-auto animate-pulse" />
+        <p className="font-bold text-gray-400">NO ELEMENT SELECTED</p>
+        <p className="text-[11px] leading-relaxed">
+          Select any object on the canvas or layer list to inspect and customize typography, colors, position, borders, and effects.
+        </p>
+      </div>
+    );
+  }
+
   const updateProp = <K extends keyof CanvasElement>(key: K, value: CanvasElement[K]) => {
     onChange({ ...element, [key]: value });
   };
