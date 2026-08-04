@@ -367,7 +367,172 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
         </div>
       </div>
 
-      {/* POSITION & OPACITY CONTROLS */}
+      {/* LOGO SPECIFIC CONTROLS */}
+      {element.type === "logo" && (
+        <div className="space-y-4 pt-2 border-t border-white/10">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono uppercase text-neon-orange font-bold flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5" /> Logo Customizer
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/60 border border-white/10 text-xs font-mono">
+            <button
+              type="button"
+              onClick={() => updateProp("logoType", "image")}
+              className={`py-1.5 rounded-lg transition-all ${
+                element.logoType === "image" || (element.url && element.logoType !== "text")
+                  ? "bg-neon-orange/20 border border-neon-orange/50 text-neon-orange font-bold"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Graphic / Image Logo
+            </button>
+            <button
+              type="button"
+              onClick={() => updateProp("logoType", "text")}
+              className={`py-1.5 rounded-lg transition-all ${
+                element.logoType === "text"
+                  ? "bg-neon-orange/20 border border-neon-orange/50 text-neon-orange font-bold"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Text Brand Badge
+            </button>
+          </div>
+
+          {(element.logoType === "image" || (element.url && element.logoType !== "text")) ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] text-gray-400 font-mono block mb-1">Upload Custom Logo File</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        if (event.target?.result) {
+                          onChange({ ...element, url: event.target.result as string, logoType: "image" });
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-neon-orange/20 file:text-neon-orange hover:file:bg-neon-orange/30"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-gray-400 font-mono block mb-1">Logo Color Effect & Filter</label>
+                <select
+                  value={element.filterEffect || "none"}
+                  onChange={(e) => updateProp("filterEffect", e.target.value as any)}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-neon-orange focus:outline-none"
+                >
+                  <option value="none">Original Colors</option>
+                  <option value="invert">Invert White (For dark backgrounds)</option>
+                  <option value="cyan-tint">Neon Cyan Tint & Glow</option>
+                  <option value="purple-tint">Electric Purple Glow</option>
+                  <option value="gold-tint">Luxury Gold Tint</option>
+                  <option value="grayscale">Monochrome Silver</option>
+                  <option value="brightness-boost">Brightness Boost (High Contrast)</option>
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] text-gray-400 font-mono block mb-1">Brand Name Text</label>
+                <input
+                  type="text"
+                  value={element.text || "LIZZDO"}
+                  onChange={(e) => updateProp("text", e.target.value)}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-sm focus:border-neon-orange"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Sizing & Pill Container Settings */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-400 font-mono block mb-1">Logo Size ({element.size || 24}px)</label>
+              <input
+                type="range"
+                min="12"
+                max="96"
+                value={element.size || 24}
+                onChange={(e) => updateProp("size", parseInt(e.target.value))}
+                className="w-full accent-neon-orange"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 font-mono block mb-1">Pill Padding ({element.padding ?? 8}px)</label>
+              <input
+                type="range"
+                min="0"
+                max="32"
+                value={element.padding ?? 8}
+                onChange={(e) => updateProp("padding", parseInt(e.target.value))}
+                className="w-full accent-neon-orange"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-400 font-mono block mb-1">Container Pill BG</label>
+              <input
+                type="color"
+                value={element.bg || "#000000"}
+                onChange={(e) => updateProp("bg", e.target.value)}
+                className="w-full h-8 rounded-lg bg-transparent border border-white/20 cursor-pointer"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 font-mono block mb-1">Corner Radius ({element.borderRadius ?? 12}px)</label>
+              <input
+                type="range"
+                min="0"
+                max="32"
+                value={element.borderRadius ?? 12}
+                onChange={(e) => updateProp("borderRadius", parseInt(e.target.value))}
+                className="w-full accent-neon-orange"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-400 font-mono block mb-1">Glow Aura</label>
+              <select
+                value={element.shadowGlow || "none"}
+                onChange={(e) => updateProp("shadowGlow", e.target.value as any)}
+                className="w-full bg-black/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-white text-xs focus:border-neon-orange"
+              >
+                <option value="none">None</option>
+                <option value="cyan">Neon Cyan</option>
+                <option value="purple">Neon Purple</option>
+                <option value="pink">Neon Pink</option>
+                <option value="orange">Neon Amber</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 font-mono block mb-1">Border Width ({element.borderWidth || 0}px)</label>
+              <input
+                type="range"
+                min="0"
+                max="6"
+                value={element.borderWidth || 0}
+                onChange={(e) => updateProp("borderWidth", parseInt(e.target.value))}
+                className="w-full accent-neon-orange"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <div className="space-y-4 pt-2 border-t border-white/10">
         <div className="flex items-center gap-2 text-xs font-mono uppercase text-neon-cyan">
           <Sliders className="w-3.5 h-3.5" /> Position & Opacity

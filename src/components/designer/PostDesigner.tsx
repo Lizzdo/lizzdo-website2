@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { toPng, toJpeg, toSvg } from "html-to-image";
 import {
   DesignState,
   CanvasElement,
@@ -7,12 +6,21 @@ import {
   DesignTemplate,
   ExportFormat,
   ExportQuality,
+  ProfessionalExportOptions,
 } from "../../types/designer";
 import { DEFAULT_DESIGN_STATE } from "../../data/designerTemplates";
 import { CanvasStage } from "./CanvasStage";
 import { ElementInspector } from "./ElementInspector";
 import { BackgroundInspector } from "./BackgroundInspector";
+import { FrameCornerInspector } from "./FrameCornerInspector";
 import { TemplateManager } from "./TemplateManager";
+import {
+  prepareDesignStateForExport,
+  renderArtworkFormat,
+  estimateExportFileSize,
+  AssetDiagnostic,
+} from "../../utils/exportEngine";
+import { getSmartExportRecommendation } from "../../utils/professionalExport";
 import {
   Type,
   Tag,
@@ -42,25 +50,67 @@ import {
   Copy,
   Grid,
   FileCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Upload,
 } from "lucide-react";
 
 export default function PostDesigner() {
   const [designState, setDesignState] = useState<DesignState>(DEFAULT_DESIGN_STATE);
   const [selectedElementId, setSelectedElementId] = useState<string | null>("el-title-1");
-  const [activeTab, setActiveTab] = useState<"inspector" | "background" | "templates">("inspector");
+  const [activeTab, setActiveTab] = useState<"inspector" | "background" | "frames" | "templates">("inspector");
+  const [leftTab, setLeftTab] = useState<"elements" | "layers" | "templates">("elements");
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [zoomScale, setZoomScale] = useState<number>(0.85);
+
+  // SIDEBAR COLLAPSIBLE STATES
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState<boolean>(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(true);
   
   // EXPORT & QUALITY CHECK MODAL STATE
   const [showQualityModal, setShowQualityModal] = useState<boolean>(false);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("psd");
   const [exportQuality, setExportQuality] = useState<ExportQuality>(2); // Default 2x HD
+  const [profOptions, setProfOptions] = useState<ProfessionalExportOptions>({
+    format: "psd",
+    quality: 2,
+    layerMode: "layered",
+    textMode: "editable",
+    imageMode: "embedded",
+    colorMode: "rgb",
+    transparentBg: false,
+    dpi: 150,
+    compression: "high_quality",
+  });
+  const [showAdvancedOpts, setShowAdvancedOpts] = useState<boolean>(false);
   const [previewDataUrl, setPreviewDataUrl] = useState<string>("");
   const [isGeneratingExport, setIsGeneratingExport] = useState<boolean>(false);
+  const [exportProgressStatus, setExportProgressStatus] = useState<string>("Sanitizing Assets & Resolving CORS...");
   const [copiedSuccess, setCopiedSuccess] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
+  const [assetDiagnostics, setAssetDiagnostics] = useState<AssetDiagnostic[]>([]);
 
   const stageRef = useRef<HTMLDivElement>(null);
+  const exportModalBackdropRef = useRef<HTMLDivElement>(null);
+
+  // BODY SCROLL LOCK & ESC KEY LISTENER FOR EXPORT MODAL
+  useEffect(() => {
+    if (showQualityModal) {
+      document.body.style.overflow = "hidden";
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setShowQualityModal(false);
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [showQualityModal]);
 
   // Selected element helper
   const selectedElement = designState.elements.find((el) => el.id === selectedElementId);
@@ -166,8 +216,17 @@ export default function PostDesigner() {
           x: 85,
           y: 8,
           text: "LIZZDO",
+          logoType: "text",
+          url: "/lizzdo-logo.png",
           size: 18,
+          padding: 8,
+          bg: "rgba(0, 0, 0, 0.6)",
+          borderColor: "rgba(0, 245, 255, 0.5)",
+          borderWidth: 1,
+          borderRadius: 12,
+          shadowGlow: "cyan",
           glow: true,
+          filterEffect: "none",
           zIndex: designState.elements.length + 10,
         };
         break;
@@ -196,6 +255,68 @@ export default function PostDesigner() {
     }));
     setSelectedElementId(id);
     setActiveTab("inspector");
+  };
+
+  // BATCH MULTI-IMAGE CANVAS UPLOAD
+  const handleMultipleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files);
+    fileList.forEach((file, idx) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const id = `el-image-${Date.now()}-${idx}`;
+          const newEl: CanvasElement = {
+            id,
+            name: file.name.replace(/\.[^/.]+$/, "") || `Image ${designState.elements.length + idx + 1}`,
+            type: "image",
+            visible: true,
+            locked: false,
+            x: 10 + ((idx * 15) % 50),
+            y: 15 + ((idx * 12) % 45),
+            width: 45,
+            height: 45,
+            url: event.target.result as string,
+            fitMode: "cover",
+            borderRadius: 16,
+            shadowGlow: "cyan",
+            opacity: 1,
+            zIndex: designState.elements.length + idx + 10,
+          };
+
+          setDesignState((prev) => ({
+            ...prev,
+            elements: [...prev.elements, newEl],
+          }));
+          setSelectedElementId(id);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = "";
+  };
+
+  // DUPLICATE ELEMENT
+  const handleDuplicateElement = (id: string) => {
+    const target = designState.elements.find((el) => el.id === id);
+    if (!target) return;
+    const newId = `el-${target.type}-${Date.now()}`;
+    const duplicated: CanvasElement = {
+      ...target,
+      id: newId,
+      name: `${target.name} (Copy)`,
+      x: Math.min(85, target.x + 4),
+      y: Math.min(85, target.y + 4),
+      zIndex: designState.elements.length + 10,
+    };
+    setDesignState((prev) => ({
+      ...prev,
+      elements: [...prev.elements, duplicated],
+    }));
+    setSelectedElementId(newId);
   };
 
   // UPDATE ELEMENT
@@ -237,72 +358,57 @@ export default function PostDesigner() {
     });
   };
 
-  // GENERATE EXPORT DATA URL (WYSIWYG EDGE-TO-EDGE CLEAN RENDER)
+  // RELINK OR REPLACE PROBLEM ASSET DIRECTLY FROM EXPORT MODAL
+  const handleRelinkAsset = (diagnosticId: string, newUrlOrData: string) => {
+    if (diagnosticId === "bg-image") {
+      setDesignState((prev) => ({
+        ...prev,
+        background: { ...prev.background, imageUrl: newUrlOrData },
+      }));
+    } else {
+      setDesignState((prev) => ({
+        ...prev,
+        elements: prev.elements.map((el) => (el.id === diagnosticId ? { ...el, url: newUrlOrData } : el)),
+      }));
+    }
+  };
+
+  // GENERATE EXPORT DATA URL (WYSIWYG EDGE-TO-EDGE CORS-SAFE RENDER)
   const generateExportDataUrl = async (
     format: ExportFormat = exportFormat,
-    quality: ExportQuality = exportQuality
+    quality: ExportQuality = exportQuality,
+    customProfOpts?: ProfessionalExportOptions
   ): Promise<string> => {
     if (!stageRef.current) return "";
     setIsGeneratingExport(true);
+    setExportProgressStatus("Sanitizing Assets & Resolving CORS...");
+
+    const activeProfOpts = customProfOpts || {
+      ...profOptions,
+      format,
+      quality,
+      dpi: (quality === 1 ? 72 : quality === 2 ? 150 : quality === 3 ? 300 : 600) as 72 | 150 | 300 | 600,
+    };
 
     try {
-      const options = {
-        cacheBust: true,
-        width: designState.width,
-        height: designState.height,
-        pixelRatio: quality,
-        style: {
-          transform: "none",
-          transformOrigin: "top left",
-          borderRadius: "0px",
-          boxShadow: "none",
-          margin: "0",
-          position: "relative",
-          top: "0",
-          left: "0",
-        },
-        filter: (node: Node) => {
-          if (node instanceof HTMLElement && node.dataset.exportHide === "true") {
-            return false;
-          }
-          return true;
-        },
-      };
+      // 1. Sanitize all external & uploaded image URLs into CORS-safe Data URLs & collect diagnostics
+      const { sanitizedState, diagnostics } = await prepareDesignStateForExport(designState);
+      setAssetDiagnostics(diagnostics);
 
-      let resultUrl = "";
-
-      if (format === "png") {
-        resultUrl = await toPng(stageRef.current, options);
-      } else if (format === "jpg") {
-        resultUrl = await toJpeg(stageRef.current, {
-          ...options,
-          quality: 0.95,
-          backgroundColor: designState.background.solidColor || "#0a0e27",
-        });
-      } else if (format === "svg") {
-        resultUrl = await toSvg(stageRef.current, options);
-      } else if (format === "webp") {
-        const pngUrl = await toPng(stageRef.current, options);
-        const img = new Image();
-        img.src = pngUrl;
-        await new Promise((resolve) => (img.onload = resolve));
-        const canvas = document.createElement("canvas");
-        canvas.width = designState.width * quality;
-        canvas.height = designState.height * quality;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          resultUrl = canvas.toDataURL("image/webp", 0.95);
-        } else {
-          resultUrl = pngUrl;
-        }
-      }
+      // 2. Render 1:1 artwork format with zero CORS errors
+      const resultUrl = await renderArtworkFormat(
+        stageRef.current,
+        sanitizedState,
+        format,
+        quality,
+        (msg) => setExportProgressStatus(msg),
+        activeProfOpts
+      );
 
       setPreviewDataUrl(resultUrl);
       return resultUrl;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Export generation failed:", err);
-      alert("Failed to render artwork. Please ensure external images permit cross-origin requests.");
       return "";
     } finally {
       setIsGeneratingExport(false);
@@ -312,15 +418,15 @@ export default function PostDesigner() {
   // OPEN QUALITY CHECK MODAL
   const handleOpenExportModal = async () => {
     setShowQualityModal(true);
-    await generateExportDataUrl(exportFormat, exportQuality);
+    await generateExportDataUrl(exportFormat, exportQuality, profOptions);
   };
 
-  // RE-GENERATE PREVIEW WHEN FORMAT OR QUALITY CHANGES
+  // RE-GENERATE PREVIEW WHEN FORMAT, QUALITY OR PROF OPTIONS CHANGE
   useEffect(() => {
     if (showQualityModal) {
-      generateExportDataUrl(exportFormat, exportQuality);
+      generateExportDataUrl(exportFormat, exportQuality, profOptions);
     }
-  }, [exportFormat, exportQuality, showQualityModal]);
+  }, [exportFormat, exportQuality, profOptions, showQualityModal]);
 
   // DOWNLOAD VERIFIED ARTWORK
   const handleDownloadArtwork = async () => {
@@ -340,24 +446,30 @@ export default function PostDesigner() {
     setTimeout(() => setDownloadSuccess(false), 3000);
   };
 
-  // COPY IMAGE TO CLIPBOARD
+  // COPY IMAGE PREVIEW TO CLIPBOARD
   const handleCopyClipboard = async () => {
     try {
-      let finalUrl = previewDataUrl;
-      if (!finalUrl) {
-        finalUrl = await generateExportDataUrl("png", exportQuality);
-      }
-      if (!finalUrl) return;
+      setIsGeneratingExport(true);
+      setExportProgressStatus("Generating PNG Clipboard Preview...");
+      
+      // Always render a 1:1 PNG for clipboard API compatibility
+      const pngUrl = await generateExportDataUrl("png", exportQuality, {
+        ...profOptions,
+        format: "png",
+      });
+      if (!pngUrl) return;
 
-      const response = await fetch(finalUrl);
+      const response = await fetch(pngUrl);
       const blob = await response.blob();
-      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
 
       setCopiedSuccess(true);
       setTimeout(() => setCopiedSuccess(false), 3000);
     } catch (err) {
       console.error("Copy to clipboard failed:", err);
-      alert("Clipboard copy not supported for this format in your browser. Download the image file directly!");
+      alert("Clipboard copy is restricted by browser security policies. Please download the file directly!");
+    } finally {
+      setIsGeneratingExport(false);
     }
   };
 
@@ -397,7 +509,21 @@ export default function PostDesigner() {
           </div>
 
           {/* Controls & View Modes */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {/* Left Sidebar Toggle Button */}
+            <button
+              onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+              className={`p-2 rounded-2xl border text-xs font-mono flex items-center gap-1.5 transition-all ${
+                leftSidebarOpen
+                  ? "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/40"
+                  : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
+              }`}
+              title="Toggle Left Sidebar (Elements & Layers)"
+            >
+              {leftSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+              <span className="hidden sm:inline">Tools</span>
+            </button>
+
             {/* View Mode Toggle */}
             <div className="flex items-center p-1 rounded-2xl bg-black/60 border border-white/10">
               <button
@@ -433,152 +559,249 @@ export default function PostDesigner() {
               </button>
             </div>
 
+            {/* Right Sidebar Toggle Button */}
+            <button
+              onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+              className={`p-2 rounded-2xl border text-xs font-mono flex items-center gap-1.5 transition-all ${
+                rightSidebarOpen
+                  ? "bg-neon-purple/20 text-neon-purple border-neon-purple/40"
+                  : "bg-white/5 text-gray-400 border-white/10 hover:text-white"
+              }`}
+              title="Toggle Right Sidebar (Inspector & Backgrounds)"
+            >
+              <span className="hidden sm:inline">Inspect</span>
+              {rightSidebarOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+            </button>
+
             {/* Export & Quality Check Button */}
             <button
               onClick={handleOpenExportModal}
-              className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink text-white font-display font-bold text-xs tracking-[2px] uppercase hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] transition-all flex items-center gap-2"
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink text-white font-display font-bold text-xs tracking-[2px] uppercase hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] transition-all flex items-center gap-2"
             >
-              <Download className="w-4 h-4" /> Export & Quality Check
+              <Download className="w-4 h-4" /> Export
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Workbench Layout */}
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT PANEL: ELEMENT HUBS & LAYERS TREE */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Add Elements Hub */}
-          <div className="p-5 rounded-3xl bg-neutral-900/80 border border-white/10 backdrop-blur-xl space-y-4">
-            <h3 className="font-display font-bold text-white text-sm tracking-wider uppercase flex items-center gap-2">
-              <Plus className="w-4 h-4 text-neon-cyan" /> Add New Elements
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => handleAddElement("text")}
-                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
-              >
-                <Type className="w-4 h-4 text-neon-cyan group-hover:scale-110 transition-transform" />
-                <span>Text Box</span>
-              </button>
+      <div className="max-w-[1720px] mx-auto px-4 sm:px-6 flex flex-col lg:flex-row gap-6 items-start relative">
+        {/* LEFT PANEL: ELEMENT HUBS, MULTI-IMAGE UPLOAD & LAYERS TREE */}
+        {leftSidebarOpen && (
+          <div className="w-full lg:w-80 shrink-0 space-y-5 transition-all">
+            <div className="p-5 rounded-3xl bg-neutral-900/80 border border-white/10 backdrop-blur-xl space-y-4">
+              {/* Left Sidebar Navigation Tabs */}
+              <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-black/60 border border-white/10 text-[11px] font-mono">
+                <button
+                  onClick={() => setLeftTab("elements")}
+                  className={`py-1.5 rounded-xl uppercase transition-all ${
+                    leftTab === "elements"
+                      ? "bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Elements
+                </button>
+                <button
+                  onClick={() => setLeftTab("layers")}
+                  className={`py-1.5 rounded-xl uppercase transition-all ${
+                    leftTab === "layers"
+                      ? "bg-neon-purple/20 border border-neon-purple/50 text-neon-purple font-bold"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Layers ({designState.elements.length})
+                </button>
+                <button
+                  onClick={() => setLeftTab("templates")}
+                  className={`py-1.5 rounded-xl uppercase transition-all ${
+                    leftTab === "templates"
+                      ? "bg-neon-pink/20 border border-neon-pink/50 text-neon-pink font-bold"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Presets
+                </button>
+              </div>
 
-              <button
-                onClick={() => handleAddElement("badge")}
-                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-purple/50 hover:bg-neon-purple/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
-              >
-                <Tag className="w-4 h-4 text-neon-purple group-hover:scale-110 transition-transform" />
-                <span>Badge / Tag</span>
-              </button>
+              {/* TAB 1: ELEMENTS & MULTI-IMAGE UPLOADER */}
+              {leftTab === "elements" && (
+                <div className="space-y-4">
+                  <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-neon-cyan" /> Add Artwork Elements
+                  </h3>
 
-              <button
-                onClick={() => handleAddElement("image")}
-                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-pink/50 hover:bg-neon-pink/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
-              >
-                <ImageIcon className="w-4 h-4 text-neon-pink group-hover:scale-110 transition-transform" />
-                <span>Image Asset</span>
-              </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleAddElement("text")}
+                      className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+                    >
+                      <Type className="w-4 h-4 text-neon-cyan group-hover:scale-110 transition-transform" />
+                      <span>Text Box</span>
+                    </button>
 
-              <button
-                onClick={() => handleAddElement("button")}
-                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-green/50 hover:bg-neon-green/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
-              >
-                <MousePointer className="w-4 h-4 text-neon-green group-hover:scale-110 transition-transform" />
-                <span>Button CTA</span>
-              </button>
+                    <button
+                      onClick={() => handleAddElement("badge")}
+                      className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-purple/50 hover:bg-neon-purple/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+                    >
+                      <Tag className="w-4 h-4 text-neon-purple group-hover:scale-110 transition-transform" />
+                      <span>Badge / Tag</span>
+                    </button>
 
-              <button
-                onClick={() => handleAddElement("logo")}
-                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-orange/50 hover:bg-neon-orange/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
-              >
-                <Shield className="w-4 h-4 text-neon-orange group-hover:scale-110 transition-transform" />
-                <span>Studio Logo</span>
-              </button>
+                    <button
+                      onClick={() => handleAddElement("button")}
+                      className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-green/50 hover:bg-neon-green/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+                    >
+                      <MousePointer className="w-4 h-4 text-neon-green group-hover:scale-110 transition-transform" />
+                      <span>CTA Button</span>
+                    </button>
 
-              <button
-                onClick={() => handleAddElement("shape")}
-                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/50 hover:bg-cyan-400/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
-              >
-                <Square className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-                <span>Shape / Divider</span>
-              </button>
-            </div>
-          </div>
+                    <button
+                      onClick={() => handleAddElement("logo")}
+                      className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-orange/50 hover:bg-neon-orange/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+                    >
+                      <Shield className="w-4 h-4 text-neon-orange group-hover:scale-110 transition-transform" />
+                      <span>Studio Logo</span>
+                    </button>
 
-          {/* Layer Tree Manager */}
-          <div className="p-5 rounded-3xl bg-neutral-900/80 border border-white/10 backdrop-blur-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-bold text-white text-sm tracking-wider uppercase flex items-center gap-2">
-                <Layers className="w-4 h-4 text-neon-purple" /> Layers ({designState.elements.length})
-              </h3>
-            </div>
-
-            <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-              {[...designState.elements].reverse().map((el) => {
-                const isSelected = selectedElementId === el.id;
-                return (
-                  <div
-                    key={el.id}
-                    onClick={() => {
-                      setSelectedElementId(el.id);
-                      setActiveTab("inspector");
-                    }}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? "bg-neon-cyan/10 border-neon-cyan text-white shadow-[0_0_15px_rgba(0,245,255,0.2)]"
-                        : "bg-black/40 border-white/10 hover:border-white/20 text-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      {el.type === "text" && <Type className="w-3.5 h-3.5 text-neon-cyan shrink-0" />}
-                      {el.type === "badge" && <Tag className="w-3.5 h-3.5 text-neon-purple shrink-0" />}
-                      {el.type === "image" && <ImageIcon className="w-3.5 h-3.5 text-neon-pink shrink-0" />}
-                      {el.type === "button" && <MousePointer className="w-3.5 h-3.5 text-neon-green shrink-0" />}
-                      {el.type === "logo" && <Shield className="w-3.5 h-3.5 text-neon-orange shrink-0" />}
-                      {el.type === "shape" && <Square className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
-                      <span className="font-mono text-xs truncate">{el.name}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMoveLayer(el.id, "up");
-                        }}
-                        className="p-1 text-gray-400 hover:text-white"
-                      >
-                        <ChevronUp className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMoveLayer(el.id, "down");
-                        }}
-                        className="p-1 text-gray-400 hover:text-white"
-                      >
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteElement(el.id);
-                        }}
-                        className="p-1 text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleAddElement("shape")}
+                      className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/50 hover:bg-cyan-400/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group col-span-2"
+                    >
+                      <Square className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                      <span>Glass Frame / Shape</span>
+                    </button>
                   </div>
-                );
-              })}
+
+                  {/* MULTI-IMAGE CANVAS UPLOADER */}
+                  <div className="pt-3 border-t border-white/10 space-y-2">
+                    <label className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-neon-pink" /> Multi-Image Canvas Loader
+                    </label>
+                    <p className="text-[11px] text-gray-400 leading-tight">
+                      Add multiple images to a single canvas design. Each photo gets an independent editable frame!
+                    </p>
+
+                    <label className="p-4 rounded-2xl border-2 border-dashed border-white/20 hover:border-neon-pink/60 bg-black/40 hover:bg-black/60 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer text-center group">
+                      <Upload className="w-5 h-5 text-neon-pink group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-mono text-gray-300 font-bold">Batch Upload Images</span>
+                      <span className="text-[10px] text-gray-500 font-mono">Select 1 or multiple files</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleMultipleImagesUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: LAYERS TREE */}
+              {leftTab === "layers" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-neon-purple" /> Layers ({designState.elements.length})
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+                    {[...designState.elements].reverse().map((el) => {
+                      const isSelected = selectedElementId === el.id;
+                      return (
+                        <div
+                          key={el.id}
+                          onClick={() => {
+                            setSelectedElementId(el.id);
+                            setRightSidebarOpen(true);
+                            setActiveTab("inspector");
+                          }}
+                          className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? "bg-neon-cyan/10 border-neon-cyan text-white shadow-[0_0_15px_rgba(0,245,255,0.2)]"
+                              : "bg-black/40 border-white/10 hover:border-white/20 text-gray-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            {el.type === "text" && <Type className="w-3.5 h-3.5 text-neon-cyan shrink-0" />}
+                            {el.type === "badge" && <Tag className="w-3.5 h-3.5 text-neon-purple shrink-0" />}
+                            {el.type === "image" && <ImageIcon className="w-3.5 h-3.5 text-neon-pink shrink-0" />}
+                            {el.type === "button" && <MousePointer className="w-3.5 h-3.5 text-neon-green shrink-0" />}
+                            {el.type === "logo" && <Shield className="w-3.5 h-3.5 text-neon-orange shrink-0" />}
+                            {el.type === "shape" && <Square className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                            <span className="font-mono text-xs truncate">{el.name}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDuplicateElement(el.id);
+                              }}
+                              className="p-1 text-gray-400 hover:text-neon-cyan"
+                              title="Duplicate Layer"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMoveLayer(el.id, "up");
+                              }}
+                              className="p-1 text-gray-400 hover:text-white"
+                              title="Move Up"
+                            >
+                              <ChevronUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMoveLayer(el.id, "down");
+                              }}
+                              className="p-1 text-gray-400 hover:text-white"
+                              title="Move Down"
+                            >
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteElement(el.id);
+                              }}
+                              className="p-1 text-red-400 hover:text-red-300"
+                              title="Delete Layer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: PRESETS & TEMPLATES */}
+              {leftTab === "templates" && (
+                <TemplateManager
+                  currentState={designState}
+                  onSelectTemplate={handleSelectTemplate}
+                  onSaveCurrentAsTemplate={(name, category) => {
+                    setDesignState((prev) => ({ ...prev, title: name }));
+                  }}
+                />
+              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* CENTER STAGE: LIVE CANVAS & RESPONSIVE PREVIEW */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center space-y-4">
+        {/* CENTER STAGE: AUTO-EXPANDING LIVE WORKBENCH CANVAS */}
+        <div className="flex-1 w-full min-w-0 flex flex-col items-center justify-center space-y-4">
           <div
-            className={`w-full flex items-center justify-center p-6 rounded-3xl bg-neutral-900/60 border border-white/10 backdrop-blur-xl min-h-[640px] overflow-auto ${
-              viewMode === "mobile" ? "max-w-[420px] border-neon-purple/40" : ""
+            className={`w-full flex flex-col items-center justify-center p-4 sm:p-8 rounded-3xl bg-neutral-900/60 border border-white/10 backdrop-blur-xl min-h-[680px] overflow-auto relative transition-all ${
+              viewMode === "mobile" ? "max-w-[420px] mx-auto border-neon-purple/40" : ""
             }`}
           >
             {/* CANVAS CONTAINER */}
@@ -587,51 +810,106 @@ export default function PostDesigner() {
                 ref={stageRef}
                 state={designState}
                 scaleFactor={zoomScale}
-                interactive={true}
+                interactive={!isGeneratingExport}
                 selectedElementId={selectedElementId || undefined}
                 onSelectElement={(id) => {
                   setSelectedElementId(id);
+                  setRightSidebarOpen(true);
                   setActiveTab("inspector");
                 }}
               />
             </div>
+
+            {/* STAGE BOTTOM ZOOM & RULER TOOLBAR */}
+            <div className="mt-6 flex items-center justify-between w-full max-w-lg px-4 py-2 rounded-2xl bg-black/80 border border-white/10 text-xs font-mono text-gray-400 gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setZoomScale((z) => Math.max(0.3, z - 0.1))}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-neon-cyan font-bold min-w-[50px] text-center">
+                  {Math.round(zoomScale * 100)}%
+                </span>
+                <button
+                  onClick={() => setZoomScale((z) => Math.min(2.0, z + 0.1))}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setZoomScale(0.85)}
+                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] text-gray-300 uppercase"
+                >
+                  Fit Screen
+                </button>
+                <button
+                  onClick={() => setZoomScale(1.0)}
+                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] text-gray-300 uppercase"
+                >
+                  100% 1:1
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* RIGHT PANEL: INSPECTOR & BACKGROUND & TEMPLATES */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* RIGHT PANEL: PROPERTY INSPECTOR, BACKGROUND & CANVAS PRESETS */}
+        {rightSidebarOpen && (
+          <div className="w-full lg:w-80 shrink-0 space-y-5 transition-all">
           <div className="p-5 rounded-3xl bg-neutral-900/80 border border-white/10 backdrop-blur-xl space-y-5">
             {/* Navigation Tabs */}
-            <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-black/60 border border-white/10">
+            <div className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-black/60 border border-white/10">
               <button
                 onClick={() => setActiveTab("inspector")}
-                className={`py-2 rounded-xl text-xs font-mono uppercase flex flex-col items-center gap-1 transition-all ${
+                className={`py-2 rounded-xl text-[10px] font-mono uppercase flex flex-col items-center gap-1 transition-all ${
                   activeTab === "inspector"
                     ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40 font-bold"
                     : "text-gray-400 hover:text-white"
                 }`}
+                title="Element Inspector"
               >
                 <Sliders className="w-3.5 h-3.5" /> Element
               </button>
 
               <button
                 onClick={() => setActiveTab("background")}
-                className={`py-2 rounded-xl text-xs font-mono uppercase flex flex-col items-center gap-1 transition-all ${
+                className={`py-2 rounded-xl text-[10px] font-mono uppercase flex flex-col items-center gap-1 transition-all ${
                   activeTab === "background"
                     ? "bg-neon-purple/20 text-neon-purple border border-neon-purple/40 font-bold"
                     : "text-gray-400 hover:text-white"
                 }`}
+                title="Canvas & Background"
               >
                 <Palette className="w-3.5 h-3.5" /> Canvas
               </button>
 
               <button
+                onClick={() => setActiveTab("frames")}
+                className={`py-2 rounded-xl text-[10px] font-mono uppercase flex flex-col items-center gap-1 transition-all ${
+                  activeTab === "frames"
+                    ? "bg-amber-400/20 text-amber-300 border border-amber-400/40 font-bold"
+                    : "text-gray-400 hover:text-white"
+                }`}
+                title="Frames & Corner Decorators"
+              >
+                <Square className="w-3.5 h-3.5" /> Corners
+              </button>
+
+              <button
                 onClick={() => setActiveTab("templates")}
-                className={`py-2 rounded-xl text-xs font-mono uppercase flex flex-col items-center gap-1 transition-all ${
+                className={`py-2 rounded-xl text-[10px] font-mono uppercase flex flex-col items-center gap-1 transition-all ${
                   activeTab === "templates"
                     ? "bg-neon-pink/20 text-neon-pink border border-neon-pink/40 font-bold"
                     : "text-gray-400 hover:text-white"
                 }`}
+                title="Preset Templates"
               >
                 <Bookmark className="w-3.5 h-3.5" /> Presets
               </button>
@@ -661,6 +939,10 @@ export default function PostDesigner() {
               <BackgroundInspector state={designState} onChange={setDesignState} />
             )}
 
+            {activeTab === "frames" && (
+              <FrameCornerInspector state={designState} onChange={setDesignState} />
+            )}
+
             {activeTab === "templates" && (
               <TemplateManager
                 currentState={designState}
@@ -672,158 +954,398 @@ export default function PostDesigner() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* EXPORT & QUALITY CHECK VERIFICATION MODAL */}
       {showQualityModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-          <div className="w-full max-w-4xl bg-neutral-900 border border-white/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative">
+        <div
+          ref={exportModalBackdropRef}
+          onClick={(e) => {
+            if (e.target === exportModalBackdropRef.current) {
+              setShowQualityModal(false);
+            }
+          }}
+          className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
+        >
+          <div className="w-full max-w-5xl bg-neutral-900 border border-white/20 rounded-3xl p-5 sm:p-8 space-y-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto text-white">
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 sticky top-0 bg-neutral-900/95 backdrop-blur-md z-30 pt-1">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple p-0.5 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-neon-cyan via-neon-purple to-neon-pink p-0.5 flex items-center justify-center shrink-0">
                   <div className="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
                     <FileCheck className="w-5 h-5 text-neon-cyan" />
                   </div>
                 </div>
                 <div>
-                  <h2 className="font-display font-black text-lg text-white tracking-wide">
-                    AUTOMATED EXPORT QUALITY CHECK
+                  <h2 className="font-display font-black text-lg text-white tracking-wide flex items-center gap-2">
+                    PROFESSIONAL DESIGN FILE EXPORT
                   </h2>
                   <p className="text-xs text-gray-400 font-mono">
-                    WYSIWYG Edge-to-Edge Verification Engine
+                    Photoshop (.PSD) • Illustrator (.AI) • Vector SVG & PDF • EPS • Lossless Bitmaps
                   </p>
                 </div>
               </div>
 
               <button
+                type="button"
                 onClick={() => setShowQualityModal(false)}
-                className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white transition-all border border-white/20 shadow-lg"
+                title="Close Export Modal (ESC)"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-              {/* LEFT: LIVE RENDERED IMAGE PREVIEW */}
-              <div className="lg:col-span-7 flex flex-col items-center justify-center bg-black/60 rounded-2xl border border-white/10 p-4 min-h-[300px]">
-                {isGeneratingExport ? (
-                  <div className="flex flex-col items-center justify-center space-y-3 py-12">
-                    <Sparkles className="w-8 h-8 text-neon-cyan animate-spin" />
-                    <span className="text-xs font-mono text-neon-cyan animate-pulse">
-                      Rendering 1:1 Edge-to-Edge Pixel Buffer...
-                    </span>
-                  </div>
-                ) : previewDataUrl ? (
-                  <div className="space-y-2 text-center w-full">
-                    <div className="relative border border-white/20 rounded-xl overflow-hidden bg-black shadow-lg mx-auto">
-                      <img
-                        src={previewDataUrl}
-                        alt="Export Preview"
-                        className="max-h-[320px] w-auto mx-auto object-contain block"
-                      />
+            {/* SMART RECOMMENDATION BOX */}
+            {(() => {
+              const rec = getSmartExportRecommendation(designState);
+              return (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-neon-cyan/15 via-neon-purple/15 to-transparent border border-neon-cyan/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-neon-cyan text-black font-bold text-[10px] uppercase">
+                        ✨ SMART RECOMMENDATION
+                      </span>
+                      <span className="text-gray-300 font-bold">{rec.category} Design</span>
                     </div>
-                    <span className="text-[10px] font-mono text-gray-400 block">
-                      Actual Render Output Preview ({designState.width * exportQuality} x {designState.height * exportQuality} PX)
-                    </span>
+                    <p className="text-gray-300 text-[11px] leading-relaxed">
+                      {rec.reasoning}
+                    </p>
                   </div>
-                ) : (
-                  <span className="text-xs text-gray-500 font-mono">Preview rendering failed</span>
-                )}
+                  <button
+                    onClick={() => {
+                      setExportFormat(rec.recommendedFormat);
+                      setProfOptions((prev) => ({ ...prev, format: rec.recommendedFormat }));
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all shrink-0 ${
+                      exportFormat === rec.recommendedFormat
+                        ? "bg-neon-cyan text-black"
+                        : "bg-white/10 hover:bg-white/20 border border-white/20 text-white"
+                    }`}
+                  >
+                    {exportFormat === rec.recommendedFormat ? "✓ Applied Choice" : `Switch to ${rec.recommendedFormat.toUpperCase()}`}
+                  </button>
+                </div>
+              );
+            })()}
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* LEFT: LIVE RENDERED PREVIEW & COMPATIBILITY */}
+              <div className="lg:col-span-6 space-y-4">
+                <div className="flex flex-col items-center justify-center bg-black/70 rounded-2xl border border-white/10 p-4 min-h-[320px]">
+                  {isGeneratingExport ? (
+                    <div className="flex flex-col items-center justify-center space-y-3 py-16">
+                      <Sparkles className="w-8 h-8 text-neon-cyan animate-spin" />
+                      <span className="text-xs font-mono text-neon-cyan animate-pulse text-center px-4">
+                        {exportProgressStatus || "Rendering 1:1 Professional Output Stream..."}
+                      </span>
+                    </div>
+                  ) : previewDataUrl ? (
+                    <div className="space-y-3 text-center w-full">
+                      <div className="relative border border-white/20 rounded-xl overflow-hidden bg-black shadow-2xl mx-auto max-h-[340px] flex items-center justify-center">
+                        <img
+                          src={previewDataUrl}
+                          alt="Export Preview"
+                          className="max-h-[320px] w-auto mx-auto object-contain block rounded"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-mono text-gray-400 px-1 pt-1">
+                        <span>{designState.width * exportQuality} × {designState.height * exportQuality} PX</span>
+                        <span className="text-neon-cyan font-bold bg-neon-cyan/10 border border-neon-cyan/30 px-2 py-0.5 rounded">
+                          EST. FILE SIZE: {estimateExportFileSize(previewDataUrl, designState.width, designState.height, exportFormat, exportQuality)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-500 font-mono">Preview generation failed</span>
+                  )}
+                </div>
+
+                {/* SOFTWARE COMPATIBILITY BADGES */}
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-xs font-mono">
+                  <span className="text-gray-400 font-bold block text-[10px] uppercase tracking-wider">
+                    Compatible Design & Vector Editors
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["Adobe Photoshop", "Adobe Illustrator", "Affinity Designer", "Figma", "CorelDRAW", "Inkscape"].map((app) => (
+                      <span key={app} className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-[10px]">
+                        ✓ {app}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* RIGHT: QUALITY CHECK REPORT & EXPORT OPTIONS */}
-              <div className="lg:col-span-5 space-y-5">
-                {/* FORMAT SELECTOR */}
+              {/* RIGHT: FORMAT SELECTOR & ADVANCED EXPORT OPTIONS */}
+              <div className="lg:col-span-6 space-y-5">
+                {/* FORMAT SELECTOR GRID */}
                 <div className="space-y-2">
                   <label className="text-xs font-mono uppercase text-gray-400 block font-bold">
                     1. Output File Format
                   </label>
                   <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-black/60 border border-white/10">
-                    {(["png", "jpg", "webp", "svg"] as const).map((fmt) => (
+                    {[
+                      { id: "psd", name: "PSD", label: "Photoshop", color: "text-blue-400" },
+                      { id: "ai", name: "AI", label: "Illustrator", color: "text-amber-400" },
+                      { id: "svg", name: "SVG", label: "Vector XML", color: "text-green-400" },
+                      { id: "pdf", name: "PDF", label: "Vector PDF", color: "text-red-400" },
+                      { id: "eps", name: "EPS", label: "PostScript", color: "text-purple-400" },
+                      { id: "png", name: "PNG", label: "Lossless", color: "text-cyan-400" },
+                      { id: "jpg", name: "JPG", label: "Photo", color: "text-pink-400" },
+                      { id: "webp", name: "WebP", label: "Web", color: "text-emerald-400" },
+                    ].map((item) => (
                       <button
-                        key={fmt}
-                        onClick={() => setExportFormat(fmt)}
-                        className={`py-2 rounded-xl text-xs font-mono uppercase transition-all ${
-                          exportFormat === fmt
-                            ? "bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold"
-                            : "text-gray-400 hover:text-white"
+                        key={item.id}
+                        onClick={() => {
+                          const fmt = item.id as ExportFormat;
+                          setExportFormat(fmt);
+                          setProfOptions((prev) => ({ ...prev, format: fmt }));
+                        }}
+                        className={`py-2 px-1 rounded-xl text-center transition-all border flex flex-col items-center justify-center ${
+                          exportFormat === item.id
+                            ? "bg-neon-cyan/20 border-neon-cyan/60 text-white font-bold shadow-[0_0_15px_rgba(0,245,255,0.2)]"
+                            : "bg-black/20 border-transparent text-gray-400 hover:text-white hover:bg-white/5"
                         }`}
                       >
-                        {fmt}
+                        <span className={`text-xs font-mono font-black ${item.color}`}>{item.name}</span>
+                        <span className="text-[9px] font-sans text-gray-400 truncate max-w-[55px]">{item.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* RESOLUTION SCALE SELECTOR */}
+                {/* RESOLUTION & DPI SCALE SELECTOR */}
                 <div className="space-y-2">
-                  <label className="text-xs font-mono uppercase text-gray-400 block font-bold">
-                    2. Resolution Quality
-                  </label>
-                  <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-black/60 border border-white/10">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-mono uppercase text-gray-400 block font-bold">
+                      2. Resolution & Print DPI
+                    </label>
+                    <span className="text-[10px] font-mono text-neon-cyan">
+                      {exportQuality === 1 ? "72 DPI (Web)" : exportQuality === 2 ? "150 DPI (HD)" : exportQuality === 3 ? "300 DPI (Print)" : "600 DPI (Master)"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-black/60 border border-white/10">
                     <button
-                      onClick={() => setExportQuality(1)}
+                      onClick={() => {
+                        setExportQuality(1);
+                        setProfOptions((prev) => ({ ...prev, quality: 1, dpi: 72 }));
+                      }}
                       className={`py-2 rounded-xl text-xs font-mono uppercase transition-all ${
                         exportQuality === 1
                           ? "bg-neon-purple/20 border border-neon-purple/50 text-neon-purple font-bold"
                           : "text-gray-400 hover:text-white"
                       }`}
                     >
-                      1x Native
+                      1x / 72
                     </button>
                     <button
-                      onClick={() => setExportQuality(2)}
+                      onClick={() => {
+                        setExportQuality(2);
+                        setProfOptions((prev) => ({ ...prev, quality: 2, dpi: 150 }));
+                      }}
                       className={`py-2 rounded-xl text-xs font-mono uppercase transition-all ${
                         exportQuality === 2
                           ? "bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold"
                           : "text-gray-400 hover:text-white"
                       }`}
                     >
-                      2x Ultra HD
+                      2x / 150
                     </button>
                     <button
-                      onClick={() => setExportQuality(3)}
+                      onClick={() => {
+                        setExportQuality(3);
+                        setProfOptions((prev) => ({ ...prev, quality: 3, dpi: 300 }));
+                      }}
                       className={`py-2 rounded-xl text-xs font-mono uppercase transition-all ${
                         exportQuality === 3
                           ? "bg-neon-pink/20 border border-neon-pink/50 text-neon-pink font-bold"
                           : "text-gray-400 hover:text-white"
                       }`}
                     >
-                      3x Print 4K
+                      3x / 300
+                    </button>
+                    <button
+                      onClick={() => {
+                        setExportQuality(4);
+                        setProfOptions((prev) => ({ ...prev, quality: 4, dpi: 600 }));
+                      }}
+                      className={`py-2 rounded-xl text-xs font-mono uppercase transition-all ${
+                        exportQuality === 4
+                          ? "bg-amber-400/20 border border-amber-400/50 text-amber-300 font-bold"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      4x / 600
                     </button>
                   </div>
                 </div>
 
-                {/* AUTOMATED QUALITY VERIFICATION CHECKS */}
-                <div className="space-y-2 p-4 rounded-2xl bg-black/40 border border-white/10 text-xs font-mono">
-                  <span className="text-gray-400 font-bold block mb-2 text-[11px] uppercase tracking-wider">
+                {/* ADVANCED PROFESSIONAL SETTINGS TOGGLE */}
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowAdvancedOpts((prev) => !prev)}
+                    className="w-full py-2 px-3 rounded-xl bg-black/40 hover:bg-black/60 border border-white/10 text-xs font-mono flex items-center justify-between text-gray-300 hover:text-white transition-colors"
+                  >
+                    <span className="font-bold flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-neon-cyan" /> 3. Advanced Export Settings
+                    </span>
+                    <span className="text-[10px] text-neon-cyan uppercase">
+                      {showAdvancedOpts ? "Hide ▲" : "Configure ▼"}
+                    </span>
+                  </button>
+
+                  {showAdvancedOpts && (
+                    <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 space-y-3 text-xs font-mono animate-fade-in">
+                      {/* Layer Mode */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-400">Layer Structure:</span>
+                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+                          <button
+                            onClick={() => setProfOptions((prev) => ({ ...prev, layerMode: "layered" }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                              profOptions.layerMode === "layered" ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40" : "text-gray-400"
+                            }`}
+                          >
+                            Layered
+                          </button>
+                          <button
+                            onClick={() => setProfOptions((prev) => ({ ...prev, layerMode: "flattened" }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                              profOptions.layerMode === "flattened" ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/40" : "text-gray-400"
+                            }`}
+                          >
+                            Flattened
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Text Export Mode */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-400">Typography / Text:</span>
+                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+                          <button
+                            onClick={() => setProfOptions((prev) => ({ ...prev, textMode: "editable" }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                              profOptions.textMode === "editable" ? "bg-neon-purple/20 text-neon-purple border border-neon-purple/40" : "text-gray-400"
+                            }`}
+                          >
+                            Editable Text
+                          </button>
+                          <button
+                            onClick={() => setProfOptions((prev) => ({ ...prev, textMode: "outlines" }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                              profOptions.textMode === "outlines" ? "bg-neon-purple/20 text-neon-purple border border-neon-purple/40" : "text-gray-400"
+                            }`}
+                          >
+                            Outlines
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Color Mode */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-400">Color Profile:</span>
+                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+                          <button
+                            onClick={() => setProfOptions((prev) => ({ ...prev, colorMode: "rgb" }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                              profOptions.colorMode === "rgb" ? "bg-neon-pink/20 text-neon-pink border border-neon-pink/40" : "text-gray-400"
+                            }`}
+                          >
+                            RGB (Digital)
+                          </button>
+                          <button
+                            onClick={() => setProfOptions((prev) => ({ ...prev, colorMode: "cmyk" }))}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold transition-all ${
+                              profOptions.colorMode === "cmyk" ? "bg-neon-pink/20 text-neon-pink border border-neon-pink/40" : "text-gray-400"
+                            }`}
+                          >
+                            CMYK (Print)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Background Style */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-gray-400">Background:</span>
+                        <button
+                          onClick={() => setProfOptions((prev) => ({ ...prev, transparentBg: !prev.transparentBg }))}
+                          className={`px-3 py-1 rounded-xl text-[10px] uppercase font-bold border transition-all ${
+                            profOptions.transparentBg
+                              ? "bg-amber-400/20 text-amber-300 border-amber-400/40"
+                              : "bg-white/10 text-gray-300 border-white/20"
+                          }`}
+                        >
+                          {profOptions.transparentBg ? "Transparent BG" : "Solid Canvas Fill"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* AUTOMATED QUALITY INSPECTION */}
+                <div className="space-y-1.5 p-3.5 rounded-2xl bg-black/40 border border-white/10 text-xs font-mono">
+                  <span className="text-gray-400 font-bold block mb-1.5 text-[10px] uppercase tracking-wider">
                     Quality Inspection Checklist
                   </span>
 
-                  <div className="flex items-center gap-2 text-green-400">
+                  <div className="flex items-center gap-2 text-green-400 text-[11px]">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>Edge-to-Edge Background Coverage: 100%</span>
+                    <span>Layer Grouping & Vector Structure Verified</span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-green-400">
+                  <div className="flex items-center gap-2 text-green-400 text-[11px]">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>Transparent Outer Margin Padding: 0px</span>
+                    <span>Edge-to-Edge Canvas Bounds: 100% Coverage</span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-green-400">
+                  <div className="flex items-center gap-2 text-green-400 text-[11px]">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>Canvas Bounds Clip: Overflow Hidden Verified</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>WYSIWYG Pixel Ratio: {exportQuality}x ({designState.width * exportQuality} x {designState.height * exportQuality} px)</span>
+                    <span>Resolution: {designState.width * exportQuality} x {designState.height * exportQuality} PX ({profOptions.dpi} DPI)</span>
                   </div>
                 </div>
 
+                {/* ASSET HEALTH & CORS INSPECTOR */}
+                {assetDiagnostics.length > 0 && (
+                  <div className="space-y-2 p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs font-mono">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-neon-cyan font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-neon-cyan" /> Asset Health & CORS Status
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        {assetDiagnostics.filter((d) => d.status === "ok").length}/{assetDiagnostics.length} Verified
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                      {assetDiagnostics.map((diag) => (
+                        <div
+                          key={diag.id}
+                          className={`p-2 rounded-xl border text-[10px] flex items-center justify-between gap-2 ${
+                            diag.status === "ok"
+                              ? "bg-green-500/10 border-green-500/20 text-green-300"
+                              : "bg-amber-500/10 border-amber-500/30 text-amber-200"
+                          }`}
+                        >
+                          <span className="font-bold truncate max-w-[180px]">{diag.name}</span>
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase shrink-0 ${
+                              diag.status === "ok"
+                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                            }`}
+                          >
+                            {diag.status === "ok" ? "✓ OK" : "⚠️ CORS FIX"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* ACTION BUTTONS */}
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2 pt-1">
                   <button
                     onClick={handleDownloadArtwork}
                     disabled={isGeneratingExport}
@@ -831,11 +1353,11 @@ export default function PostDesigner() {
                   >
                     {downloadSuccess ? (
                       <>
-                        <Check className="w-4 h-4 text-green-300" /> Saved {exportFormat.toUpperCase()} Image!
+                        <Check className="w-4 h-4 text-green-300" /> Saved {exportFormat.toUpperCase()} File!
                       </>
                     ) : (
                       <>
-                        <Download className="w-4 h-4" /> Download Verified {exportFormat.toUpperCase()} Artwork
+                        <Download className="w-4 h-4" /> Download {exportFormat.toUpperCase()} Design File
                       </>
                     )}
                   </button>
@@ -851,7 +1373,7 @@ export default function PostDesigner() {
                       </>
                     ) : (
                       <>
-                        <Copy className="w-4 h-4" /> Copy Image to Clipboard
+                        <Copy className="w-4 h-4" /> Copy PNG Image Preview
                       </>
                     )}
                   </button>

@@ -1,5 +1,6 @@
 import React, { forwardRef } from "react";
 import { DesignState, CanvasElement } from "../../types/designer";
+import { FrameCornerDecorationRenderer } from "./FrameCornerDecorationRenderer";
 
 interface CanvasStageProps {
   state: DesignState;
@@ -28,15 +29,141 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
 
     // Pattern background style generator
     const getPatternSvg = () => {
+      const pColor = background.patternColor || "rgba(0, 245, 255, 0.4)";
+      const op = background.patternOpacity ?? 0.3;
       switch (background.pattern) {
         case "grid":
-          return `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M0 40h40M40 0v40' fill='none' stroke='rgba(0, 245, 255, ${background.patternOpacity})' stroke-width='1'/%3E%3C/svg%3E")`;
+          return `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M0 40h40M40 0v40' fill='none' stroke='${encodeURIComponent(
+            pColor
+          )}' stroke-opacity='${op}' stroke-width='1'/%3E%3C/svg%3E")`;
         case "scanline":
-          return `linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, ${background.patternOpacity * 0.8}) 50%)`;
+          return `linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, ${op * 0.8}) 50%)`;
         case "dots":
-          return `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='rgba(255, 255, 255, ${background.patternOpacity})'/%3E%3C/svg%3E")`;
+          return `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='${encodeURIComponent(
+            pColor
+          )}' fill-opacity='${op}'/%3E%3C/svg%3E")`;
         case "hexagons":
-          return `url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l13-7.5z' fill='none' stroke='rgba(168, 85, 247, ${background.patternOpacity})' stroke-width='1'/%3E%3C/svg%3E")`;
+          return `url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l13-7.5z' fill='none' stroke='${encodeURIComponent(
+            pColor
+          )}' stroke-opacity='${op}' stroke-width='1'/%3E%3C/svg%3E")`;
+        case "circuit":
+          return `url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10h20v20H0zM30 30h20v20H30z' fill='none' stroke='${encodeURIComponent(
+            pColor
+          )}' stroke-opacity='${op}' stroke-width='1'/%3E%3Ccircle cx='20' cy='10' r='3' fill='${encodeURIComponent(
+            pColor
+          )}' fill-opacity='${op}'/%3E%3C/svg%3E")`;
+        case "cross":
+          return `url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 0v24M0 12h24' fill='none' stroke='${encodeURIComponent(
+            pColor
+          )}' stroke-opacity='${op}' stroke-width='1'/%3E%3C/svg%3E")`;
+        case "cyber":
+          return `url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15 0 L30 15 L15 30 L0 15 Z' fill='none' stroke='${encodeURIComponent(
+            pColor
+          )}' stroke-opacity='${op}' stroke-width='1'/%3E%3C/svg%3E")`;
+        case "noise":
+          return `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='${
+            op * 0.25
+          }'/%3E%3C/svg%3E")`;
+        default:
+          return "none";
+      }
+    };
+
+    // Calculate background CSS dynamically
+    const getBackgroundCss = () => {
+      if (allowTransparentBackground) return { backgroundColor: "transparent", backgroundImage: "none" };
+
+      const type = background.type || "gradient";
+      const from = background.gradientFrom || "#020617";
+      const via = background.gradientVia;
+      const to = background.gradientTo || "#0f172a";
+
+      if (type === "solid") {
+        return {
+          backgroundColor: background.solidColor || "#0a0e27",
+          backgroundImage: "none",
+        };
+      }
+
+      if (type === "gradient") {
+        const angle =
+          background.gradientAngle !== undefined
+            ? `${background.gradientAngle}deg`
+            : background.gradientDirection === "to-r"
+            ? "90deg"
+            : background.gradientDirection === "to-br"
+            ? "135deg"
+            : background.gradientDirection === "to-b"
+            ? "180deg"
+            : background.gradientDirection === "to-bl"
+            ? "225deg"
+            : "45deg";
+
+        const stops = via ? `${from}, ${via}, ${to}` : `${from}, ${to}`;
+        return {
+          backgroundColor: from,
+          backgroundImage: `linear-gradient(${angle}, ${stops})`,
+        };
+      }
+
+      if (type === "radial") {
+        const shape = background.radialShape || "circle";
+        const pos = background.radialPosition || "center";
+        const stops = via ? `${from}, ${via}, ${to}` : `${from}, ${to}`;
+        return {
+          backgroundColor: from,
+          backgroundImage: `radial-gradient(${shape} at ${pos}, ${stops})`,
+        };
+      }
+
+      if (type === "mesh") {
+        const c1 = background.meshColor1 || "#00f5ff";
+        const c2 = background.meshColor2 || "#a855f7";
+        const c3 = background.meshColor3 || "#ff006e";
+        const c4 = background.meshColor4 || "#020617";
+        return {
+          backgroundColor: background.solidColor || "#0a0e27",
+          backgroundImage: `radial-gradient(at 0% 0%, ${c1} 0px, transparent 50%), radial-gradient(at 100% 0%, ${c2} 0px, transparent 50%), radial-gradient(at 100% 100%, ${c3} 0px, transparent 50%), radial-gradient(at 0% 100%, ${c4} 0px, transparent 50%)`,
+        };
+      }
+
+      if (type === "glass") {
+        return {
+          backgroundColor: background.solidColor || "#090d20",
+          backgroundImage: `linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%)`,
+        };
+      }
+
+      if (type === "image" && background.imageUrl) {
+        return {
+          backgroundColor: background.solidColor || "#000000",
+          backgroundImage: `url(${background.imageUrl})`,
+          backgroundSize: background.imageFit || "cover",
+          backgroundPosition: background.imagePosition || "center",
+        };
+      }
+
+      return {
+        backgroundColor: background.solidColor || "#0a0e27",
+        backgroundImage: "none",
+      };
+    };
+
+    // Filter effect for Logo
+    const getLogoFilter = (effect?: string) => {
+      switch (effect) {
+        case "invert":
+          return "invert(1) brightness(1.8)";
+        case "grayscale":
+          return "grayscale(1) brightness(1.2)";
+        case "cyan-tint":
+          return "drop-shadow(0 0 10px #00f5ff) sepia(1) hue-rotate(130deg) saturate(3)";
+        case "purple-tint":
+          return "drop-shadow(0 0 10px #a855f7) sepia(1) hue-rotate(220deg) saturate(3)";
+        case "gold-tint":
+          return "drop-shadow(0 0 10px #ffb703) sepia(1) hue-rotate(340deg) saturate(4)";
+        case "brightness-boost":
+          return "brightness(1.5) contrast(1.2)";
         default:
           return "none";
       }
@@ -110,40 +237,20 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
               margin: 0,
               padding: 0,
               borderRadius: allowTransparentBackground ? "16px" : "0px",
-              backgroundColor: allowTransparentBackground ? "transparent" : (background.solidColor || "#0a0e27"),
-              backgroundImage:
-                allowTransparentBackground
-                  ? "none"
-                  : background.type === "gradient"
-                  ? `linear-gradient(${
-                      background.gradientDirection === "to-r"
-                        ? "90deg"
-                        : background.gradientDirection === "to-br"
-                        ? "135deg"
-                        : background.gradientDirection === "to-b"
-                        ? "180deg"
-                        : "45deg"
-                    }, ${background.gradientFrom || "#020617"}, ${background.gradientTo || "#0f172a"})`
-                  : background.type === "image" && background.imageUrl
-                  ? `url(${background.imageUrl})`
-                  : "none",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
+              ...getBackgroundCss(),
+              filter: `brightness(${background.brightness ?? 100}%) contrast(${background.contrast ?? 100}%) blur(${background.blur ?? 0}px)`,
             }}
           >
-            {/* Background Image Layer if set */}
-            {!allowTransparentBackground && background.type === "image" && background.imageUrl && (
+            {/* Color Overlay Layer if configured */}
+            {!allowTransparentBackground && background.overlayColor && (background.overlayOpacity ?? 0) > 0 && (
               <div
                 style={{
                   position: "absolute",
                   inset: 0,
-                  backgroundImage: `url(${background.imageUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: background.imageOpacity ?? 0.8,
-                  filter: `blur(${background.imageBlur || 0}px)`,
+                  backgroundColor: background.overlayColor,
+                  opacity: background.overlayOpacity,
                   pointerEvents: "none",
-                  zIndex: 0,
+                  zIndex: 1,
                 }}
               />
             )}
@@ -157,7 +264,7 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                   backgroundImage: getPatternSvg(),
                   backgroundSize: background.pattern === "scanline" ? "100% 4px" : "auto",
                   pointerEvents: "none",
-                  zIndex: 1,
+                  zIndex: 2,
                 }}
               />
             )}
@@ -178,19 +285,12 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
               />
             )}
 
-            {/* Cyber Neon Corner Accents */}
-            {showCyberBorders && (
-              <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 50 }}>
-                {/* Top Left */}
-                <div style={{ position: "absolute", top: 12, left: 12, width: 24, height: 24, borderTop: "2px solid #00f5ff", borderLeft: "2px solid #00f5ff" }} />
-                {/* Top Right */}
-                <div style={{ position: "absolute", top: 12, right: 12, width: 24, height: 24, borderTop: "2px solid #00f5ff", borderRight: "2px solid #00f5ff" }} />
-                {/* Bottom Left */}
-                <div style={{ position: "absolute", bottom: 12, left: 12, width: 24, height: 24, borderBottom: "2px solid #00f5ff", borderLeft: "2px solid #00f5ff" }} />
-                {/* Bottom Right */}
-                <div style={{ position: "absolute", bottom: 12, right: 12, width: 24, height: 24, borderBottom: "2px solid #00f5ff", borderRight: "2px solid #00f5ff" }} />
-              </div>
-            )}
+            {/* Frame Library & Customizable Corner Frame Decorations */}
+            <FrameCornerDecorationRenderer
+              cornerDecorations={state.cornerDecorations}
+              frameConfig={state.frameConfig}
+              showCyberBordersFallback={showCyberBorders}
+            />
 
             {/* EDITOR GUIDES & SAFE MARGIN OVERLAYS (HIDDEN ON EXPORT) */}
             {showGuides && (
@@ -210,10 +310,23 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
             )}
 
             {showSafeMargins && (
-              <div data-export-hide="true" className="pointer-events-none absolute inset-[5%] border border-dashed border-amber-400/60 z-40 rounded-lg">
-                <span className="absolute top-1 left-2 text-[9px] font-mono text-amber-300 bg-black/80 px-1.5 py-0.5 rounded">
-                  SAFE EXPORT MARGIN (5%)
-                </span>
+              <div
+                data-export-hide="true"
+                className="pointer-events-none absolute border-2 border-dashed border-amber-400/70 z-40 rounded-xl bg-amber-400/5 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+                style={{ inset: `${state.safeMarginPct || 5}%` }}
+              >
+                <div className="absolute top-1.5 left-2 flex items-center gap-1.5">
+                  <span className="text-[9px] font-mono text-amber-300 bg-black/90 px-2 py-0.5 rounded border border-amber-400/40 font-bold uppercase tracking-wider">
+                    SAFE EXPORT MARGIN ({state.safeMarginPct || 5}%)
+                  </span>
+                </div>
+                {state.safeNote && (
+                  <div className="absolute bottom-1.5 left-2 right-2 flex justify-end">
+                    <span className="text-[9px] font-mono text-amber-200/90 bg-black/90 px-2 py-0.5 rounded border border-amber-400/30 line-clamp-1 max-w-[90%]">
+                      ⚠️ {state.safeNote}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -250,6 +363,7 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 return (
                   <div
                     key={el.id}
+                    data-element-id={el.id}
                     style={{
                       position: "absolute",
                       left: `${el.x}%`,
@@ -271,6 +385,7 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                       <img
                         src={el.url}
                         alt=""
+                        crossOrigin="anonymous"
                         style={{
                           position: "absolute",
                           inset: 0,
@@ -290,6 +405,7 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                       <img
                         src={el.url}
                         alt={el.name}
+                        crossOrigin="anonymous"
                         style={{
                           position: "absolute",
                           inset: 0,
@@ -322,6 +438,7 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 return (
                   <div
                     key={el.id}
+                    data-element-id={el.id}
                     style={{
                       position: "absolute",
                       left: `${el.x}%`,
@@ -354,6 +471,7 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 return (
                   <div
                     key={el.id}
+                    data-element-id={el.id}
                     style={{
                       position: "absolute",
                       left: `${el.x}%`,
@@ -391,6 +509,7 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 return (
                   <div
                     key={el.id}
+                    data-element-id={el.id}
                     style={{
                       position: "absolute",
                       left: `${el.x}%`,
@@ -418,44 +537,75 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
 
               // LOGO ELEMENT
               if (el.type === "logo") {
+                const logoSize = el.size || 24;
+                const isImageLogo = el.logoType === "image" || (el.url && el.logoType !== "text");
+
                 return (
                   <div
                     key={el.id}
+                    data-element-id={el.id}
                     style={{
                       position: "absolute",
                       left: `${el.x}%`,
                       top: `${el.y}%`,
                       transform: "translate(-50%, -50%)",
                       zIndex: el.zIndex || 45,
-                      display: "flex",
+                      display: "inline-flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       gap: "8px",
                       opacity: el.opacity ?? 1,
+                      padding: `${el.padding ?? 0}px`,
+                      borderRadius: `${el.borderRadius ?? 12}px`,
+                      backgroundColor: el.bg || "transparent",
+                      border: el.borderWidth ? `${el.borderWidth}px solid ${el.borderColor || "rgba(0, 245, 255, 0.4)"}` : "none",
+                      boxShadow: el.shadowGlow && el.shadowGlow !== "none" ? getGlowShadow(el.shadowGlow) : el.glow ? "0 0 20px rgba(0, 245, 255, 0.6)" : "none",
+                      backdropFilter: el.bg && el.bg !== "transparent" ? "blur(12px)" : "none",
                     }}
                     onClick={() => interactive && onSelectElement?.(el.id)}
                     className={selectionStyle}
                   >
-                    {el.url ? (
-                      <img src={el.url} alt="Logo" style={{ height: `${(el.size || 20) * 1.5}px` }} />
+                    {isImageLogo && el.url ? (
+                      <img
+                        src={el.url}
+                        alt={el.name || "Logo"}
+                        crossOrigin="anonymous"
+                        style={{
+                          height: `${logoSize * 1.5}px`,
+                          width: "auto",
+                          maxHeight: "180px",
+                          objectFit: "contain",
+                          filter: getLogoFilter(el.filterEffect),
+                          transition: "all 0.2s ease-out",
+                        }}
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
                       <div
                         style={{
-                          height: `${(el.size || 20) * 1.5}px`,
-                          padding: "0 12px",
-                          borderRadius: "8px",
-                          backgroundColor: "rgba(0, 0, 0, 0.6)",
-                          border: "1px solid rgba(0, 245, 255, 0.5)",
-                          color: "#00f5ff",
-                          fontFamily: "var(--font-display), 'Orbitron', sans-serif",
+                          padding: "4px 12px",
+                          color: el.textColor || el.color || "#00f5ff",
+                          fontFamily: getFontFamily(el.fontFamily || "Orbitron"),
                           fontWeight: 900,
-                          fontSize: `${el.size || 20}px`,
-                          letterSpacing: "3px",
-                          textShadow: el.glow ? "0 0 10px rgba(0, 245, 255, 0.8)" : "none",
+                          fontSize: `${logoSize}px`,
+                          letterSpacing: `${el.letterSpacing || 3}px`,
+                          textTransform: "uppercase",
+                          textShadow: el.glow ? "0 0 12px rgba(0, 245, 255, 0.8)" : "0 2px 8px rgba(0,0,0,0.8)",
                           display: "flex",
                           alignItems: "center",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {el.text || "LIZZDO"}
+                      </div>
+                    )}
+
+                    {interactive && isSelected && (
+                      <div
+                        data-export-hide="true"
+                        className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-neon-cyan text-black text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow z-50 pointer-events-none whitespace-nowrap"
+                      >
+                        LOGO: {el.name || "Brand"}
                       </div>
                     )}
                   </div>

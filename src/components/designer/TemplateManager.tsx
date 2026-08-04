@@ -20,6 +20,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newCategory, setNewCategory] = useState<DesignTemplate["category"]>("Portfolio");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("All");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Load saved templates on mount
@@ -234,9 +235,30 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
 
       {/* Preset Starter Templates Section */}
       <div className="space-y-3">
-        <h4 className="text-xs font-mono uppercase text-gray-400 font-bold">Preset Studio Starter Templates</h4>
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-mono uppercase text-gray-400 font-bold">Preset Studio Starter Templates</h4>
+          <span className="text-[10px] font-mono text-neon-cyan font-bold">{DESIGN_TEMPLATES.length} Available</span>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex flex-wrap gap-1 pb-1">
+          {["All", "Portfolio", "Blog", "Store", "Services", "Project Showcase", "Social Media Posts", "Marketing Graphics"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategoryFilter(cat)}
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-mono transition-all ${
+                selectedCategoryFilter === cat
+                  ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/50 font-bold"
+                  : "bg-white/5 text-gray-400 border border-white/10 hover:text-white"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 gap-2.5">
-          {DESIGN_TEMPLATES.map((tpl) => (
+          {DESIGN_TEMPLATES.filter(tpl => selectedCategoryFilter === "All" || tpl.category === selectedCategoryFilter).map((tpl) => (
             <div
               key={tpl.id}
               onClick={() => onSelectTemplate(tpl)}
@@ -254,7 +276,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
                 </div>
                 <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">{tpl.description}</p>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 uppercase">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 uppercase shrink-0">
                 {tpl.category}
               </span>
             </div>
