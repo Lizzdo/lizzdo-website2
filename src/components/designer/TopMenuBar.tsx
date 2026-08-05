@@ -100,10 +100,14 @@ export function TopMenuBar({
     { id: "view", label: "View" },
     { id: "insert", label: "Insert" },
     { id: "object", label: "Object" },
-    { id: "shapes", label: "Shapes" },
     { id: "text", label: "Text" },
+    { id: "shapes", label: "Shapes" },
     { id: "frames", label: "Frames" },
+    { id: "assets", label: "Assets" },
+    { id: "templates", label: "Templates" },
+    { id: "ai", label: "AI Tools" },
     { id: "plugins", label: "Plugins" },
+    { id: "export", label: "Export" },
     { id: "help", label: "Help" },
   ];
 
@@ -111,14 +115,17 @@ export function TopMenuBar({
 
   return (
     <div className="h-14 bg-neutral-900 border-b border-white/10 flex items-center justify-between px-3 text-xs font-sans select-none shrink-0 z-40 text-gray-200">
-      {/* LEFT SECTION: BRAND + MAIN MENU BAR */}
-      <div className="flex items-center gap-3 min-w-0">
-        {/* Lizzdo Logo Icon */}
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-neon-cyan via-neon-purple to-neon-pink p-0.5 flex items-center justify-center shrink-0">
-          <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-neon-cyan animate-pulse" />
-          </div>
-        </div>
+      {/* LEFT SECTION: BRAND + BACK TO WEBSITE + MAIN MENU BAR */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        {/* Back to Website CTA */}
+        <a
+          href="/"
+          className="px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/15 hover:bg-white/10 hover:border-neon-cyan/50 text-gray-300 hover:text-white transition-all text-xs font-mono flex items-center gap-1.5 shrink-0 group"
+          title="Exit Designer & Return to Main Website"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-neon-cyan group-hover:rotate-12 transition-transform" />
+          <span className="hidden sm:inline font-semibold">Back to Website</span>
+        </a>
 
         {/* Project Title Input & Save Badge */}
         <div className="flex items-center gap-2 min-w-0">
@@ -126,7 +133,7 @@ export function TopMenuBar({
             type="text"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="bg-transparent border-b border-transparent hover:border-white/20 focus:border-neon-cyan font-display font-bold text-sm text-white focus:outline-none px-1 py-0.5 truncate max-w-[160px] sm:max-w-[220px]"
+            className="bg-transparent border-b border-transparent hover:border-white/20 focus:border-neon-cyan font-display font-bold text-sm text-white focus:outline-none px-1 py-0.5 truncate max-w-[130px] sm:max-w-[200px]"
             title="Edit Project Title"
           />
           <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono shrink-0">
@@ -136,13 +143,13 @@ export function TopMenuBar({
         </div>
 
         {/* Top Dropdown Menu Items */}
-        <div className="hidden lg:flex items-center gap-1 border-l border-white/10 pl-3">
+        <div className="hidden xl:flex items-center gap-0.5 border-l border-white/10 pl-2">
           {menuItems.map((menu) => (
             <div key={menu.id} className="relative">
               <button
                 type="button"
                 onClick={() => setActiveMenu(activeMenu === menu.id ? null : menu.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                className={`px-2 py-1 rounded-lg text-xs font-medium transition-all ${
                   activeMenu === menu.id
                     ? "bg-white/15 text-white font-bold"
                     : "text-gray-300 hover:text-white hover:bg-white/5"
@@ -154,7 +161,7 @@ export function TopMenuBar({
               {/* DROPDOWN MENU MODAL */}
               {activeMenu === menu.id && (
                 <div
-                  className="absolute top-full left-0 mt-1 w-52 rounded-xl bg-neutral-900 border border-white/15 shadow-2xl py-1.5 z-50 text-xs font-mono space-y-0.5"
+                  className="absolute top-full left-0 mt-1 w-56 rounded-xl bg-neutral-900 border border-white/15 shadow-2xl py-1.5 z-50 text-xs font-mono space-y-0.5"
                   onMouseLeave={() => setActiveMenu(null)}
                 >
                   {menu.id === "file" && (
@@ -261,6 +268,26 @@ export function TopMenuBar({
                         <Square className="w-3.5 h-3.5 text-neon-pink" /> Glass Shape
                       </button>
                     </>
+                  )}
+
+                  {menu.id === "export" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          onOpenExport();
+                          setActiveMenu(null);
+                        }}
+                        className="w-full px-3 py-1.5 text-left hover:bg-neon-cyan/20 hover:text-neon-cyan flex items-center gap-2 font-bold"
+                      >
+                        <Download className="w-3.5 h-3.5 text-neon-cyan" /> Export High-Res Graphic
+                      </button>
+                    </>
+                  )}
+
+                  {["object", "text", "shapes", "frames", "assets", "templates", "ai", "plugins", "help"].includes(menu.id) && (
+                    <div className="px-3 py-2 text-gray-400 text-[11px] font-sans">
+                      Click tools in left rail or open corresponding panels.
+                    </div>
                   )}
                 </div>
               )}
