@@ -10,6 +10,7 @@ import {
 } from "../../types/designer";
 import { DEFAULT_DESIGN_STATE } from "../../data/designerTemplates";
 import { CanvasStage } from "./CanvasStage";
+import { Canvas } from "./Canvas";
 import { ElementInspector } from "./ElementInspector";
 import { BackgroundInspector } from "./BackgroundInspector";
 import { FrameCornerInspector } from "./FrameCornerInspector";
@@ -659,7 +660,7 @@ export default function PostDesigner() {
 
           {/* CANVAS CONTAINER */}
           <div className="flex-1 flex items-center justify-center relative w-full my-auto">
-            <CanvasStage
+            <Canvas
               ref={stageRef}
               state={designState}
               scaleFactor={zoomScale}
@@ -670,6 +671,12 @@ export default function PostDesigner() {
                 setRightSidebarOpen(true);
                 setActiveRightTab("inspector");
               }}
+              onUpdateElement={(id, updates) => {
+                const target = designState.elements.find((e) => e.id === id);
+                if (target) handleUpdateElement({ ...target, ...updates });
+              }}
+              onZoomChange={setZoomScale}
+              snapToGrid={designState.showGrid}
             />
           </div>
         </div>
