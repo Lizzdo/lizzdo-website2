@@ -11,6 +11,7 @@ import {
 import { DEFAULT_DESIGN_STATE } from "../../data/designerTemplates";
 import { CanvasStage } from "./CanvasStage";
 import { Canvas } from "./Canvas";
+import { PrepareExportModal } from "./PrepareExportModal";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { VersionHistoryModal } from "./VersionHistoryModal";
 import { ElementInspector } from "./ElementInspector";
@@ -917,132 +918,12 @@ export default function PostDesigner() {
         mousePos={mousePos}
       />
 
-      {/* 4. PROFESSIONAL EXPORT MODAL & QUALITY CHECK */}
-      {showQualityModal && (
-        <div
-          ref={exportModalBackdropRef}
-          onClick={(e) => {
-            if (e.target === exportModalBackdropRef.current) setShowQualityModal(false);
-          }}
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in font-sans"
-        >
-          <div className="w-full max-w-4xl max-h-[90vh] bg-neutral-900 border border-white/20 rounded-3xl shadow-2xl overflow-y-auto custom-scrollbar p-6 space-y-6">
-            {/* MODAL HEADER */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-neon-cyan via-neon-purple to-neon-pink p-0.5">
-                  <div className="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
-                    <FileCheck className="w-5 h-5 text-neon-cyan" />
-                  </div>
-                </div>
-                <div>
-                  <h2 className="font-display font-black text-white text-lg tracking-wider uppercase">
-                    Export Studio Artwork
-                  </h2>
-                  <p className="text-xs text-gray-400 font-mono">
-                    {designState.width} × {designState.height} PX • {exportFormat.toUpperCase()} FORMAT
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowQualityModal(false)}
-                className="p-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* FORMAT & QUALITY SELECTORS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* LEFT: FORMAT SELECTOR */}
-              <div className="space-y-4">
-                <label className="text-xs font-mono font-bold text-gray-300 uppercase block">
-                  1. Target File Format
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      { id: "png", name: "PNG Image", desc: "Lossless raster with alpha channel" },
-                      { id: "jpg", name: "JPG Photo", desc: "Compressed high-res image" },
-                      { id: "webp", name: "WebP Web", desc: "Ultra-compact web format" },
-                      { id: "svg", name: "SVG Vector", desc: "Scalable vector graphics" },
-                      { id: "pdf", name: "PDF Document", desc: "Print-ready document file" },
-                      { id: "psd", name: "PSD Layered", desc: "Editable Photoshop document" },
-                    ] as const
-                  ).map((fmt) => (
-                    <button
-                      key={fmt.id}
-                      type="button"
-                      onClick={() => setExportFormat(fmt.id)}
-                      className={`p-3 rounded-2xl border text-left transition-all ${
-                        exportFormat === fmt.id
-                          ? "bg-neon-cyan/20 border-neon-cyan text-white shadow-[0_0_15px_rgba(0,245,255,0.3)] font-bold"
-                          : "bg-black/40 border-white/10 hover:border-white/20 text-gray-300"
-                      }`}
-                    >
-                      <div className="font-mono text-xs text-neon-cyan uppercase font-bold">{fmt.name}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">{fmt.desc}</div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* EXPORT BUTTONS */}
-                <div className="pt-4 space-y-2">
-                  <button
-                    type="button"
-                    onClick={handleDownloadArtwork}
-                    disabled={isGeneratingExport}
-                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink text-white font-display font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] transition-all flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>{downloadSuccess ? "Downloaded Successfully!" : "Download Artwork"}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleCopyClipboard}
-                    disabled={isGeneratingExport}
-                    className="w-full py-2.5 rounded-2xl bg-white/5 border border-white/15 text-gray-300 font-mono text-xs hover:text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Copy className="w-4 h-4 text-neon-cyan" />
-                    <span>{copiedSuccess ? "Copied to Clipboard!" : "Copy Image to Clipboard"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* RIGHT: LIVE PREVIEW CANVAS & STATUS */}
-              <div className="space-y-4 flex flex-col justify-between">
-                <label className="text-xs font-mono font-bold text-gray-300 uppercase block">
-                  2. Rendered Artwork Preview
-                </label>
-
-                <div className="w-full h-64 rounded-2xl bg-black/80 border border-white/10 relative overflow-hidden flex items-center justify-center p-2">
-                  {isGeneratingExport || !previewDataUrl ? (
-                    <div className="flex flex-col items-center justify-center space-y-3 text-neon-cyan font-mono text-xs">
-                      <RefreshCw className="w-6 h-6 animate-spin text-neon-cyan" />
-                      <span>{exportProgressStatus || "Rendering Artwork Preview..."}</span>
-                    </div>
-                  ) : (
-                    <img
-                      src={previewDataUrl}
-                      alt="Artwork Preview"
-                      className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
-                    />
-                  )}
-                </div>
-
-                <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-[11px] font-mono text-gray-400 flex items-center justify-between">
-                  <span>Target Resolution:</span>
-                  <span className="text-neon-cyan font-bold">
-                    {designState.width * exportQuality} × {designState.height * exportQuality} PX ({exportQuality}x HD)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 4. PREPARE EXPORT & FIDELITY MODAL */}
+      <PrepareExportModal
+        isOpen={showQualityModal}
+        onClose={() => setShowQualityModal(false)}
+        designState={designState}
+      />
 
       {/* SHORTCUTS MODAL */}
       <ShortcutsModal
