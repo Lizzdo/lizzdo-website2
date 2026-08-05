@@ -96,11 +96,24 @@ export default function Navbar() {
             to="/designer"
             className={cn(
               "font-display text-sm tracking-[2px] transition-all hover:text-neon-cyan flex items-center gap-1.5",
-              isActive("/designer") || isActive("/studio") ? "text-neon-cyan font-bold" : "text-white/70"
+              isActive("/designer") ? "text-neon-cyan font-bold" : "text-white/70"
             )}
+            title="Legacy Designer V1"
+          >
+            <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+            STUDIO V1
+          </Link>
+
+          <Link
+            to="/designer-v2"
+            className={cn(
+              "font-display text-sm tracking-[2px] transition-all flex items-center gap-1.5 px-3 py-1 rounded-lg border border-neon-cyan/40 bg-neon-cyan/10 hover:bg-neon-cyan/20",
+              isActive("/designer-v2") || isActive("/studio-v2") ? "text-neon-cyan font-bold shadow-[0_0_12px_rgba(0,245,255,0.4)]" : "text-neon-cyan/80"
+            )}
+            title="New Professional Designer V2"
           >
             <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse"></span>
-            STUDIO OS
+            DESIGNER V2 PRO
           </Link>
           <Link
             to="/contact"
@@ -165,8 +178,19 @@ export default function Navbar() {
           location.pathname === "/designer" ? "text-neon-cyan" : "text-white"
         )}
       >
-        <span className="w-2.5 h-2.5 rounded-full bg-neon-cyan"></span>
-        DESIGNER
+        <span className="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
+        DESIGNER V1
+      </Link>
+      <Link
+        to="/designer-v2"
+        onClick={() => setIsOpen(false)}
+        className={cn(
+          "font-display text-2xl tracking-[4px] transition-all flex items-center gap-2 text-neon-cyan",
+          location.pathname === "/designer-v2" ? "text-neon-cyan font-bold" : "text-neon-cyan/80"
+        )}
+      >
+        <span className="w-2.5 h-2.5 rounded-full bg-neon-cyan animate-pulse"></span>
+        DESIGNER V2 PRO
       </Link>
       <Link
         to="/contact"

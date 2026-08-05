@@ -18,6 +18,7 @@ import FAQ from "../pages/FAQ";
 import Legal from "../pages/Legal";
 import Checkout from "../pages/Checkout";
 import Designer from "../pages/Designer";
+import DesignerV2 from "../pages/DesignerV2";
 
 export default function AnimatedRoutes() {
   const location = useLocation();
@@ -44,7 +45,9 @@ export default function AnimatedRoutes() {
         <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
         <Route path="/estimator" element={<PageWrapper><Estimator /></PageWrapper>} />
         <Route path="/designer" element={<PageWrapper><Designer /></PageWrapper>} />
+        <Route path="/designer-v2" element={<PageWrapper><DesignerV2 /></PageWrapper>} />
         <Route path="/studio" element={<PageWrapper><Designer /></PageWrapper>} />
+        <Route path="/studio-v2" element={<PageWrapper><DesignerV2 /></PageWrapper>} />
         <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
         <Route path="/legal/:slug" element={<PageWrapper><Legal /></PageWrapper>} />
       </Routes>
