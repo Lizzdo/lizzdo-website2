@@ -199,9 +199,6 @@ export default function ArtboardRendererV2({
         <FrameCornerDecorationRenderer
           cornerDecorations={state.cornerDecorations}
           frameConfig={state.frameConfig}
-          width={width}
-          height={height}
-          containerScale={1}
         />
 
         {/* Rendered Elements */}

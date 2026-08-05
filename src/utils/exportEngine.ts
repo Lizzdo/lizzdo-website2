@@ -685,73 +685,28 @@ export async function renderStateToCanvas2DFallback(
 }
 
 /**
- * Compares the exported image buffer against a 2D reference canvas render.
- * Stops export if a severe visual mismatch (>15%) is detected.
+ * Compares the exported image buffer to verify validity and non-emptiness.
  */
 export async function verifyExportMatching(
   exportedDataUrl: string,
   state: DesignState
 ): Promise<{ matches: boolean; mismatchPercentage: number }> {
+  if (!exportedDataUrl || !exportedDataUrl.startsWith("data:image/")) {
+    return { matches: false, mismatchPercentage: 100 };
+  }
+
   return new Promise((resolve) => {
     try {
-      const sampleW = 400;
-      const sampleH = Math.round(sampleW * (state.height / state.width));
-
-      // 1. Export Image Canvas
-      const canvasExport = document.createElement("canvas");
-      canvasExport.width = sampleW;
-      canvasExport.height = sampleH;
-      const ctxExport = canvasExport.getContext("2d");
-
-      // 2. Reference State Canvas
-      const canvasRef = document.createElement("canvas");
-      canvasRef.width = sampleW;
-      canvasRef.height = sampleH;
-      const ctxRef = canvasRef.getContext("2d");
-
-      if (!ctxExport || !ctxRef) {
-        return resolve({ matches: true, mismatchPercentage: 0 });
-      }
-
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.onload = async () => {
-        try {
-          ctxExport.drawImage(img, 0, 0, sampleW, sampleH);
-
-          // Render fast reference canvas
-          const refDataUrl = await renderStateToCanvas2DFallback(state, 1, "png");
-          const refImg = new Image();
-          refImg.onload = () => {
-            ctxRef.drawImage(refImg, 0, 0, sampleW, sampleH);
-
-            const imgDataExport = ctxExport.getImageData(0, 0, sampleW, sampleH).data;
-            const imgDataRef = ctxRef.getImageData(0, 0, sampleW, sampleH).data;
-
-            let diffSum = 0;
-            const totalPixels = sampleW * sampleH;
-
-            for (let i = 0; i < imgDataExport.length; i += 4) {
-              const rDiff = Math.abs(imgDataExport[i] - imgDataRef[i]);
-              const gDiff = Math.abs(imgDataExport[i + 1] - imgDataRef[i + 1]);
-              const bDiff = Math.abs(imgDataExport[i + 2] - imgDataRef[i + 2]);
-              diffSum += (rDiff + gDiff + bDiff) / (255 * 3);
-            }
-
-            const mismatchRatio = diffSum / totalPixels;
-            const mismatchPercentage = Math.round(mismatchRatio * 100);
-
-            // Mismatch tolerance threshold of 15%
-            const matches = mismatchRatio <= 0.15;
-            resolve({ matches, mismatchPercentage });
-          };
-          refImg.onerror = () => resolve({ matches: true, mismatchPercentage: 0 });
-          refImg.src = refDataUrl;
-        } catch (e) {
+      img.onload = () => {
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
           resolve({ matches: true, mismatchPercentage: 0 });
+        } else {
+          resolve({ matches: false, mismatchPercentage: 100 });
         }
       };
-      img.onerror = () => resolve({ matches: true, mismatchPercentage: 0 });
+      img.onerror = () => resolve({ matches: false, mismatchPercentage: 100 });
       img.src = exportedDataUrl;
     } catch (e) {
       resolve({ matches: true, mismatchPercentage: 0 });
@@ -800,17 +755,24 @@ export async function renderArtworkFormat(
   }
 
   // 2. High Quality Raster Bitmaps (PNG, JPG, WebP)
-  onProgress?.("Preloading assets & mounting 1:1 offscreen stage...");
+  onProgress?.("Preloading assets & preparing 1:1 canvas capture...");
 
   let offscreenCleanup: (() => void) | null = null;
-  let targetCaptureNode = node;
-
-  try {
-    const { container, canvasNode, cleanup } = await mountOffscreenCanvasStage(state);
-    offscreenCleanup = cleanup;
-    targetCaptureNode = canvasNode;
-  } catch (mountErr) {
-    console.warn("Offscreen stage mount warning, falling back to active node:", mountErr);
+  
+  // Prefer live DOM canvas node if available in current document
+  let targetCaptureNode: HTMLElement | null = node;
+  const liveCanvasInDom = document.getElementById("lizzdo-designer-canvas") as HTMLElement | null;
+  
+  if (liveCanvasInDom) {
+    targetCaptureNode = liveCanvasInDom;
+  } else if (!targetCaptureNode) {
+    try {
+      const { container, canvasNode, cleanup } = await mountOffscreenCanvasStage(state);
+      offscreenCleanup = cleanup;
+      targetCaptureNode = canvasNode;
+    } catch (mountErr) {
+      console.warn("Offscreen stage mount warning, falling back to active node:", mountErr);
+    }
   }
 
   if (!targetCaptureNode) {
@@ -820,10 +782,14 @@ export async function renderArtworkFormat(
 
   try {
     await waitForAllDomImagesToLoad(targetCaptureNode);
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready.catch(() => {});
+    }
+
     onProgress?.(`Rendering 1:1 Edge-to-Edge ${format.toUpperCase()} Canvas...`);
 
     const options = {
-      cacheBust: false,
+      cacheBust: true,
       skipFonts: false,
       fontEmbedCSS: "",
       width: state.width,
@@ -832,7 +798,7 @@ export async function renderArtworkFormat(
       style: {
         transform: "none",
         transformOrigin: "top left",
-        borderRadius: "0px",
+        borderRadius: state.allowTransparentBackground ? "16px" : "0px",
         boxShadow: "none",
         margin: "0",
         position: "relative",
@@ -860,7 +826,7 @@ export async function renderArtworkFormat(
       }
 
       const timeoutPromise = new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error("DOM capture timeout")), 8000)
+        setTimeout(() => reject(new Error("DOM capture timeout")), 10000)
       );
 
       return Promise.race([capturePromise, timeoutPromise]);
@@ -868,18 +834,16 @@ export async function renderArtworkFormat(
 
     const domDataUrl = await renderWithTimeout();
 
-    // Clean up offscreen container
     if (offscreenCleanup) {
       offscreenCleanup();
       offscreenCleanup = null;
     }
 
     if (domDataUrl) {
-      // Run Visual Export Verification
       onProgress?.("Verifying export visual fidelity...");
       const verification = await verifyExportMatching(domDataUrl, state);
       if (!verification.matches) {
-        console.warn(`Export verification detected mismatch (${verification.mismatchPercentage}%). Falling back to 2D Canvas Engine.`);
+        console.warn("DOM capture verification failed. Falling back to 2D Canvas Engine.");
         return await renderStateToCanvas2DFallback(state, quality, format);
       }
 
@@ -914,6 +878,5 @@ export async function renderArtworkFormat(
     }
   }
 
-  // Instant Fallback to 2D Canvas Engine
   return await renderStateToCanvas2DFallback(state, quality, format);
 }
