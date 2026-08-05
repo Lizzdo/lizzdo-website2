@@ -534,9 +534,8 @@ export default function PostDesigner() {
     quality: ExportQuality = exportQuality,
     customProfOpts?: ProfessionalExportOptions
   ): Promise<string> => {
-    if (!stageRef.current) return "";
     setIsGeneratingExport(true);
-    setExportProgressStatus("Sanitizing Assets & Resolving CORS...");
+    setExportProgressStatus("Rendering Artwork Preview...");
 
     const activeProfOpts = customProfOpts || {
       ...profOptions,
@@ -549,30 +548,32 @@ export default function PostDesigner() {
       const { sanitizedState, diagnostics } = await prepareDesignStateForExport(designState);
       setAssetDiagnostics(diagnostics);
 
-      const resultUrl = await renderArtworkFormat(
+      // 1. Generate PNG visual preview for the modal image container
+      const previewUrl = await renderArtworkFormat(
         stageRef.current,
         sanitizedState,
-        format,
+        "png",
         quality,
         (msg) => setExportProgressStatus(msg),
-        activeProfOpts
+        { ...activeProfOpts, format: "png" }
       );
 
-      // Generate visual PNG preview for the modal <img> tag if selected format is binary (psd/ai/eps/pdf)
-      let visualPreviewUrl = resultUrl;
-      if (format === "psd" || format === "ai" || format === "eps" || format === "pdf") {
-        visualPreviewUrl = await renderArtworkFormat(
+      setPreviewDataUrl(previewUrl);
+
+      // 2. If target format is not PNG, generate target binary/vector format
+      if (format !== "png") {
+        const targetUrl = await renderArtworkFormat(
           stageRef.current,
           sanitizedState,
-          "png",
+          format,
           quality,
           undefined,
-          { ...activeProfOpts, format: "png" }
+          activeProfOpts
         );
+        return targetUrl;
       }
 
-      setPreviewDataUrl(visualPreviewUrl);
-      return resultUrl;
+      return previewUrl;
     } catch (err: any) {
       console.error("Export generation failed:", err);
       return "";
@@ -582,17 +583,18 @@ export default function PostDesigner() {
   };
 
   // OPEN QUALITY CHECK MODAL
-  const handleOpenExportModal = async () => {
+  const handleOpenExportModal = () => {
     setShowQualityModal(true);
-    await generateExportDataUrl(exportFormat, exportQuality, profOptions);
+    setIsGeneratingExport(true);
+    setExportProgressStatus("Rendering Artwork Preview...");
   };
 
   // RE-GENERATE PREVIEW WHEN FORMAT OR QUALITY CHANGES
   useEffect(() => {
     if (showQualityModal) {
-      generateExportDataUrl(exportFormat, exportQuality, profOptions);
+      generateExportDataUrl(exportFormat, exportQuality);
     }
-  }, [exportFormat, exportQuality, profOptions, showQualityModal]);
+  }, [exportFormat, exportQuality, showQualityModal]);
 
   // DOWNLOAD ARTWORK
   const handleDownloadArtwork = async () => {
@@ -1016,19 +1018,17 @@ export default function PostDesigner() {
                 </label>
 
                 <div className="w-full h-64 rounded-2xl bg-black/80 border border-white/10 relative overflow-hidden flex items-center justify-center p-2">
-                  {isGeneratingExport ? (
+                  {isGeneratingExport || !previewDataUrl ? (
                     <div className="flex flex-col items-center justify-center space-y-3 text-neon-cyan font-mono text-xs">
                       <RefreshCw className="w-6 h-6 animate-spin text-neon-cyan" />
-                      <span>{exportProgressStatus}</span>
+                      <span>{exportProgressStatus || "Rendering Artwork Preview..."}</span>
                     </div>
-                  ) : previewDataUrl ? (
+                  ) : (
                     <img
                       src={previewDataUrl}
                       alt="Artwork Preview"
                       className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
                     />
-                  ) : (
-                    <span className="text-xs font-mono text-gray-500">Generating preview...</span>
                   )}
                 </div>
 

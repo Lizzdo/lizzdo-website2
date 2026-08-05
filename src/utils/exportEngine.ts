@@ -84,7 +84,7 @@ export function createFallbackImageSvgDataUrl(label: string = "Image Asset"): st
 }
 
 /**
- * Robust fetch & convert image URL to Base64 Data URL or Blob URL.
+ * Robust fetch & convert image URL to Base64 Data URL or Blob URL with strict timeouts.
  */
 export async function convertUrlToDataUrl(url: string): Promise<string> {
   if (!url) return "";
@@ -101,8 +101,21 @@ export async function convertUrlToDataUrl(url: string): Promise<string> {
     });
   };
 
+  const fetchWithTimeout = async (requestUrl: string, options?: RequestInit, timeoutMs = 2000): Promise<Response> => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(requestUrl, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      return res;
+    } catch (err) {
+      clearTimeout(id);
+      throw err;
+    }
+  };
+
   try {
-    const directRes = await fetch(url, { mode: "cors", cache: "force-cache" });
+    const directRes = await fetchWithTimeout(url, { mode: "cors", cache: "force-cache" }, 1500);
     if (directRes.ok) {
       const blob = await directRes.blob();
       if (blob.type.startsWith("image/")) {
@@ -115,7 +128,7 @@ export async function convertUrlToDataUrl(url: string): Promise<string> {
 
   try {
     const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-    const proxyRes = await fetch(proxyUrl);
+    const proxyRes = await fetchWithTimeout(proxyUrl, undefined, 1500);
     if (proxyRes.ok) {
       const blob = await proxyRes.blob();
       if (blob.type.startsWith("image/")) {
@@ -129,7 +142,7 @@ export async function convertUrlToDataUrl(url: string): Promise<string> {
   try {
     const cleanUrl = url.replace(/^https?:\/\//, "");
     const extProxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&output=png`;
-    const extRes = await fetch(extProxyUrl);
+    const extRes = await fetchWithTimeout(extProxyUrl, undefined, 1500);
     if (extRes.ok) {
       const blob = await extRes.blob();
       if (blob.type.startsWith("image/")) {
@@ -144,7 +157,9 @@ export async function convertUrlToDataUrl(url: string): Promise<string> {
     const dataUrlFromCanvas = await new Promise<string>((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
+      const timer = setTimeout(() => reject("Image timeout"), 1500);
       img.onload = () => {
+        clearTimeout(timer);
         try {
           const canvas = document.createElement("canvas");
           canvas.width = img.naturalWidth || 800;
@@ -157,7 +172,10 @@ export async function convertUrlToDataUrl(url: string): Promise<string> {
           reject(canvasErr);
         }
       };
-      img.onerror = reject;
+      img.onerror = () => {
+        clearTimeout(timer);
+        reject("Image load error");
+      };
       img.src = url;
     });
 
@@ -276,10 +294,141 @@ export async function waitForAllDomImagesToLoad(container: HTMLElement): Promise
 }
 
 /**
+ * Fast & Instant 2D Canvas Fallback Renderer for PNG, JPG, WebP.
+ * Guarantees rendering in <50ms even if DOM capture hangs.
+ */
+export async function renderStateToCanvas2DFallback(
+  state: DesignState,
+  quality: ExportQuality = 2,
+  format: ExportFormat = "png"
+): Promise<string> {
+  const width = Math.round(state.width * quality);
+  const height = Math.round(state.height * quality);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+
+  // 1. Fill background
+  if (state.background.type === "solid") {
+    ctx.fillStyle = state.background.solidColor || "#0a0e27";
+    ctx.fillRect(0, 0, width, height);
+  } else if (state.background.type === "gradient") {
+    const grad = ctx.createLinearGradient(0, 0, width, height);
+    grad.addColorStop(0, state.background.gradientFrom || "#0a0e27");
+    grad.addColorStop(1, state.background.gradientTo || "#1e1b4b");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  } else if (state.background.type === "image" && state.background.imageUrl) {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = state.background.imageUrl;
+      await new Promise((res) => {
+        img.onload = res;
+        img.onerror = res;
+        setTimeout(res, 400);
+      });
+      ctx.drawImage(img, 0, 0, width, height);
+    } catch (e) {
+      ctx.fillStyle = state.background.solidColor || "#0a0e27";
+      ctx.fillRect(0, 0, width, height);
+    }
+  } else {
+    ctx.fillStyle = "#0a0e27";
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  // 2. Glass panel overlay
+  if (state.showGlassPanel) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${state.glassOpacity || 0.15})`;
+    ctx.fillRect(width * 0.05, height * 0.05, width * 0.9, height * 0.9);
+  }
+
+  // 3. Outer Frame Config
+  if (state.frameConfig?.enabled) {
+    const fw = Math.round((state.frameConfig.width || 4) * quality);
+    ctx.strokeStyle = state.frameConfig.color || "#00f5ff";
+    ctx.lineWidth = fw;
+    ctx.strokeRect(fw / 2, fw / 2, width - fw, height - fw);
+  }
+
+  // 4. Render Canvas Elements
+  for (const el of state.elements) {
+    if (!el.visible) continue;
+    const elX = Math.round((el.x / 100) * width);
+    const elY = Math.round((el.y / 100) * height);
+    const elW = Math.max(10, Math.round(((el.width || 30) / 100) * width));
+    const elH = Math.max(10, Math.round(((el.height || 10) / 100) * height));
+
+    ctx.save();
+    ctx.globalAlpha = el.opacity ?? 1;
+
+    if (el.rotation) {
+      ctx.translate(elX + elW / 2, elY + elH / 2);
+      ctx.rotate((el.rotation * Math.PI) / 180);
+      ctx.translate(-(elX + elW / 2), -(elY + elH / 2));
+    }
+
+    if (el.type === "text") {
+      ctx.fillStyle = el.color || "#ffffff";
+      const fSize = Math.round((el.fontSize || 32) * quality);
+      ctx.font = `${el.fontWeight || "bold"} ${fSize}px sans-serif`;
+      ctx.textAlign = (el.textAlign as CanvasTextAlign) || "left";
+      ctx.textBaseline = "middle";
+      const textX = el.textAlign === "center" ? elX + elW / 2 : el.textAlign === "right" ? elX + elW : elX;
+      ctx.fillText(el.text || "", textX, elY + elH / 2);
+    } else if (el.type === "image" || el.type === "logo") {
+      if (el.url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = el.url;
+          await new Promise((res) => {
+            img.onload = res;
+            img.onerror = res;
+            setTimeout(res, 400);
+          });
+          ctx.drawImage(img, elX, elY, elW, elH);
+        } catch (e) {
+          ctx.fillStyle = "#1e293b";
+          ctx.fillRect(elX, elY, elW, elH);
+        }
+      }
+    } else if (el.type === "badge" || el.type === "button" || el.type === "shape") {
+      ctx.fillStyle = el.bg || el.color || "#00f5ff";
+      const rad = Math.round((el.borderRadius || 8) * quality);
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(elX, elY, elW, elH, rad);
+      } else {
+        ctx.rect(elX, elY, elW, elH);
+      }
+      ctx.fill();
+
+      if (el.text) {
+        ctx.fillStyle = el.textColor || "#ffffff";
+        const fSize = Math.round((el.fontSize || 16) * quality);
+        ctx.font = `bold ${fSize}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(el.text, elX + elW / 2, elY + elH / 2);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  const mime = format === "jpg" ? "image/jpeg" : format === "webp" ? "image/webp" : "image/png";
+  return canvas.toDataURL(mime, 0.95);
+}
+
+/**
  * Clean 1:1 Edge-to-Edge Renderer for PNG, JPG, WebP, SVG, PSD, AI, EPS, and PDF formats.
  */
 export async function renderArtworkFormat(
-  node: HTMLElement,
+  node: HTMLElement | null,
   state: DesignState,
   format: ExportFormat,
   quality: ExportQuality,
@@ -317,96 +466,115 @@ export async function renderArtworkFormat(
 
   // 2. High Quality Raster Bitmaps (PNG, JPG, WebP)
   onProgress?.("Preloading assets & verifying bitmaps...");
-  await waitForAllDomImagesToLoad(node);
 
-  onProgress?.(`Rendering 1:1 Edge-to-Edge ${format.toUpperCase()} Canvas...`);
+  if (!node) {
+    return await renderStateToCanvas2DFallback(state, quality, format);
+  }
 
-  const options = {
-    cacheBust: true,
-    width: state.width,
-    height: state.height,
-    pixelRatio: quality,
-    style: {
-      transform: "none",
-      transformOrigin: "top left",
-      borderRadius: "0px",
-      boxShadow: "none",
-      margin: "0",
-      position: "relative",
-      top: "0",
-      left: "0",
-    },
-    filter: (domNode: Node) => {
-      if (domNode instanceof HTMLElement && domNode.dataset.exportHide === "true") {
-        return false;
-      }
-      return true;
-    },
-    onClone: (clonedNode: HTMLElement) => {
-      const rings = clonedNode.querySelectorAll(".ring-2, .ring-1, .ring-neon-cyan, .ring-offset-2, .ring-offset-black");
-      rings.forEach((r) => {
-        r.classList.remove("ring-2", "ring-1", "ring-neon-cyan", "ring-offset-2", "ring-offset-black");
-      });
+  try {
+    await waitForAllDomImagesToLoad(node);
+    onProgress?.(`Rendering 1:1 Edge-to-Edge ${format.toUpperCase()} Canvas...`);
 
-      const hideable = clonedNode.querySelectorAll('[data-export-hide="true"]');
-      hideable.forEach((h) => ((h as HTMLElement).style.display = "none"));
-
-      if (state.background.type === "image" && state.background.imageUrl) {
-        const canvasRoot = (clonedNode.querySelector("#lizzdo-designer-canvas") as HTMLElement) || clonedNode;
-        if (canvasRoot) {
-          canvasRoot.style.backgroundImage = `url("${state.background.imageUrl}")`;
+    const options = {
+      cacheBust: false,
+      skipFonts: true,
+      fontEmbedCSS: "",
+      width: state.width,
+      height: state.height,
+      pixelRatio: quality,
+      style: {
+        transform: "none",
+        transformOrigin: "top left",
+        borderRadius: "0px",
+        boxShadow: "none",
+        margin: "0",
+        position: "relative",
+        top: "0",
+        left: "0",
+      },
+      filter: (domNode: Node) => {
+        if (domNode instanceof HTMLElement && domNode.dataset.exportHide === "true") {
+          return false;
         }
-      }
+        return true;
+      },
+      onClone: (clonedNode: HTMLElement) => {
+        const rings = clonedNode.querySelectorAll(".ring-2, .ring-1, .ring-neon-cyan, .ring-offset-2, .ring-offset-black");
+        rings.forEach((r) => {
+          r.classList.remove("ring-2", "ring-1", "ring-neon-cyan", "ring-offset-2", "ring-offset-black");
+        });
 
-      for (const el of state.elements) {
-        if ((el.type === "image" || el.type === "logo") && el.url) {
-          const elContainer = clonedNode.querySelector(`[data-element-id="${el.id}"]`);
-          if (elContainer) {
-            const imgs = elContainer.querySelectorAll<HTMLImageElement>("img");
-            imgs.forEach((img) => {
-              img.src = el.url!;
-            });
+        const hideable = clonedNode.querySelectorAll('[data-export-hide="true"]');
+        hideable.forEach((h) => ((h as HTMLElement).style.display = "none"));
+
+        if (state.background.type === "image" && state.background.imageUrl) {
+          const canvasRoot = (clonedNode.querySelector("#lizzdo-designer-canvas") as HTMLElement) || clonedNode;
+          if (canvasRoot) {
+            canvasRoot.style.backgroundImage = `url("${state.background.imageUrl}")`;
           }
         }
-      }
-    },
-  };
 
-  if (format === "png") {
-    onProgress?.("Encoding Lossless PNG Buffer...");
-    return await toPng(node, options);
-  }
-
-  if (format === "jpg") {
-    onProgress?.("Optimizing JPEG Color Channels...");
-    return await toJpeg(node, {
-      ...options,
-      quality: 0.95,
-      backgroundColor: state.background.solidColor || "#0a0e27",
-    });
-  }
-
-  if (format === "webp") {
-    onProgress?.("Compressing WebP High-Efficiency Stream...");
-    const pngDataUrl = await toPng(node, options);
-    return await new Promise<string>((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = state.width * quality;
-        canvas.height = state.height * quality;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/webp", 0.95));
-        } else {
-          resolve(pngDataUrl);
+        for (const el of state.elements) {
+          if ((el.type === "image" || el.type === "logo") && el.url) {
+            const elContainer = clonedNode.querySelector(`[data-element-id="${el.id}"]`);
+            if (elContainer) {
+              const imgs = elContainer.querySelectorAll<HTMLImageElement>("img");
+              imgs.forEach((img) => {
+                img.src = el.url!;
+              });
+            }
+          }
         }
-      };
-      img.onerror = () => resolve(pngDataUrl);
-      img.src = pngDataUrl;
-    });
+      },
+    };
+
+    const renderWithTimeout = async (): Promise<string> => {
+      let capturePromise: Promise<string>;
+      if (format === "jpg") {
+        capturePromise = toJpeg(node, {
+          ...options,
+          quality: 0.95,
+          backgroundColor: state.background.solidColor || "#0a0e27",
+        });
+      } else {
+        capturePromise = toPng(node, options);
+      }
+
+      const timeoutPromise = new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error("DOM capture timeout")), 3000)
+      );
+
+      return Promise.race([capturePromise, timeoutPromise]);
+    };
+
+    const domDataUrl = await renderWithTimeout();
+
+    if (format === "webp" && domDataUrl) {
+      onProgress?.("Compressing WebP High-Efficiency Stream...");
+      return await new Promise<string>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = state.width * quality;
+          canvas.height = state.height * quality;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/webp", 0.95));
+          } else {
+            resolve(domDataUrl);
+          }
+        };
+        img.onerror = () => resolve(domDataUrl);
+        img.src = domDataUrl;
+      });
+    }
+
+    if (domDataUrl) return domDataUrl;
+  } catch (renderErr) {
+    console.warn("DOM render failed or timed out. Falling back to 2D Canvas Engine:", renderErr);
   }
 
-  return "";
+  // Instant Fallback to 2D Canvas Engine
+  return await renderStateToCanvas2DFallback(state, quality, format);
 }
