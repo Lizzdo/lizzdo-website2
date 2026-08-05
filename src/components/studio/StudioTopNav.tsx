@@ -300,7 +300,9 @@ export function StudioTopNav() {
             <span className="text-neon-cyan font-bold truncate max-w-[140px]">
               {activeProject.title}
             </span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" title="Saved" />
+            <span title="Saved">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            </span>
           </div>
         )}
 

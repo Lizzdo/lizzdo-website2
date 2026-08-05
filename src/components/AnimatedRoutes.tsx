@@ -44,6 +44,7 @@ export default function AnimatedRoutes() {
         <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
         <Route path="/estimator" element={<PageWrapper><Estimator /></PageWrapper>} />
         <Route path="/designer" element={<PageWrapper><Designer /></PageWrapper>} />
+        <Route path="/studio" element={<PageWrapper><Designer /></PageWrapper>} />
         <Route path="/faq" element={<PageWrapper><FAQ /></PageWrapper>} />
         <Route path="/legal/:slug" element={<PageWrapper><Legal /></PageWrapper>} />
       </Routes>

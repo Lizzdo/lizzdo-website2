@@ -96,11 +96,11 @@ export default function Navbar() {
             to="/designer"
             className={cn(
               "font-display text-sm tracking-[2px] transition-all hover:text-neon-cyan flex items-center gap-1.5",
-              isActive("/designer") ? "text-neon-cyan font-bold" : "text-white/70"
+              isActive("/designer") || isActive("/studio") ? "text-neon-cyan font-bold" : "text-white/70"
             )}
           >
             <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse"></span>
-            DESIGNER
+            STUDIO OS
           </Link>
           <Link
             to="/contact"

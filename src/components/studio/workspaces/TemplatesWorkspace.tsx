@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useStudio } from "../../../context/StudioContext";
-import { DESIGNER_TEMPLATES } from "../../../data/designerTemplates";
+import { DESIGN_TEMPLATES } from "../../../data/designerTemplates";
 import {
   LayoutTemplate,
   Search,
@@ -18,7 +18,7 @@ export function TemplatesWorkspace() {
 
   const categories = ["All", "Social", "Portfolio", "Banner", "Store", "Logo"];
 
-  const filteredTemplates = DESIGNER_TEMPLATES.filter((t) => {
+  const filteredTemplates = DESIGN_TEMPLATES.filter((t) => {
     const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCat =
       selectedCategory === "All" ||

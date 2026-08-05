@@ -22,11 +22,13 @@ export type StudioToolId =
   | "mockup-generator"
   | "brand-kit"
   | "asset-library"
+  | "assets"
   | "templates"
   | "icons"
   | "fonts"
   | "ai-assistant"
   | "file-manager"
+  | "files"
   | "projects"
   | "settings"
   // Future Expansion

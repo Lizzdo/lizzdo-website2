@@ -2,12 +2,22 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { StudioToolId, StudioProject, SharedAsset, BrandKitData } from "../types/studio";
 import { DEFAULT_DESIGN_STATE } from "../data/designerTemplates";
 
+export interface StudioNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: "success" | "info" | "error";
+  timestamp: string;
+  read: boolean;
+}
+
 interface StudioContextType {
   activeToolId: StudioToolId;
   setActiveToolId: (toolId: StudioToolId) => void;
   projects: StudioProject[];
   currentProjectId: string | null;
   setCurrentProjectId: (id: string | null) => void;
+  currentProject: StudioProject | null;
   createProject: (title: string, toolId: StudioToolId, initialData?: any) => StudioProject;
   openProject: (projectId: string) => void;
   updateProject: (id: string, updatedData: Partial<StudioProject>) => void;
@@ -17,6 +27,20 @@ interface StudioContextType {
   uploadSharedAsset: (file: File) => Promise<SharedAsset>;
   brandKit: BrandKitData;
   updateBrandKit: (updated: Partial<BrandKitData>) => void;
+
+  // Search, Modals & Notifications
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  isSearchOpen: boolean;
+  setIsSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isQuickActionOpen: boolean;
+  setIsQuickActionOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isNotificationOpen: boolean;
+  setIsNotificationOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  notifications: StudioNotification[];
+  addNotification: (title: string, message: string, type?: "success" | "info" | "error") => void;
+  markNotificationRead: (id: string) => void;
+  clearAllNotifications: () => void;
 }
 
 const DEFAULT_BRAND_KIT: BrandKitData = {
@@ -169,6 +193,58 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
+  // Search, Quick Action, Notification State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<StudioNotification[]>([
+    {
+      id: "notif-1",
+      title: "Studio Operating System V3 Initialized",
+      message: "Unified navigation, asset repository, and AI tools active.",
+      type: "success",
+      timestamp: new Date().toISOString(),
+      read: false,
+    },
+    {
+      id: "notif-2",
+      title: "Shared Assets Synced",
+      message: "3 cloud brand assets ready across all 22 editors.",
+      type: "info",
+      timestamp: new Date().toISOString(),
+      read: false,
+    },
+  ]);
+
+  const addNotification = (
+    title: string,
+    message: string,
+    type: "success" | "info" | "error" = "info"
+  ) => {
+    const newNotif: StudioNotification = {
+      id: `notif-${Date.now()}`,
+      title,
+      message,
+      type,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  };
+
+  const markNotificationRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const currentProject = projects.find((p) => p.id === currentProjectId) || null;
+
   // Save projects to localStorage
   useEffect(() => {
     try {
@@ -281,6 +357,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         projects,
         currentProjectId,
         setCurrentProjectId,
+        currentProject,
         createProject,
         openProject,
         updateProject,
@@ -290,6 +367,18 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         uploadSharedAsset,
         brandKit,
         updateBrandKit,
+        searchQuery,
+        setSearchQuery,
+        isSearchOpen,
+        setIsSearchOpen,
+        isQuickActionOpen,
+        setIsQuickActionOpen,
+        isNotificationOpen,
+        setIsNotificationOpen,
+        notifications,
+        addNotification,
+        markNotificationRead,
+        clearAllNotifications,
       }}
     >
       {children}
