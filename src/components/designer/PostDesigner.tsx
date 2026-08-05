@@ -208,7 +208,7 @@ export default function PostDesigner() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [designState, selectedElementId, historyIndex, historyStack]);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("psd");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
   const [exportQuality, setExportQuality] = useState<ExportQuality>(2);
   const [profOptions, setProfOptions] = useState<ProfessionalExportOptions>({
     format: "psd",
@@ -558,7 +558,20 @@ export default function PostDesigner() {
         activeProfOpts
       );
 
-      setPreviewDataUrl(resultUrl);
+      // Generate visual PNG preview for the modal <img> tag if selected format is binary (psd/ai/eps/pdf)
+      let visualPreviewUrl = resultUrl;
+      if (format === "psd" || format === "ai" || format === "eps" || format === "pdf") {
+        visualPreviewUrl = await renderArtworkFormat(
+          stageRef.current,
+          sanitizedState,
+          "png",
+          quality,
+          undefined,
+          { ...activeProfOpts, format: "png" }
+        );
+      }
+
+      setPreviewDataUrl(visualPreviewUrl);
       return resultUrl;
     } catch (err: any) {
       console.error("Export generation failed:", err);
@@ -583,20 +596,43 @@ export default function PostDesigner() {
 
   // DOWNLOAD ARTWORK
   const handleDownloadArtwork = async () => {
-    let finalUrl = previewDataUrl;
-    if (!finalUrl) {
-      finalUrl = await generateExportDataUrl(exportFormat, exportQuality);
+    if (!stageRef.current) return;
+    setIsGeneratingExport(true);
+    setExportProgressStatus(`Generating ${exportFormat.toUpperCase()} Download File...`);
+
+    try {
+      const { sanitizedState } = await prepareDesignStateForExport(designState);
+      const activeProfOpts = {
+        ...profOptions,
+        format: exportFormat,
+        quality: exportQuality,
+        dpi: (exportQuality === 1 ? 72 : exportQuality === 2 ? 150 : exportQuality === 3 ? 300 : 600) as 72 | 150 | 300 | 600,
+      };
+
+      const finalUrl = await renderArtworkFormat(
+        stageRef.current,
+        sanitizedState,
+        exportFormat,
+        exportQuality,
+        (msg) => setExportProgressStatus(msg),
+        activeProfOpts
+      );
+
+      if (!finalUrl) return;
+
+      const link = document.createElement("a");
+      const cleanTitle = (designState.title || "artwork").toLowerCase().replace(/[^a-z0-9]/g, "_");
+      link.download = `${cleanTitle}_${designState.width}x${designState.height}.${exportFormat}`;
+      link.href = finalUrl;
+      link.click();
+
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+    } catch (err) {
+      console.error("Download failed:", err);
+    } finally {
+      setIsGeneratingExport(false);
     }
-    if (!finalUrl) return;
-
-    const link = document.createElement("a");
-    const cleanTitle = designState.title.toLowerCase().replace(/[^a-z0-9]/g, "_");
-    link.download = `${cleanTitle}_${designState.width}x${designState.height}.${exportFormat}`;
-    link.href = finalUrl;
-    link.click();
-
-    setDownloadSuccess(true);
-    setTimeout(() => setDownloadSuccess(false), 3000);
   };
 
   // COPY IMAGE PREVIEW TO CLIPBOARD
