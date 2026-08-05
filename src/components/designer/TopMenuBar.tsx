@@ -63,6 +63,8 @@ interface Props {
   onToggleGuides?: () => void;
   showGrid?: boolean;
   showGuides?: boolean;
+  onOpenShortcuts?: () => void;
+  onOpenSnapshots?: () => void;
 }
 
 export function TopMenuBar({
@@ -90,6 +92,8 @@ export function TopMenuBar({
   onToggleGuides,
   showGrid,
   showGuides,
+  onOpenShortcuts,
+  onOpenSnapshots,
 }: Props) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -293,10 +297,13 @@ export function TopMenuBar({
                       <span className="text-[10px] text-gray-500">Ctrl+E</span>
                     </button>
                     <button
-                      onClick={() => setActiveMenu(null)}
+                      onClick={() => {
+                        onOpenSnapshots?.();
+                        setActiveMenu(null);
+                      }}
                       className="w-full px-3 py-1.5 text-left hover:bg-white/10 flex items-center justify-between"
                     >
-                      <span>Save Local Copy</span>
+                      <span>Version History & Backups...</span>
                       <span className="text-[10px] text-gray-500">Ctrl+S</span>
                     </button>
                   </>
@@ -400,10 +407,17 @@ export function TopMenuBar({
                   </>
                 )}
 
-                {["object", "text", "shapes", "frames", "assets", "templates", "ai", "plugins", "help"].includes(menu.id) && (
-                  <div className="px-3 py-2 text-gray-400 text-[11px] font-sans">
-                    Click tools in left rail or open corresponding panels.
-                  </div>
+                {menu.id === "help" && (
+                  <button
+                    onClick={() => {
+                      onOpenShortcuts?.();
+                      setActiveMenu(null);
+                    }}
+                    className="w-full px-3 py-1.5 text-left hover:bg-white/10 flex items-center justify-between text-neon-cyan font-bold"
+                  >
+                    <span>Keyboard Shortcuts Binds</span>
+                    <span className="text-[10px] text-gray-500">?</span>
+                  </button>
                 )}
               </div>
             )}

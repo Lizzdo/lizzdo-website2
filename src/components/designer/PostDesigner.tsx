@@ -11,6 +11,8 @@ import {
 import { DEFAULT_DESIGN_STATE } from "../../data/designerTemplates";
 import { CanvasStage } from "./CanvasStage";
 import { Canvas } from "./Canvas";
+import { ShortcutsModal } from "./ShortcutsModal";
+import { VersionHistoryModal } from "./VersionHistoryModal";
 import { ElementInspector } from "./ElementInspector";
 import { BackgroundInspector } from "./BackgroundInspector";
 import { FrameCornerInspector } from "./FrameCornerInspector";
@@ -120,6 +122,92 @@ export default function PostDesigner() {
 
   // EXPORT & QUALITY CHECK MODAL STATE
   const [showQualityModal, setShowQualityModal] = useState<boolean>(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState<boolean>(false);
+  const [showSnapshotsModal, setShowSnapshotsModal] = useState<boolean>(false);
+  const [autosaveNotice, setAutosaveNotice] = useState<boolean>(false);
+
+  // AUTOSAVE PROJECT STATE TO LOCALSTORAGE
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem("lizzdo_current_design_project", JSON.stringify(designState));
+        setAutosaveNotice(true);
+        const hideTimer = setTimeout(() => setAutosaveNotice(false), 2000);
+        return () => clearTimeout(hideTimer);
+      } catch (e) {
+        console.error("Autosave failed", e);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [designState]);
+
+  // RESTORE AUTOSAVED PROJECT ON FIRST LOAD
+  useEffect(() => {
+    const saved = localStorage.getItem("lizzdo_current_design_project");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.elements) {
+          setDesignState(parsed);
+          setHistoryStack([parsed]);
+          if (parsed.elements.length > 0) {
+            setSelectedElementId(parsed.elements[0].id);
+          }
+        }
+      } catch (e) {
+        console.error("Restore failed", e);
+      }
+    }
+  }, []);
+
+  // GLOBAL KEYBOARD SHORTCUTS
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      const isInputFocused =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          (activeElement as HTMLElement).isContentEditable);
+
+      if (isInputFocused) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) handleRedo();
+        else handleUndo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handleRedo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        if (selectedElementId) handleDuplicateElement(selectedElementId);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        setShowSnapshotsModal(true);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        if (designState.elements.length > 0) {
+          setSelectedElementId(designState.elements[0].id);
+        }
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedElementId) {
+          e.preventDefault();
+          handleDeleteElement(selectedElementId);
+        }
+      } else if (e.key === "Escape") {
+        setSelectedElementId(null);
+        setShowShortcutsModal(false);
+        setShowSnapshotsModal(false);
+      } else if (e.key === "?") {
+        e.preventDefault();
+        setShowShortcutsModal(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [designState, selectedElementId, historyIndex, historyStack]);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("psd");
   const [exportQuality, setExportQuality] = useState<ExportQuality>(2);
   const [profOptions, setProfOptions] = useState<ProfessionalExportOptions>({
@@ -599,6 +687,8 @@ export default function PostDesigner() {
             showSafeMargins: !designState.showSafeMargins,
           })
         }
+        onOpenShortcuts={() => setShowShortcutsModal(true)}
+        onOpenSnapshots={() => setShowSnapshotsModal(true)}
       />
 
       {/* 2. MAIN FULL-SCREEN WORKSPACE BODY */}
@@ -917,6 +1007,20 @@ export default function PostDesigner() {
           </div>
         </div>
       )}
+
+      {/* SHORTCUTS MODAL */}
+      <ShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
+
+      {/* VERSION HISTORY & SNAPSHOTS MODAL */}
+      <VersionHistoryModal
+        isOpen={showSnapshotsModal}
+        onClose={() => setShowSnapshotsModal(false)}
+        currentState={designState}
+        onRestoreState={(restoredState) => updateStateAndHistory(restoredState)}
+      />
     </div>
   );
 }
