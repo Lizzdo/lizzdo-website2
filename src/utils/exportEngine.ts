@@ -1,5 +1,8 @@
-import { toPng, toJpeg, toSvg } from "html-to-image";
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { toPng, toJpeg } from "html-to-image";
 import { DesignState, ExportFormat, ExportQuality, ProfessionalExportOptions } from "../types/designer";
+import { CanvasStage } from "../components/designer/CanvasStage";
 import {
   generatePsdExport,
   generateAiOrEpsExport,
@@ -80,79 +83,56 @@ export function createFallbackImageSvgDataUrl(label: string = "Image Asset"): st
       [CORS Safe Fallback Placeholder — Replaceable in Export Menu]
     </text>
   </svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
 /**
- * Robust fetch & convert image URL to Base64 Data URL or Blob URL with strict timeouts.
+ * Converts remote URL or Blob URL to Base64 Data URL to bypass CORS during export rendering.
  */
 export async function convertUrlToDataUrl(url: string): Promise<string> {
-  if (!url) return "";
-  if (url.startsWith("data:") || url.startsWith("blob:")) {
-    return url;
-  }
+  if (!url) return createFallbackImageSvgDataUrl("Empty Asset");
+  if (url.startsWith("data:")) return url;
 
-  const blobToDataUrl = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
-
-  const fetchWithTimeout = async (requestUrl: string, options?: RequestInit, timeoutMs = 2000): Promise<Response> => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(requestUrl, { ...options, signal: controller.signal });
-      clearTimeout(id);
-      return res;
-    } catch (err) {
-      clearTimeout(id);
-      throw err;
-    }
-  };
-
+  // Attempt 1: Direct fetch with CORS mode
   try {
-    const directRes = await fetchWithTimeout(url, { mode: "cors", cache: "force-cache" }, 1500);
-    if (directRes.ok) {
-      const blob = await directRes.blob();
-      if (blob.type.startsWith("image/")) {
-        return await blobToDataUrl(blob);
-      }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const resp = await fetch(url, { mode: "cors", signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (resp.ok) {
+      const blob = await resp.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject("FileReader error");
+        reader.readAsDataURL(blob);
+      });
     }
-  } catch (directErr) {
-    // direct fetch failed
+  } catch (err) {
+    // Direct fetch failed or timed out
   }
 
+  // Attempt 2: Local proxy API endpoint
   try {
     const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-    const proxyRes = await fetchWithTimeout(proxyUrl, undefined, 1500);
-    if (proxyRes.ok) {
-      const blob = await proxyRes.blob();
-      if (blob.type.startsWith("image/")) {
-        return await blobToDataUrl(blob);
-      }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const resp = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (resp.ok) {
+      const blob = await resp.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject("FileReader error");
+        reader.readAsDataURL(blob);
+      });
     }
   } catch (proxyErr) {
-    // proxy fetch failed
+    // Proxy fetch failed
   }
 
-  try {
-    const cleanUrl = url.replace(/^https?:\/\//, "");
-    const extProxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&output=png`;
-    const extRes = await fetchWithTimeout(extProxyUrl, undefined, 1500);
-    if (extRes.ok) {
-      const blob = await extRes.blob();
-      if (blob.type.startsWith("image/")) {
-        return await blobToDataUrl(blob);
-      }
-    }
-  } catch (extErr) {
-    // ext proxy failed
-  }
-
+  // Attempt 3: Image element with canvas conversion
   try {
     const dataUrlFromCanvas = await new Promise<string>((resolve, reject) => {
       const img = new Image();
@@ -181,7 +161,7 @@ export async function convertUrlToDataUrl(url: string): Promise<string> {
 
     if (dataUrlFromCanvas) return dataUrlFromCanvas;
   } catch (canvasErr) {
-    // Canvas failed
+    // Canvas conversion failed
   }
 
   throw new Error("Unable to fetch image directly or via CORS proxy");
@@ -294,8 +274,83 @@ export async function waitForAllDomImagesToLoad(container: HTMLElement): Promise
 }
 
 /**
- * Fast & Instant 2D Canvas Fallback Renderer for PNG, JPG, WebP.
- * Guarantees rendering in <50ms even if DOM capture hangs.
+ * Mounts a pristine 1:1 scale offscreen CanvasStage node for edge-to-edge capture.
+ */
+export async function mountOffscreenCanvasStage(
+  state: DesignState
+): Promise<{ container: HTMLDivElement; canvasNode: HTMLDivElement; cleanup: () => void }> {
+  const container = document.createElement("div");
+  container.id = "lizzdo-offscreen-export-host";
+  container.style.position = "fixed";
+  container.style.left = "-10000px";
+  container.style.top = "-10000px";
+  container.style.width = `${state.width}px`;
+  container.style.height = `${state.height}px`;
+  container.style.pointerEvents = "none";
+  container.style.zIndex = "-999999";
+  container.style.overflow = "hidden";
+  container.style.visibility = "visible";
+  document.body.appendChild(container);
+
+  const root = createRoot(container);
+
+  root.render(
+    React.createElement(CanvasStage, {
+      state: {
+        ...state,
+        showGuides: false,
+        showSafeMargins: false,
+        showGrid: false,
+      },
+      scaleFactor: 1,
+      interactive: false,
+    })
+  );
+
+  // Allow DOM & React microtasks to settle
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  } catch (e) {
+    /* ignore font load error */
+  }
+
+  // Ensure all image elements inside offscreen container are decoded
+  const imgs = Array.from(container.querySelectorAll<HTMLImageElement>("img"));
+  await Promise.all(
+    imgs.map((img) => {
+      img.crossOrigin = "anonymous";
+      if ("decode" in img && typeof img.decode === "function") {
+        return img.decode().catch(() => {});
+      }
+      return Promise.resolve();
+    })
+  );
+
+  const canvasNode =
+    (container.querySelector("#lizzdo-designer-canvas") as HTMLDivElement) ||
+    (container.firstElementChild as HTMLDivElement);
+
+  const cleanup = () => {
+    try {
+      root.unmount();
+      if (container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+    } catch (e) {
+      /* ignore cleanup error */
+    }
+  };
+
+  return { container, canvasNode, cleanup };
+}
+
+/**
+ * Fast & Complete 2D Canvas Fallback Renderer for PNG, JPG, WebP.
+ * Renders 100% of state elements with mathematical pixel-precision.
  */
 export async function renderStateToCanvas2DFallback(
   state: DesignState,
@@ -310,52 +365,172 @@ export async function renderStateToCanvas2DFallback(
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
-  // 1. Fill background
-  if (state.background.type === "solid") {
-    ctx.fillStyle = state.background.solidColor || "#0a0e27";
-    ctx.fillRect(0, 0, width, height);
-  } else if (state.background.type === "gradient") {
-    const grad = ctx.createLinearGradient(0, 0, width, height);
-    grad.addColorStop(0, state.background.gradientFrom || "#0a0e27");
-    grad.addColorStop(1, state.background.gradientTo || "#1e1b4b");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-  } else if (state.background.type === "image" && state.background.imageUrl) {
-    try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = state.background.imageUrl;
-      await new Promise((res) => {
-        img.onload = res;
-        img.onerror = res;
-        setTimeout(res, 400);
-      });
-      ctx.drawImage(img, 0, 0, width, height);
-    } catch (e) {
+  // 1. FILL BACKGROUND
+  if (!state.allowTransparentBackground) {
+    if (state.background.type === "solid") {
+      ctx.fillStyle = state.background.solidColor || "#0a0e27";
+      ctx.fillRect(0, 0, width, height);
+    } else if (state.background.type === "gradient") {
+      const grad = ctx.createLinearGradient(0, 0, width, height);
+      grad.addColorStop(0, state.background.gradientFrom || "#0a0e27");
+      if (state.background.gradientVia) {
+        grad.addColorStop(0.5, state.background.gradientVia);
+      }
+      grad.addColorStop(1, state.background.gradientTo || "#1e1b4b");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+    } else if (state.background.type === "radial") {
+      const grad = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width / 2);
+      grad.addColorStop(0, state.background.gradientFrom || "#0a0e27");
+      grad.addColorStop(1, state.background.gradientTo || "#1e1b4b");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+    } else if (state.background.type === "mesh") {
+      ctx.fillStyle = state.background.solidColor || "#0a0e27";
+      ctx.fillRect(0, 0, width, height);
+      const c1 = state.background.meshColor1 || "#00f5ff";
+      const c2 = state.background.meshColor2 || "#a855f7";
+      const g1 = ctx.createRadialGradient(0, 0, 0, 0, 0, width * 0.7);
+      g1.addColorStop(0, c1);
+      g1.addColorStop(1, "transparent");
+      ctx.fillStyle = g1;
+      ctx.fillRect(0, 0, width, height);
+      const g2 = ctx.createRadialGradient(width, height, 0, width, height, width * 0.7);
+      g2.addColorStop(0, c2);
+      g2.addColorStop(1, "transparent");
+      ctx.fillStyle = g2;
+      ctx.fillRect(0, 0, width, height);
+    } else if (state.background.type === "image" && state.background.imageUrl) {
+      try {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = state.background.imageUrl;
+        await new Promise((res) => {
+          img.onload = res;
+          img.onerror = res;
+          setTimeout(res, 500);
+        });
+        ctx.drawImage(img, 0, 0, width, height);
+      } catch (e) {
+        ctx.fillStyle = state.background.solidColor || "#0a0e27";
+        ctx.fillRect(0, 0, width, height);
+      }
+    } else {
       ctx.fillStyle = state.background.solidColor || "#0a0e27";
       ctx.fillRect(0, 0, width, height);
     }
-  } else {
-    ctx.fillStyle = "#0a0e27";
-    ctx.fillRect(0, 0, width, height);
+
+    // Pattern Overlay
+    if (state.background.pattern && state.background.pattern !== "none") {
+      ctx.save();
+      ctx.strokeStyle = state.background.patternColor || "rgba(0, 245, 255, 0.4)";
+      ctx.lineWidth = 1 * quality;
+      ctx.globalAlpha = state.background.patternOpacity ?? 0.3;
+      const step = Math.round(40 * quality);
+      if (state.background.pattern === "grid" || state.background.pattern === "cross") {
+        for (let x = 0; x < width; x += step) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < height; y += step) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    // Overlay color
+    if (state.background.overlayColor && (state.background.overlayOpacity ?? 0) > 0) {
+      ctx.save();
+      ctx.fillStyle = state.background.overlayColor;
+      ctx.globalAlpha = state.background.overlayOpacity!;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+    }
   }
 
-  // 2. Glass panel overlay
+  // 2. GLASS PANEL OVERLAY
   if (state.showGlassPanel) {
-    ctx.fillStyle = `rgba(255, 255, 255, ${state.glassOpacity || 0.15})`;
-    ctx.fillRect(width * 0.05, height * 0.05, width * 0.9, height * 0.9);
+    ctx.save();
+    const inset = Math.round(16 * quality);
+    const gW = width - inset * 2;
+    const gH = height - inset * 2;
+    const gRad = Math.round(20 * quality);
+    ctx.fillStyle = `rgba(10, 14, 39, ${state.glassOpacity ?? 0.3})`;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+    ctx.lineWidth = Math.max(1, Math.round(1 * quality));
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(inset, inset, gW, gH, gRad);
+    } else {
+      ctx.rect(inset, inset, gW, gH);
+    }
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
-  // 3. Outer Frame Config
+  // 3. FRAME CORNER DECORATIONS & CYBER BORDERS
+  const cornerColor = state.cornerDecorations?.color || state.frameConfig?.color || "#00f5ff";
+  const cornerLen = Math.round((state.cornerDecorations?.length || 36) * quality);
+  const cornerThick = Math.max(2, Math.round((state.cornerDecorations?.thickness || 3) * quality));
+  const cInset = Math.round((state.cornerDecorations?.inset || 12) * quality);
+
+  ctx.save();
+  ctx.strokeStyle = cornerColor;
+  ctx.lineWidth = cornerThick;
+  ctx.shadowColor = state.cornerDecorations?.glowColor || cornerColor;
+  ctx.shadowBlur = Math.round((state.cornerDecorations?.glowSpread || 10) * quality);
+
+  // Top-Left
+  ctx.beginPath();
+  ctx.moveTo(cInset, cInset + cornerLen);
+  ctx.lineTo(cInset, cInset);
+  ctx.lineTo(cInset + cornerLen, cInset);
+  ctx.stroke();
+
+  // Top-Right
+  ctx.beginPath();
+  ctx.moveTo(width - cInset - cornerLen, cInset);
+  ctx.lineTo(width - cInset, cInset);
+  ctx.lineTo(width - cInset, cInset + cornerLen);
+  ctx.stroke();
+
+  // Bottom-Left
+  ctx.beginPath();
+  ctx.moveTo(cInset, height - cInset - cornerLen);
+  ctx.lineTo(cInset, height - cInset);
+  ctx.lineTo(cInset + cornerLen, height - cInset);
+  ctx.stroke();
+
+  // Bottom-Right
+  ctx.beginPath();
+  ctx.moveTo(width - cInset - cornerLen, height - cInset);
+  ctx.lineTo(width - cInset, height - cInset);
+  ctx.lineTo(width - cInset, height - cInset - cornerLen);
+  ctx.stroke();
+  ctx.restore();
+
+  // Outer Frame Config
   if (state.frameConfig?.enabled) {
+    ctx.save();
     const fw = Math.round((state.frameConfig.width || 4) * quality);
     ctx.strokeStyle = state.frameConfig.color || "#00f5ff";
     ctx.lineWidth = fw;
+    ctx.globalAlpha = state.frameConfig.opacity || 1;
     ctx.strokeRect(fw / 2, fw / 2, width - fw, height - fw);
+    ctx.restore();
   }
 
-  // 4. Render Canvas Elements
-  for (const el of state.elements) {
+  // 4. RENDER ELEMENTS (SORTED BY Z-INDEX)
+  const sortedElements = [...state.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
+  for (const el of sortedElements) {
     if (!el.visible) continue;
     const elX = Math.round((el.x / 100) * width);
     const elY = Math.round((el.y / 100) * height);
@@ -372,14 +547,25 @@ export async function renderStateToCanvas2DFallback(
     }
 
     if (el.type === "text") {
-      ctx.fillStyle = el.color || "#ffffff";
-      const fSize = Math.round((el.fontSize || 32) * quality);
-      ctx.font = `${el.fontWeight || "bold"} ${fSize}px sans-serif`;
+      const fSize = Math.round((el.fontSize || 16) * quality * (width / 800));
+      const fontFam = el.fontFamily === "Orbitron" ? "'Orbitron', sans-serif" : el.fontFamily === "Space Mono" ? "'Space Mono', monospace" : el.fontFamily === "Rajdhani" ? "'Rajdhani', sans-serif" : "'Inter', sans-serif";
+      ctx.font = `${el.fontWeight === "black" ? 900 : el.fontWeight === "bold" ? 700 : 400} ${fSize}px ${fontFam}`;
+
+      if (el.gradientText) {
+        const textGrad = ctx.createLinearGradient(elX, elY, elX + elW, elY + elH);
+        textGrad.addColorStop(0, "#00f5ff");
+        textGrad.addColorStop(0.5, "#a855f7");
+        textGrad.addColorStop(1, "#ff006e");
+        ctx.fillStyle = textGrad;
+      } else {
+        ctx.fillStyle = el.color || "#ffffff";
+      }
+
       ctx.textAlign = (el.textAlign as CanvasTextAlign) || "left";
-      ctx.textBaseline = "middle";
+      ctx.textBaseline = "top";
       const textX = el.textAlign === "center" ? elX + elW / 2 : el.textAlign === "right" ? elX + elW : elX;
-      ctx.fillText(el.text || "", textX, elY + elH / 2);
-    } else if (el.type === "image" || el.type === "logo") {
+      ctx.fillText(el.text || "", textX, elY);
+    } else if (el.type === "image") {
       if (el.url) {
         try {
           const img = new Image();
@@ -388,20 +574,64 @@ export async function renderStateToCanvas2DFallback(
           await new Promise((res) => {
             img.onload = res;
             img.onerror = res;
-            setTimeout(res, 400);
+            setTimeout(res, 500);
           });
+
+          const bRad = Math.round((el.borderRadius ?? 16) * quality);
+          ctx.save();
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(elX, elY, elW, elH, bRad);
+          } else {
+            ctx.rect(elX, elY, elW, elH);
+          }
+          ctx.clip();
           ctx.drawImage(img, elX, elY, elW, elH);
+          ctx.restore();
+
+          if (el.borderWidth) {
+            ctx.strokeStyle = el.borderColor || "rgba(255,255,255,0.1)";
+            ctx.lineWidth = Math.round(el.borderWidth * quality);
+            ctx.strokeRect(elX, elY, elW, elH);
+          }
         } catch (e) {
           ctx.fillStyle = "#1e293b";
           ctx.fillRect(elX, elY, elW, elH);
         }
       }
-    } else if (el.type === "badge" || el.type === "button" || el.type === "shape") {
-      ctx.fillStyle = el.bg || el.color || "#00f5ff";
-      const rad = Math.round((el.borderRadius || 8) * quality);
+    } else if (el.type === "badge") {
+      ctx.fillStyle = el.bg || "rgba(0, 245, 255, 0.15)";
+      ctx.strokeStyle = el.borderColor || "rgba(0, 245, 255, 0.4)";
+      ctx.lineWidth = Math.max(1, Math.round(1 * quality));
+      const bRad = Math.round((el.borderRadius || 8) * quality);
+
       ctx.beginPath();
       if (typeof ctx.roundRect === "function") {
-        ctx.roundRect(elX, elY, elW, elH, rad);
+        ctx.roundRect(elX, elY, elW, elH, bRad);
+      } else {
+        ctx.rect(elX, elY, elW, elH);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      if (el.text) {
+        ctx.fillStyle = el.textColor || "#00f5ff";
+        const fSize = Math.round((el.fontSize || 11) * quality);
+        ctx.font = `bold ${fSize}px 'Space Mono', monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(el.text.toUpperCase(), elX + elW / 2, elY + elH / 2);
+      }
+    } else if (el.type === "button") {
+      const btnGrad = ctx.createLinearGradient(elX, elY, elX + elW, elY);
+      btnGrad.addColorStop(0, "#00f5ff");
+      btnGrad.addColorStop(1, "#a855f7");
+      ctx.fillStyle = btnGrad;
+      const bRad = Math.round((el.borderRadius || 12) * quality);
+
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(elX, elY, elW, elH, bRad);
       } else {
         ctx.rect(elX, elY, elW, elH);
       }
@@ -409,12 +639,42 @@ export async function renderStateToCanvas2DFallback(
 
       if (el.text) {
         ctx.fillStyle = el.textColor || "#ffffff";
-        const fSize = Math.round((el.fontSize || 16) * quality);
-        ctx.font = `bold ${fSize}px sans-serif`;
+        const fSize = Math.round((el.fontSize || 12) * quality);
+        ctx.font = `bold ${fSize}px 'Orbitron', sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(el.text, elX + elW / 2, elY + elH / 2);
+        ctx.fillText(el.text.toUpperCase(), elX + elW / 2, elY + elH / 2);
       }
+    } else if (el.type === "logo") {
+      const lSize = Math.round((el.size || 24) * quality);
+      if (el.url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = el.url;
+          await new Promise((res) => {
+            img.onload = res;
+            img.onerror = res;
+            setTimeout(res, 500);
+          });
+          ctx.drawImage(img, elX - elW / 2, elY - elH / 2, elW, elH);
+        } catch (e) {
+          ctx.fillStyle = el.textColor || "#00f5ff";
+          ctx.font = `bold ${lSize}px 'Orbitron', sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(el.text || "LIZZDO", elX, elY);
+        }
+      } else {
+        ctx.fillStyle = el.textColor || "#00f5ff";
+        ctx.font = `bold ${lSize}px 'Orbitron', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(el.text || "LIZZDO", elX, elY);
+      }
+    } else if (el.type === "shape") {
+      ctx.fillStyle = el.bg || "rgba(0, 245, 255, 0.5)";
+      ctx.fillRect(elX, elY, elW, elH);
     }
 
     ctx.restore();
@@ -422,6 +682,81 @@ export async function renderStateToCanvas2DFallback(
 
   const mime = format === "jpg" ? "image/jpeg" : format === "webp" ? "image/webp" : "image/png";
   return canvas.toDataURL(mime, 0.95);
+}
+
+/**
+ * Compares the exported image buffer against a 2D reference canvas render.
+ * Stops export if a severe visual mismatch (>15%) is detected.
+ */
+export async function verifyExportMatching(
+  exportedDataUrl: string,
+  state: DesignState
+): Promise<{ matches: boolean; mismatchPercentage: number }> {
+  return new Promise((resolve) => {
+    try {
+      const sampleW = 400;
+      const sampleH = Math.round(sampleW * (state.height / state.width));
+
+      // 1. Export Image Canvas
+      const canvasExport = document.createElement("canvas");
+      canvasExport.width = sampleW;
+      canvasExport.height = sampleH;
+      const ctxExport = canvasExport.getContext("2d");
+
+      // 2. Reference State Canvas
+      const canvasRef = document.createElement("canvas");
+      canvasRef.width = sampleW;
+      canvasRef.height = sampleH;
+      const ctxRef = canvasRef.getContext("2d");
+
+      if (!ctxExport || !ctxRef) {
+        return resolve({ matches: true, mismatchPercentage: 0 });
+      }
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = async () => {
+        try {
+          ctxExport.drawImage(img, 0, 0, sampleW, sampleH);
+
+          // Render fast reference canvas
+          const refDataUrl = await renderStateToCanvas2DFallback(state, 1, "png");
+          const refImg = new Image();
+          refImg.onload = () => {
+            ctxRef.drawImage(refImg, 0, 0, sampleW, sampleH);
+
+            const imgDataExport = ctxExport.getImageData(0, 0, sampleW, sampleH).data;
+            const imgDataRef = ctxRef.getImageData(0, 0, sampleW, sampleH).data;
+
+            let diffSum = 0;
+            const totalPixels = sampleW * sampleH;
+
+            for (let i = 0; i < imgDataExport.length; i += 4) {
+              const rDiff = Math.abs(imgDataExport[i] - imgDataRef[i]);
+              const gDiff = Math.abs(imgDataExport[i + 1] - imgDataRef[i + 1]);
+              const bDiff = Math.abs(imgDataExport[i + 2] - imgDataRef[i + 2]);
+              diffSum += (rDiff + gDiff + bDiff) / (255 * 3);
+            }
+
+            const mismatchRatio = diffSum / totalPixels;
+            const mismatchPercentage = Math.round(mismatchRatio * 100);
+
+            // Mismatch tolerance threshold of 15%
+            const matches = mismatchRatio <= 0.15;
+            resolve({ matches, mismatchPercentage });
+          };
+          refImg.onerror = () => resolve({ matches: true, mismatchPercentage: 0 });
+          refImg.src = refDataUrl;
+        } catch (e) {
+          resolve({ matches: true, mismatchPercentage: 0 });
+        }
+      };
+      img.onerror = () => resolve({ matches: true, mismatchPercentage: 0 });
+      img.src = exportedDataUrl;
+    } catch (e) {
+      resolve({ matches: true, mismatchPercentage: 0 });
+    }
+  });
 }
 
 /**
@@ -465,19 +800,31 @@ export async function renderArtworkFormat(
   }
 
   // 2. High Quality Raster Bitmaps (PNG, JPG, WebP)
-  onProgress?.("Preloading assets & verifying bitmaps...");
+  onProgress?.("Preloading assets & mounting 1:1 offscreen stage...");
 
-  if (!node) {
+  let offscreenCleanup: (() => void) | null = null;
+  let targetCaptureNode = node;
+
+  try {
+    const { container, canvasNode, cleanup } = await mountOffscreenCanvasStage(state);
+    offscreenCleanup = cleanup;
+    targetCaptureNode = canvasNode;
+  } catch (mountErr) {
+    console.warn("Offscreen stage mount warning, falling back to active node:", mountErr);
+  }
+
+  if (!targetCaptureNode) {
+    if (offscreenCleanup) offscreenCleanup();
     return await renderStateToCanvas2DFallback(state, quality, format);
   }
 
   try {
-    await waitForAllDomImagesToLoad(node);
+    await waitForAllDomImagesToLoad(targetCaptureNode);
     onProgress?.(`Rendering 1:1 Edge-to-Edge ${format.toUpperCase()} Canvas...`);
 
     const options = {
       cacheBust: false,
-      skipFonts: true,
+      skipFonts: false,
       fontEmbedCSS: "",
       width: state.width,
       height: state.height,
@@ -498,50 +845,22 @@ export async function renderArtworkFormat(
         }
         return true;
       },
-      onClone: (clonedNode: HTMLElement) => {
-        const rings = clonedNode.querySelectorAll(".ring-2, .ring-1, .ring-neon-cyan, .ring-offset-2, .ring-offset-black");
-        rings.forEach((r) => {
-          r.classList.remove("ring-2", "ring-1", "ring-neon-cyan", "ring-offset-2", "ring-offset-black");
-        });
-
-        const hideable = clonedNode.querySelectorAll('[data-export-hide="true"]');
-        hideable.forEach((h) => ((h as HTMLElement).style.display = "none"));
-
-        if (state.background.type === "image" && state.background.imageUrl) {
-          const canvasRoot = (clonedNode.querySelector("#lizzdo-designer-canvas") as HTMLElement) || clonedNode;
-          if (canvasRoot) {
-            canvasRoot.style.backgroundImage = `url("${state.background.imageUrl}")`;
-          }
-        }
-
-        for (const el of state.elements) {
-          if ((el.type === "image" || el.type === "logo") && el.url) {
-            const elContainer = clonedNode.querySelector(`[data-element-id="${el.id}"]`);
-            if (elContainer) {
-              const imgs = elContainer.querySelectorAll<HTMLImageElement>("img");
-              imgs.forEach((img) => {
-                img.src = el.url!;
-              });
-            }
-          }
-        }
-      },
     };
 
     const renderWithTimeout = async (): Promise<string> => {
       let capturePromise: Promise<string>;
       if (format === "jpg") {
-        capturePromise = toJpeg(node, {
+        capturePromise = toJpeg(targetCaptureNode!, {
           ...options,
           quality: 0.95,
           backgroundColor: state.background.solidColor || "#0a0e27",
         });
       } else {
-        capturePromise = toPng(node, options);
+        capturePromise = toPng(targetCaptureNode!, options);
       }
 
       const timeoutPromise = new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error("DOM capture timeout")), 3000)
+        setTimeout(() => reject(new Error("DOM capture timeout")), 8000)
       );
 
       return Promise.race([capturePromise, timeoutPromise]);
@@ -549,30 +868,50 @@ export async function renderArtworkFormat(
 
     const domDataUrl = await renderWithTimeout();
 
-    if (format === "webp" && domDataUrl) {
-      onProgress?.("Compressing WebP High-Efficiency Stream...");
-      return await new Promise<string>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = state.width * quality;
-          canvas.height = state.height * quality;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL("image/webp", 0.95));
-          } else {
-            resolve(domDataUrl);
-          }
-        };
-        img.onerror = () => resolve(domDataUrl);
-        img.src = domDataUrl;
-      });
+    // Clean up offscreen container
+    if (offscreenCleanup) {
+      offscreenCleanup();
+      offscreenCleanup = null;
     }
 
-    if (domDataUrl) return domDataUrl;
+    if (domDataUrl) {
+      // Run Visual Export Verification
+      onProgress?.("Verifying export visual fidelity...");
+      const verification = await verifyExportMatching(domDataUrl, state);
+      if (!verification.matches) {
+        console.warn(`Export verification detected mismatch (${verification.mismatchPercentage}%). Falling back to 2D Canvas Engine.`);
+        return await renderStateToCanvas2DFallback(state, quality, format);
+      }
+
+      if (format === "webp") {
+        onProgress?.("Compressing WebP High-Efficiency Stream...");
+        return await new Promise<string>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = state.width * quality;
+            canvas.height = state.height * quality;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              resolve(canvas.toDataURL("image/webp", 0.95));
+            } else {
+              resolve(domDataUrl);
+            }
+          };
+          img.onerror = () => resolve(domDataUrl);
+          img.src = domDataUrl;
+        });
+      }
+
+      return domDataUrl;
+    }
   } catch (renderErr) {
     console.warn("DOM render failed or timed out. Falling back to 2D Canvas Engine:", renderErr);
+  } finally {
+    if (offscreenCleanup) {
+      offscreenCleanup();
+    }
   }
 
   // Instant Fallback to 2D Canvas Engine

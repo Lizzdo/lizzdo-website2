@@ -189,14 +189,14 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
     const getFontFamily = (font?: string) => {
       switch (font) {
         case "Orbitron":
-          return "var(--font-display), 'Orbitron', sans-serif";
+          return "'Orbitron', sans-serif";
         case "Rajdhani":
-          return "var(--font-future), 'Rajdhani', sans-serif";
+          return "'Rajdhani', sans-serif";
         case "Space Mono":
-          return "var(--font-mono), 'Space Mono', monospace";
+          return "'Space Mono', monospace";
         case "Inter":
         default:
-          return "var(--font-sans), 'Inter', sans-serif";
+          return "'Inter', sans-serif";
       }
     };
 
