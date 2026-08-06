@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { BrandWorkspaceHeader } from "../brand/BrandWorkspaceHeader";
+import { BrandValidationSection } from "../brand/BrandValidationSection";
 import { LogoManagerSection } from "../brand/LogoManagerSection";
 import { ColorSystemSection } from "../brand/ColorSystemSection";
 import { TypographyManagerSection } from "../brand/TypographyManagerSection";
@@ -16,6 +17,9 @@ export function BrandKitWorkspace() {
       <BrandWorkspaceHeader
         onOpenImportExportModal={() => setIsImportExportOpen(true)}
       />
+
+      {/* 0. BRAND SYSTEM HEALTH & VALIDATION */}
+      <BrandValidationSection />
 
       {/* 1. LOGO MANAGER (12 VARIATIONS) */}
       <LogoManagerSection />

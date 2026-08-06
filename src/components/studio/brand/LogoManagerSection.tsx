@@ -15,7 +15,9 @@ import {
   FileText,
   Sparkles,
   Layers,
+  Crop,
 } from "lucide-react";
+import { LogoCropResizeModal } from "./LogoCropResizeModal";
 
 const ALL_LOGO_TYPES: { type: LogoType; description: string; defaultFormat: "png" | "svg" | "ai" | "pdf" }[] = [
   { type: "Primary Logo", description: "Main brand mark used for website header and primary collateral", defaultFormat: "png" },
@@ -40,6 +42,18 @@ export const LogoManagerSection: React.FC = () => {
   const [editingLogoId, setEditingLogoId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [previewLogo, setPreviewLogo] = useState<LogoVariant | null>(null);
+  const [cropModalLogo, setCropModalLogo] = useState<LogoVariant | null>(null);
+
+  const handleSaveCroppedLogo = (newUrl: string, dimensions: string) => {
+    if (!cropModalLogo) return;
+    const updatedLogos = activeBrandKit.logoVariants.map((l) =>
+      l.id === cropModalLogo.id
+        ? { ...l, url: newUrl, dimensions, updatedAt: new Date().toISOString().split("T")[0] }
+        : l
+    );
+    updateActiveBrandKit({ logoVariants: updatedLogos });
+    addNotification("Logo Cropped & Saved", `Resized logo variant "${cropModalLogo.type}"`, "success");
+  };
 
   // Upload handler
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,6 +265,15 @@ export const LogoManagerSection: React.FC = () => {
 
                       <button
                         type="button"
+                        onClick={() => setCropModalLogo(variant)}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-neon-cyan hover:text-white"
+                        title="Crop & Resize Logo"
+                      >
+                        <Crop className="w-3 h-3" />
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => handleSetWatermarkLogo(variant.id)}
                         className={`p-1.5 rounded-lg text-xs ${
                           isWatermark
@@ -287,6 +310,14 @@ export const LogoManagerSection: React.FC = () => {
           );
         })}
       </div>
+
+      {/* CROP / RESIZE MODAL */}
+      <LogoCropResizeModal
+        isOpen={cropModalLogo !== null}
+        logo={cropModalLogo}
+        onClose={() => setCropModalLogo(null)}
+        onSaveCroppedLogo={handleSaveCroppedLogo}
+      />
     </div>
   );
 };

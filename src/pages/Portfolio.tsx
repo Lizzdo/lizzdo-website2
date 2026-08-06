@@ -12,27 +12,30 @@ const toArray = (val: any) => {
   return [];
 };
 
-import { getSingle, getCollection, sortByOrder } from "../lib/content";
+import { getSingle } from "../lib/content";
+import { useContent } from "../context/ContentContext";
 
 export default function Portfolio() {
   const pageData = useMemo(() => getSingle(import.meta.glob("../content/pages/portfolio.json", { eager: true })), []);
   const [activeFilters, setActiveFilters] = useState<string[]>(["ALL"]);
+  const { portfolioItems } = useContent();
 
   const { projects, categories } = useMemo(() => {
-    const items = getCollection(import.meta.glob('../content/portfolio/*.json', { eager: true }));
-    const formattedItems = items.filter((f: any) => f.published !== false).sort(sortByOrder).map((file: any) => ({
-      id: file.slug,
-      title: file.title,
-      slug: file.slug,
-      category: (() => { const arr = toArray(file.categories); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
-      desc: file.description,
-      color: "from-neon-cyan/20 to-transparent",
-      image: file.thumbnail || "/lizzdo-logo.png",
-      software: toArray(file.software),
-      clientName: file.client || "",
-      tags: toArray(file.tags),
-      date: file.date || ""
-    }));
+    const formattedItems = portfolioItems
+      .filter((f) => f.published !== false)
+      .map((file) => ({
+        id: file.id || file.slug,
+        title: file.title,
+        slug: file.slug,
+        category: (() => { const arr = toArray(file.categories); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
+        desc: file.description,
+        color: "from-neon-cyan/20 to-transparent",
+        image: file.thumbnail || "/lizzdo-logo.png",
+        software: toArray(file.software),
+        clientName: file.client || "",
+        tags: toArray(file.tags),
+        date: file.date || ""
+      }));
     
     const computedCats = new Set<string>();
     computedCats.add("ALL");
@@ -42,7 +45,7 @@ export default function Portfolio() {
       });
     });
     return { projects: formattedItems, categories: Array.from(computedCats) };
-  }, []);
+  }, [portfolioItems]);
 
   const toggleFilter = (cat: string) => {
     setActiveFilters((prev) => {

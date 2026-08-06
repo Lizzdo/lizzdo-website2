@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useStudio } from "../../../context/StudioContext";
+import JSZip from "jszip";
 import {
   Download,
   Upload,
@@ -11,6 +12,7 @@ import {
   Sparkles,
   X,
   CheckCircle2,
+  Archive,
 } from "lucide-react";
 
 interface Props {
@@ -25,6 +27,7 @@ export const BrandImportExportModal: React.FC<Props> = ({ isOpen, onClose }) => 
     exportBrandKitCSS,
     exportBrandKitDesignTokens,
     importBrandKitJSON,
+    addNotification,
   } = useStudio();
 
   const [activeTab, setActiveTab] = useState<"export" | "import">("export");
@@ -36,6 +39,27 @@ export const BrandImportExportModal: React.FC<Props> = ({ isOpen, onClose }) => 
   const cssVars = exportBrandKitCSS(activeBrandKit);
   const designTokens = exportBrandKitDesignTokens(activeBrandKit);
 
+  const handleExportZIP = async () => {
+    const zip = new JSZip();
+    zip.file("brandkit.json", JSON.stringify(activeBrandKit, null, 2));
+    zip.file("styles.css", cssVars);
+    zip.file("tokens.json", designTokens);
+    zip.file(
+      "README.md",
+      `# ${activeBrandKit.brandName} Brand System\n\nOfficial Brand Kit Guidelines & Design Tokens.\n\nWebsite: ${activeBrandKit.websiteUrl}\nTagline: ${activeBrandKit.tagline}\n`
+    );
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${activeBrandKit.brandName.toLowerCase().replace(/\s+/g, "_")}_brand_package.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    addNotification("Brand Bundle Downloaded", `Created ZIP archive package for ${activeBrandKit.brandName}`, "success");
+  };
   const copyText = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
     setCopiedType(type);
@@ -106,6 +130,26 @@ export const BrandImportExportModal: React.FC<Props> = ({ isOpen, onClose }) => 
         {/* TAB 1: EXPORT */}
         {activeTab === "export" ? (
           <div className="space-y-6">
+            {/* ZIP BUNDLE PACKAGE DOWNLOAD */}
+            <div className="p-4 rounded-2xl bg-black border border-white/10 flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="font-bold text-white text-sm block flex items-center gap-2">
+                  <Archive className="w-4 h-4 text-neon-purple" /> Full Brand ZIP Archive (.ZIP)
+                </span>
+                <p className="text-gray-400 text-[10px]">
+                  Packages brandkit.json, styles.css, tokens.json, and README guidelines into a single downloadable archive.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleExportZIP}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-neon-purple to-pink-500 hover:opacity-90 text-white font-display font-bold text-xs uppercase flex items-center gap-2 shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" /> Download .ZIP
+              </button>
+            </div>
+
             {/* JSON PACKAGE DOWNLOAD */}
             <div className="p-4 rounded-2xl bg-black border border-white/10 flex items-center justify-between">
               <div className="space-y-1">

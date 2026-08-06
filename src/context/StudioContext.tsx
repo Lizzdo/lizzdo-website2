@@ -122,6 +122,7 @@ interface StudioContextType {
   activeBrandKit: BrandKitProfile;
   setActiveBrandId: (id: string) => void;
   createBrandKit: (name: string, companyName?: string) => BrandKitProfile;
+  duplicateBrandKit: (id: string) => BrandKitProfile | null;
   updateActiveBrandKit: (updated: Partial<BrandKitProfile>) => void;
   deleteBrandKit: (id: string) => void;
   applyBrandKitToDesign: (designState: DesignState, targetBrand?: BrandKitProfile) => DesignState;
@@ -843,6 +844,25 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     setActiveBrandId(newKit.id);
     addNotification("Brand Kit Created", `Switched to new Brand Kit "${name}"`, "success", "system");
     return newKit;
+  };
+
+  const duplicateBrandKit = (id: string): BrandKitProfile | null => {
+    const target = brandKits.find((b) => b.id === id) || activeBrandKit;
+    if (!target) return null;
+
+    const cloned: BrandKitProfile = {
+      ...JSON.parse(JSON.stringify(target)),
+      id: `brand-${Date.now()}`,
+      brandName: `${target.brandName} (Copy)`,
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setBrandKits((prev) => [cloned, ...prev]);
+    setActiveBrandId(cloned.id);
+    addNotification("Brand Kit Duplicated", `Cloned "${target.brandName}" as "${cloned.brandName}"`, "success", "system");
+    return cloned;
   };
 
   const updateActiveBrandKit = (updated: Partial<BrandKitProfile>) => {
@@ -1607,6 +1627,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         activeBrandKit,
         setActiveBrandId,
         createBrandKit,
+        duplicateBrandKit,
         updateActiveBrandKit,
         deleteBrandKit,
         applyBrandKitToDesign,

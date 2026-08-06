@@ -29,6 +29,7 @@ export const BrandWorkspaceHeader: React.FC<Props> = ({ onOpenImportExportModal 
     activeBrandKit,
     setActiveBrandId,
     createBrandKit,
+    duplicateBrandKit,
     updateActiveBrandKit,
     deleteBrandKit,
     applyBrandKitToDesign,
@@ -189,6 +190,16 @@ export const BrandWorkspaceHeader: React.FC<Props> = ({ onOpenImportExportModal 
                 <Sparkles className="w-4 h-4" /> Apply Brand Kit
               </>
             )}
+          </button>
+
+          {/* DUPLICATE BRAND KIT BUTTON */}
+          <button
+            type="button"
+            onClick={() => duplicateBrandKit(activeBrandKit.id)}
+            title="Duplicate / Clone this Brand Kit"
+            className="p-2.5 rounded-xl bg-black border border-white/15 hover:border-neon-cyan text-gray-300 hover:text-white transition-all"
+          >
+            <Copy className="w-4 h-4 text-neon-cyan" />
           </button>
 
           {/* DELETE BRAND KIT BUTTON */}

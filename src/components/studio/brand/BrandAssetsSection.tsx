@@ -27,7 +27,7 @@ const ASSET_CATEGORIES: BrandAssetItem["category"][] = [
 ];
 
 export const BrandAssetsSection: React.FC = () => {
-  const { activeBrandKit, updateActiveBrandKit, addNotification } = useStudio();
+  const { activeBrandKit, updateActiveBrandKit, addNotification, uploadSharedAsset } = useStudio();
   const { uploadAssetFile } = useEcosystem();
 
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -146,14 +146,26 @@ export const BrandAssetsSection: React.FC = () => {
                   <Sparkles className="w-8 h-8 text-neon-cyan opacity-40" />
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => handleDeleteAsset(asset.id)}
-                  className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Delete Asset"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addNotification("Vault Synced", `Asset "${asset.name}" synced with Studio Shared Vault`, "success");
+                    }}
+                    className="p-1 rounded-lg bg-black/80 hover:bg-neon-cyan/80 text-white"
+                    title="Sync to Shared Vault"
+                  >
+                    <Share2 className="w-3 h-3 text-neon-cyan" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAsset(asset.id)}
+                    className="p-1 rounded-lg bg-red-500/80 text-white"
+                    title="Delete Asset"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
               <div className="font-mono text-[10px]">

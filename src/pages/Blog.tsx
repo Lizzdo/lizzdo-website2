@@ -10,28 +10,28 @@ const toArray = (val: any) => {
   if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
   return [];
 };
-import { getSingle, getCollection, sortByOrder } from "../lib/content";
+import { getSingle } from "../lib/content";
+import { useContent } from "../context/ContentContext";
 
 export default function Blog() {
   const pageData = useMemo(() => getSingle(import.meta.glob('../content/pages/blog.json', { eager: true })), []);
-  
+  const { blogPosts } = useContent();
+
   const loadedPosts = useMemo(() => {
-    const rawItems = getCollection(import.meta.glob('../content/blog/*.json', { eager: true }));
-    return rawItems
-      .filter((file: any) => file.published !== false)
-      .sort(sortByOrder)
-      .map((file: any) => ({
-        id: file.slug,
+    return blogPosts
+      .filter((file) => file.published !== false)
+      .map((file) => ({
+        id: file.id || file.slug,
         slug: file.slug,
         title: file.title,
         category: (Array.isArray(file.category) ? file.category[0] : file.category) || "Uncategorized",
-        excerpt: file.description || file.excerpt || "",
-        date: new Date(file.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) || "",
+        excerpt: file.description || "",
+        date: file.date || "",
         image: file.thumbnail || "/lizzdo-logo.png",
         readTime: file.readTime || "5 min read",
         author: file.author || "Team",
       }));
-  }, []);
+  }, [blogPosts]);
   
   const [activeFilters, setActiveFilters] = useState<string[]>(["ALL"]);
   const [searchQuery, setSearchQuery] = useState("");
