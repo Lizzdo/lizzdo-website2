@@ -49,9 +49,39 @@ export interface StudioToolMeta {
 
 export type StudioProjectStatus = "draft" | "in_progress" | "exported" | "published" | "archived";
 
+export interface ProjectVersion {
+  id: string;
+  versionNumber: string;
+  timestamp: string;
+  note?: string;
+  isCheckpoint: boolean;
+  author?: string;
+  dataSnapshot: any;
+}
+
+export interface ExportRecord {
+  id: string;
+  format: string;
+  timestamp: string;
+  sizeStr: string;
+  downloadUrl?: string;
+  resolution?: string;
+}
+
+export interface ProjectAssetLink {
+  id: string;
+  name: string;
+  type: "image" | "video" | "audio" | "font" | "svg" | "template" | "other";
+  url: string;
+  sizeStr?: string;
+  isMissing?: boolean;
+  originalPath?: string;
+}
+
 export interface StudioProject {
   id: string;
   title: string;
+  description?: string;
   toolId: StudioToolId;
   thumbnailUrl?: string;
   width: number;
@@ -60,12 +90,45 @@ export interface StudioProject {
   updatedAt: string;
   status: StudioProjectStatus;
   favorite: boolean;
+  isPinned?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string;
   tags: string[];
   platform: string;
   fileSize: string;
   folder?: string;
+  folderId?: string;
   category?: string;
+  owner?: string;
+  version?: string;
+  brandKitId?: string;
+  presetName?: string;
+  versions?: ProjectVersion[];
+  exportHistory?: ExportRecord[];
+  linkedAssets?: ProjectAssetLink[];
+  autoSaveTimestamp?: string;
+  hasUnsavedChanges?: boolean;
   data: any; // Stores canvas elements, video tracks, prompt history, etc.
+}
+
+export interface StudioFolder {
+  id: string;
+  name: string;
+  parentId?: string | null;
+  color?: string;
+  icon?: string;
+  favorite?: boolean;
+  archived?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  description?: string;
+}
+
+export interface UnsavedRecoveryDraft {
+  projectId: string;
+  projectTitle: string;
+  savedAt: string;
+  dataSnapshot: any;
 }
 
 export type ActivityType =

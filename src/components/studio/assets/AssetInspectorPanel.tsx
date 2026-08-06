@@ -104,7 +104,7 @@ export function AssetInspectorPanel({
       URL.revokeObjectURL(url);
       addNotification("SVG Downloaded", `Downloaded ${asset.name}.svg`, "success");
     } else {
-      addNotification("Download Unavailable", "This asset preview has no direct download payload.", "warning");
+      addNotification("Download Unavailable", "This asset preview has no direct download payload.", "info");
     }
   };
 
@@ -451,7 +451,7 @@ export function AssetInspectorPanel({
               type="button"
               onClick={() => {
                 deleteAsset(asset.id);
-                addNotification("Asset Deleted", `Removed ${asset.name} from library.`, "warning");
+                addNotification("Asset Deleted", `Removed ${asset.name} from library.`, "info");
                 onClose();
               }}
               className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-all flex items-center justify-center gap-1.5"

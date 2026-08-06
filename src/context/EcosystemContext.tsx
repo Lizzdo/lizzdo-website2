@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   ExtendedTemplateMeta,
   MARKETPLACE_TEMPLATES,
+  MainTemplateGroup,
 } from "../data/templateMarketplaceData";
 import {
   ExtendedAssetMeta,
@@ -9,6 +10,14 @@ import {
   AssetType,
 } from "../data/assetLibraryData";
 import { DesignState } from "../types/designer";
+import {
+  exportTemplatePackageJson,
+  importTemplatePackageJson,
+  applyBrandKitToDesignState,
+  adaptDesignStateToDimensions,
+  replaceSmartPlaceholderInDesignState,
+} from "../utils/templateEngine";
+import { BrandKitProfile } from "../types/brandKit";
 
 export interface FolderItem {
   path: string;
@@ -33,14 +42,23 @@ interface EcosystemContextType {
   // Templates State
   templates: ExtendedTemplateMeta[];
   favoriteTemplateIds: string[];
+  recentlyUsedTemplateIds: string[];
   toggleFavoriteTemplate: (id: string) => void;
+  trackTemplateUsed: (id: string) => void;
   saveCustomTemplate: (
     name: string,
-    category: any,
+    category: string,
     designState: DesignState,
     tags?: string[],
-    style?: any
+    style?: any,
+    mainCategory?: MainTemplateGroup,
+    width?: number,
+    height?: number
   ) => ExtendedTemplateMeta;
+  deleteCustomTemplate: (id: string) => void;
+  duplicateTemplate: (id: string) => ExtendedTemplateMeta | null;
+  exportTemplatePackage: (id: string) => void;
+  importTemplatePackage: (jsonStr: string) => ExtendedTemplateMeta;
 
   // Assets State
   assets: ExtendedAssetMeta[];
@@ -87,6 +105,8 @@ interface EcosystemContextType {
   // Active Filters & Smart Search
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  selectedMainGroup: string;
+  setSelectedMainGroup: (group: string) => void;
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
   selectedStyle: string;
@@ -103,25 +123,28 @@ interface EcosystemContextType {
   setSortOrder: (sort: string) => void;
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
+  showRecentlyUsedOnly: boolean;
+  setShowRecentlyUsedOnly: (show: boolean) => void;
   resetAllFilters: () => void;
 }
 
 const STORAGE_KEYS = {
-  TEMPLATES: "lizzdo_studio_custom_templates_v1",
-  FAV_TEMPLATES: "lizzdo_studio_fav_templates_v1",
-  ASSETS: "lizzdo_studio_custom_assets_v1",
-  FAV_ASSETS: "lizzdo_studio_fav_assets_v1",
-  COLLECTIONS: "lizzdo_studio_collections_v1",
-  FOLDERS: "lizzdo_studio_folders_v1",
+  TEMPLATES: "lizzdo_studio_custom_templates_v2",
+  FAV_TEMPLATES: "lizzdo_studio_fav_templates_v2",
+  RECENT_TEMPLATES: "lizzdo_studio_recent_templates_v2",
+  ASSETS: "lizzdo_studio_custom_assets_v2",
+  FAV_ASSETS: "lizzdo_studio_fav_assets_v2",
+  COLLECTIONS: "lizzdo_studio_collections_v2",
+  FOLDERS: "lizzdo_studio_folders_v2",
 };
 
 const DEFAULT_COLLECTIONS: AssetCollection[] = [
   {
     id: "col-1",
     name: "Cyberpunk Campaign 2026",
-    description: "Assets and banner presets for the neon launch launch kit",
+    description: "Assets and banner presets for the neon launch kit",
     folders: ["/Backgrounds", "/Icons", "/Banners"],
-    templateIds: ["tmpl-portfolio-1", "tmpl-social-1", "tmpl-gaming-1"],
+    templateIds: ["tmpl-soc-ig-post-1", "tmpl-soc-yt-thumb-1"],
     assetIds: ["asset-img-1", "asset-icon-1", "asset-grad-1"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -131,7 +154,7 @@ const DEFAULT_COLLECTIONS: AssetCollection[] = [
     name: "SaaS Enterprise Rebrand",
     description: "Corporate dark theme UI elements, typography, and slides",
     folders: ["/Logos", "/Slides", "/Wireframes"],
-    templateIds: ["tmpl-landing-1", "tmpl-pres-1", "tmpl-case-1"],
+    templateIds: ["tmpl-web-hero-1", "tmpl-biz-slide-1"],
     assetIds: ["asset-wire-1", "asset-ui-1", "asset-font-1"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -160,7 +183,15 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const saved = localStorage.getItem(STORAGE_KEYS.FAV_TEMPLATES);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return ["tmpl-portfolio-1", "tmpl-social-1", "tmpl-landing-1"];
+    return ["tmpl-soc-ig-post-1", "tmpl-web-hero-1", "tmpl-mkt-fiverr-1"];
+  });
+
+  const [recentlyUsedTemplateIds, setRecentlyUsedTemplateIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.RECENT_TEMPLATES);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return ["tmpl-soc-ig-post-1", "tmpl-web-hero-1"];
   });
 
   // Assets state
@@ -221,6 +252,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMainGroup, setSelectedMainGroup] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStyle, setSelectedStyle] = useState("All Styles");
   const [selectedOrientation, setSelectedOrientation] = useState("All Orientations");
@@ -229,11 +261,16 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [selectedTagPills, setSelectedTagPills] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<string>("newest");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showRecentlyUsedOnly, setShowRecentlyUsedOnly] = useState(false);
 
   // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FAV_TEMPLATES, JSON.stringify(favoriteTemplateIds));
   }, [favoriteTemplateIds]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.RECENT_TEMPLATES, JSON.stringify(recentlyUsedTemplateIds));
+  }, [recentlyUsedTemplateIds]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FAV_ASSETS, JSON.stringify(favoriteAssetIds));
@@ -247,13 +284,118 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
   }, [folders]);
 
-  // FAVORITES HANDLERS
+  // TEMPLATES HANDLERS
   const toggleFavoriteTemplate = (id: string) => {
     setFavoriteTemplateIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
+  const trackTemplateUsed = (id: string) => {
+    setRecentlyUsedTemplateIds((prev) => [id, ...prev.filter((i) => i !== id)].slice(0, 12));
+  };
+
+  const saveCustomTemplate = (
+    name: string,
+    category: string,
+    designState: DesignState,
+    tags: string[] = [],
+    style: any = "SaaS Modern",
+    mainCategory: MainTemplateGroup = "Website",
+    width = 1920,
+    height = 1080
+  ): ExtendedTemplateMeta => {
+    const newTmpl: ExtendedTemplateMeta = {
+      id: `tmpl-custom-${Date.now()}`,
+      name,
+      mainCategory,
+      category,
+      description: `Custom design template created on ${new Date().toLocaleDateString()}`,
+      tags: ["custom", "user", ...tags],
+      style: style || "SaaS Modern",
+      colorPalette: ["#00f5ff", "#a855f7", "#0a0a0a"],
+      orientation: width === height ? "Square" : width > height ? "Landscape" : "Portrait",
+      platform: "Web",
+      width: designState.width || width,
+      height: designState.height || height,
+      aspectRatio: `${designState.width || width}:${designState.height || height}`,
+      state: designState,
+      featured: false,
+      author: "User Studio",
+      usesCount: 1,
+      updatedAt: new Date().toISOString().split("T")[0],
+      isCustom: true,
+      versionHistory: [
+        { version: "v1.0.0", date: new Date().toISOString().split("T")[0], changes: "Created initial template" },
+      ],
+    };
+
+    setTemplates((prev) => {
+      const next = [newTmpl, ...prev];
+      const customOnly = next.filter((t) => t.isCustom);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      return next;
+    });
+
+    return newTmpl;
+  };
+
+  const deleteCustomTemplate = (id: string) => {
+    setTemplates((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      const customOnly = next.filter((t) => t.isCustom);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      return next;
+    });
+  };
+
+  const duplicateTemplate = (id: string): ExtendedTemplateMeta | null => {
+    const target = templates.find((t) => t.id === id);
+    if (!target) return null;
+
+    const dup: ExtendedTemplateMeta = {
+      ...target,
+      id: `tmpl-custom-${Date.now()}`,
+      name: `${target.name} (Copy)`,
+      isCustom: true,
+      updatedAt: new Date().toISOString().split("T")[0],
+      versionHistory: [
+        { version: "v1.0.0", date: new Date().toISOString().split("T")[0], changes: `Duplicated from ${target.name}` },
+      ],
+    };
+
+    setTemplates((prev) => {
+      const next = [dup, ...prev];
+      const customOnly = next.filter((t) => t.isCustom);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      return next;
+    });
+
+    return dup;
+  };
+
+  const exportTemplatePackage = (id: string) => {
+    const tmpl = templates.find((t) => t.id === id);
+    if (tmpl) {
+      exportTemplatePackageJson(tmpl);
+    }
+  };
+
+  const importTemplatePackage = (jsonStr: string): ExtendedTemplateMeta => {
+    const imported = importTemplatePackageJson(jsonStr);
+    imported.isCustom = true;
+
+    setTemplates((prev) => {
+      const next = [imported, ...prev];
+      const customOnly = next.filter((t) => t.isCustom);
+      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      return next;
+    });
+
+    return imported;
+  };
+
+  // ASSET HANDLERS
   const toggleFavoriteAsset = (id: string) => {
     setFavoriteAssetIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
@@ -545,6 +687,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const resetAllFilters = () => {
     setSearchQuery("");
+    setSelectedMainGroup("All");
     setSelectedCategory("All");
     setSelectedStyle("All Styles");
     setSelectedOrientation("All Orientations");
@@ -554,6 +697,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setCurrentFolder("All");
     setSortOrder("newest");
     setShowFavoritesOnly(false);
+    setShowRecentlyUsedOnly(false);
   };
 
   return (
@@ -561,8 +705,14 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       value={{
         templates,
         favoriteTemplateIds,
+        recentlyUsedTemplateIds,
         toggleFavoriteTemplate,
+        trackTemplateUsed,
         saveCustomTemplate,
+        deleteCustomTemplate,
+        duplicateTemplate,
+        exportTemplatePackage,
+        importTemplatePackage,
         assets,
         favoriteAssetIds,
         toggleFavoriteAsset,
@@ -599,6 +749,8 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createFolderInCollection,
         searchQuery,
         setSearchQuery,
+        selectedMainGroup,
+        setSelectedMainGroup,
         selectedCategory,
         setSelectedCategory,
         selectedStyle,
@@ -615,6 +767,8 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSortOrder,
         showFavoritesOnly,
         setShowFavoritesOnly,
+        showRecentlyUsedOnly,
+        setShowRecentlyUsedOnly,
         resetAllFilters,
       }}
     >
@@ -630,4 +784,3 @@ export const useEcosystem = () => {
   }
   return context;
 };
-

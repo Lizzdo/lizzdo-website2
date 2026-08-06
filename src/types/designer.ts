@@ -79,6 +79,7 @@ export interface CanvasElement {
 
   // Image properties
   url?: string;
+  src?: string;
   fitMode?: ImageFitMode;
   scale?: number;
   xOffset?: number;
@@ -106,10 +107,10 @@ export type BackgroundType = "gradient" | "radial" | "mesh" | "solid" | "image" 
 export interface DesignBackground {
   type: BackgroundType;
   solidColor: string;
-  gradientFrom: string;
+  gradientFrom?: string;
   gradientVia?: string;
-  gradientTo: string;
-  gradientDirection: string; // "to-r", "to-br", "to-b", "to-tr", "to-bl"
+  gradientTo?: string;
+  gradientDirection?: string; // "to-r", "to-br", "to-b", "to-tr", "to-bl"
   gradientAngle?: number; // 0 to 360
   
   // Radial
@@ -132,9 +133,9 @@ export interface DesignBackground {
   overlayOpacity?: number;
 
   // Pattern
-  pattern: "grid" | "scanline" | "dots" | "hexagons" | "circuit" | "cross" | "cyber" | "noise" | "none";
+  pattern?: "grid" | "scanline" | "dots" | "hexagons" | "circuit" | "cross" | "cyber" | "noise" | "none";
   patternColor?: string;
-  patternOpacity: number;
+  patternOpacity?: number;
 
   // Image background
   imageUrl?: string;

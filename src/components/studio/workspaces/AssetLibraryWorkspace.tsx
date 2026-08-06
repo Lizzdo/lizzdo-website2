@@ -259,32 +259,32 @@ export function AssetLibraryWorkspace() {
       };
 
       const updatedState = {
-        ...currentProject.designState,
-        elements: [...currentProject.designState.elements, newElem],
+        ...(currentProject as any).designState,
+        elements: [...((currentProject as any).designState?.elements || []), newElem],
       };
 
-      updateProject(currentProject.id, { designState: updatedState });
+      updateProject(currentProject.id, { designState: updatedState } as any);
       addNotification("Canvas Direct Insert", `Inserted ${asset.name} into active canvas project!`, "success");
     } else {
-      addNotification("No Active Stage", "Open or create a design project in Designer V1 to insert assets directly.", "warning");
+      addNotification("No Active Stage", "Open or create a design project in Designer V1 to insert assets directly.", "info");
     }
   };
 
   const handleSetAssetAsBackground = (asset: ExtendedAssetMeta) => {
     if (currentProject && asset.url) {
       const updatedState = {
-        ...currentProject.designState,
+        ...(currentProject as any).designState,
         background: {
-          ...currentProject.designState.background,
+          ...((currentProject as any).designState?.background || {}),
           type: "image",
           imageUrl: asset.url,
         },
       };
 
-      updateProject(currentProject.id, { designState: updatedState });
+      updateProject(currentProject.id, { designState: updatedState } as any);
       addNotification("Background Applied", `Set ${asset.name} as canvas background.`, "success");
     } else {
-      addNotification("No Active Stage", "Open a design project in Designer V1 to set stage background.", "warning");
+      addNotification("No Active Stage", "Open a design project in Designer V1 to set stage background.", "info");
     }
   };
 

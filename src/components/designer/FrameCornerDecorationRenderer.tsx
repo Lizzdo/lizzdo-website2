@@ -441,8 +441,6 @@ export function SingleCornerSvg({
         );
 
       case "industrial":
-      case "dual-notch":
-      case "chamfer-notch":
         return (
           <g>
             <path
