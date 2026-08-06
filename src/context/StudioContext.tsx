@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { StudioToolId, StudioProject, SharedAsset, BrandKitData } from "../types/studio";
+import { StudioToolId, StudioProject, StudioProjectStatus, SharedAsset, BrandKitData, StudioActivity, ActivityType } from "../types/studio";
 import { BrandKitProfile } from "../types/brandKit";
 import { DEFAULT_BRAND_KITS } from "../data/defaultBrandKits";
 import { DEFAULT_DESIGN_STATE } from "../data/designerTemplates";
@@ -10,6 +10,7 @@ export interface StudioNotification {
   title: string;
   message: string;
   type: "success" | "info" | "error";
+  category?: "exports" | "uploads" | "ai" | "autosave" | "shared" | "system" | "errors";
   timestamp: string;
   read: boolean;
 }
@@ -26,8 +27,29 @@ interface StudioContextType {
   updateProject: (id: string, updatedData: Partial<StudioProject>) => void;
   duplicateProject: (id: string) => void;
   deleteProject: (id: string) => void;
+  toggleFavoriteProject: (id: string) => void;
+  renameProject: (id: string, newTitle: string) => void;
+  updateProjectStatus: (id: string, status: StudioProjectStatus) => void;
+  moveProject: (id: string, folder: string) => void;
+  archiveProject: (id: string) => void;
+  exportProject: (id: string, format?: string) => void;
+  shareProject: (id: string) => void;
+  importProjectJSON: (jsonStr: string) => StudioProject | null;
+  exportProjectJSON: (id: string) => void;
+
   sharedAssets: SharedAsset[];
   uploadSharedAsset: (file: File) => Promise<SharedAsset>;
+
+  // Activity Timeline
+  activities: StudioActivity[];
+  logActivity: (type: ActivityType, title: string, description: string, projectId?: string, toolId?: StudioToolId) => void;
+  clearActivities: () => void;
+
+  // Sidebar Controls
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  isSidebarPinned: boolean;
+  setIsSidebarPinned: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Multi-Brand Kit System
   brandKits: BrandKitProfile[];
@@ -47,9 +69,12 @@ interface StudioContextType {
   brandKit: BrandKitData;
   updateBrandKit: (updated: Partial<BrandKitData>) => void;
 
-  // Search, Modals & Notifications
+  // Search, Modals, Recent Searches & Notifications
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  recentSearches: string[];
+  addRecentSearch: (query: string) => void;
+  clearRecentSearches: () => void;
   isSearchOpen: boolean;
   setIsSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isQuickActionOpen: boolean;
@@ -57,9 +82,16 @@ interface StudioContextType {
   isNotificationOpen: boolean;
   setIsNotificationOpen: React.Dispatch<React.SetStateAction<boolean>>;
   notifications: StudioNotification[];
-  addNotification: (title: string, message: string, type?: "success" | "info" | "error") => void;
+  addNotification: (title: string, message: string, type?: "success" | "info" | "error", category?: StudioNotification["category"]) => void;
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
+
+  // Storage metrics
+  storageUsage: {
+    usedMB: number;
+    totalMB: number;
+    percentage: number;
+  };
 }
 
 const INITIAL_PROJECTS: StudioProject[] = [
@@ -71,6 +103,13 @@ const INITIAL_PROJECTS: StudioProject[] = [
     height: 1920,
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    status: "in_progress",
+    favorite: true,
+    tags: ["cyberpunk", "instagram", "social", "reel"],
+    platform: "Instagram",
+    fileSize: "2.8 MB",
+    folder: "Social Campaigns",
+    category: "Marketing",
     data: DEFAULT_DESIGN_STATE,
   },
   {
@@ -81,6 +120,13 @@ const INITIAL_PROJECTS: StudioProject[] = [
     height: 1000,
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
     updatedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+    status: "exported",
+    favorite: true,
+    tags: ["logo", "vector", "branding", "neon"],
+    platform: "Universal",
+    fileSize: "1.4 MB",
+    folder: "Brand Identity",
+    category: "Branding",
     data: {
       ...DEFAULT_DESIGN_STATE,
       title: "Futuristic Lizzdo Logo Concept",
@@ -97,12 +143,41 @@ const INITIAL_PROJECTS: StudioProject[] = [
     height: 720,
     createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
     updatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+    status: "published",
+    favorite: false,
+    tags: ["youtube", "tech", "thumbnail", "badge"],
+    platform: "YouTube",
+    fileSize: "3.2 MB",
+    folder: "YouTube Channel",
+    category: "Video",
     data: {
       ...DEFAULT_DESIGN_STATE,
       title: "YouTube Tech Review Thumbnail",
       preset: "youtube-thumb",
       width: 1280,
       height: 720,
+    },
+  },
+  {
+    id: "proj-4",
+    title: "Lizzdo E-Commerce Promo Banner",
+    toolId: "banner-creator",
+    width: 1200,
+    height: 628,
+    createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    status: "draft",
+    favorite: false,
+    tags: ["banner", "promo", "ecommerce", "sale"],
+    platform: "Web",
+    fileSize: "1.9 MB",
+    folder: "Marketing Banners",
+    category: "E-Commerce",
+    data: {
+      ...DEFAULT_DESIGN_STATE,
+      title: "Lizzdo E-Commerce Promo Banner",
+      width: 1200,
+      height: 628,
     },
   },
 ];
@@ -179,16 +254,112 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   // Search, Quick Action, Notification State
   const [searchQuery, setSearchQuery] = useState("");
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("lizzdo_studio_recent_searches");
+      return saved ? JSON.parse(saved) : ["Neon Logo", "Instagram Reel", "Thumbnail", "Brand Kit"];
+    } catch {
+      return ["Neon Logo", "Instagram Reel", "Thumbnail", "Brand Kit"];
+    }
+  });
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // Sidebar controls
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(true);
+
+  // Activities Log State
+  const [activities, setActivities] = useState<StudioActivity[]>(() => {
+    try {
+      const saved = localStorage.getItem("lizzdo_studio_activities");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: "act-1",
+        type: "project_created",
+        title: "Project Created",
+        description: "Created Cyberpunk Instagram Reel Cover",
+        timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+        projectId: "proj-1",
+        toolId: "social-designer",
+      },
+      {
+        id: "act-2",
+        type: "ai_generated",
+        title: "AI Graphic Generated",
+        description: "Generated 8K Futuristic Cyber City Artwork",
+        timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+        toolId: "ai-generator",
+      },
+      {
+        id: "act-3",
+        type: "export_completed",
+        title: "Export Completed",
+        description: "Exported Futuristic Lizzdo Logo Concept in Ultra HD SVG & PNG",
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        projectId: "proj-2",
+        toolId: "logo-creator",
+      },
+      {
+        id: "act-4",
+        type: "asset_uploaded",
+        title: "Asset Uploaded",
+        description: "Uploaded Cyber Neon Background Grid to Vault",
+        timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
+      },
+    ];
+  });
+
+  const logActivity = (
+    type: ActivityType,
+    title: string,
+    description: string,
+    projectId?: string,
+    toolId?: StudioToolId
+  ) => {
+    const newAct: StudioActivity = {
+      id: `act-${Date.now()}`,
+      type,
+      title,
+      description,
+      timestamp: new Date().toISOString(),
+      projectId,
+      toolId,
+    };
+    setActivities((prev) => [newAct, ...prev]);
+  };
+
+  const clearActivities = () => setActivities([]);
+
+  const addRecentSearch = (query: string) => {
+    if (!query || query.trim().length < 2) return;
+    const clean = query.trim();
+    setRecentSearches((prev) => [clean, ...prev.filter((q) => q.toLowerCase() !== clean.toLowerCase())].slice(0, 8));
+  };
+
+  const clearRecentSearches = () => setRecentSearches([]);
+
   const [notifications, setNotifications] = useState<StudioNotification[]>([
     {
       id: "notif-1",
       title: "Studio Operating System V3 Initialized",
       message: "Complete Brand Kit & Design System is ready across all tools.",
       type: "success",
+      category: "system",
       timestamp: new Date().toISOString(),
+      read: false,
+    },
+    {
+      id: "notif-2",
+      title: "Autosave Active",
+      message: "All 4 workspace projects auto-saved to local persistence vault.",
+      type: "info",
+      category: "autosave",
+      timestamp: new Date(Date.now() - 600000).toISOString(),
       read: false,
     },
   ]);
@@ -196,13 +367,15 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const addNotification = (
     title: string,
     message: string,
-    type: "success" | "info" | "error" = "info"
+    type: "success" | "info" | "error" = "info",
+    category: StudioNotification["category"] = "system"
   ) => {
     const newNotif: StudioNotification = {
       id: `notif-${Date.now()}`,
       title,
       message,
       type,
+      category,
       timestamp: new Date().toISOString(),
       read: false,
     };
@@ -220,6 +393,13 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   };
 
   const currentProject = projects.find((p) => p.id === currentProjectId) || null;
+
+  // Storage metrics calculation
+  const storageUsage = {
+    usedMB: Math.round((projects.length * 2.4 + sharedAssets.length * 1.5 + 12.8) * 10) / 10,
+    totalMB: 1000,
+    percentage: Math.min(100, Math.round(((projects.length * 2.4 + sharedAssets.length * 1.5 + 12.8) / 1000) * 100)),
+  };
 
   // Persistence Effects
   useEffect(() => {
@@ -246,6 +426,18 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {}
   }, [activeBrandId]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("lizzdo_studio_activities", JSON.stringify(activities));
+    } catch (e) {}
+  }, [activities]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("lizzdo_studio_recent_searches", JSON.stringify(recentSearches));
+    } catch (e) {}
+  }, [recentSearches]);
+
   // BRAND KIT ACTIONS
   const createBrandKit = (name: string, companyName = ""): BrandKitProfile => {
     const newKit: BrandKitProfile = {
@@ -259,7 +451,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     };
     setBrandKits((prev) => [newKit, ...prev]);
     setActiveBrandId(newKit.id);
-    addNotification("Brand Kit Created", `Switched to new Brand Kit "${name}"`, "success");
+    addNotification("Brand Kit Created", `Switched to new Brand Kit "${name}"`, "success", "system");
     return newKit;
   };
 
@@ -275,7 +467,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   const deleteBrandKit = (id: string) => {
     if (brandKits.length <= 1) {
-      addNotification("Cannot Delete", "You must keep at least one Brand Kit profile.", "error");
+      addNotification("Cannot Delete", "You must keep at least one Brand Kit profile.", "error", "system");
       return;
     }
     const remaining = brandKits.filter((b) => b.id !== id);
@@ -283,7 +475,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     if (activeBrandId === id) {
       setActiveBrandId(remaining[0].id);
     }
-    addNotification("Brand Kit Deleted", "Brand profile removed successfully.", "info");
+    addNotification("Brand Kit Deleted", "Brand profile removed successfully.", "info", "system");
   };
 
   // AUTOMATIC BRAND APPLICATION TO CANVAS
@@ -399,7 +591,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     document.body.appendChild(dl);
     dl.click();
     dl.remove();
-    addNotification("Brand Kit Exported", `Saved ${targetBrand.brandName} JSON file`, "success");
+    addNotification("Brand Kit Exported", `Saved ${targetBrand.brandName} JSON file`, "success", "exports");
   };
 
   const exportBrandKitCSS = (targetBrand = activeBrandKit) => {
@@ -454,11 +646,11 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         };
         setBrandKits((prev) => [imported, ...prev]);
         setActiveBrandId(imported.id);
-        addNotification("Brand Kit Imported", `Successfully imported "${imported.brandName}"`, "success");
+        addNotification("Brand Kit Imported", `Successfully imported "${imported.brandName}"`, "success", "system");
         return imported;
       }
     } catch (err) {
-      addNotification("Import Error", "Invalid Brand Kit JSON format", "error");
+      addNotification("Import Error", "Invalid Brand Kit JSON format", "error", "errors");
     }
     return null;
   };
@@ -509,11 +701,20 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       height: initialData?.height || 1200,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      status: "draft",
+      favorite: false,
+      tags: [toolId.split("-")[0], "new"],
+      platform: "Universal",
+      fileSize: "1.2 MB",
+      folder: "General",
+      category: "Studio",
       data: initialData || DEFAULT_DESIGN_STATE,
     };
     setProjects((prev) => [newProj, ...prev]);
     setCurrentProjectId(newProj.id);
     setActiveToolId(toolId);
+    logActivity("project_created", "Project Created", `Created "${title}"`, newProj.id, toolId);
+    addNotification("Project Created", `Started blank workspace for "${title}"`, "success", "system");
     return newProj;
   };
 
@@ -522,6 +723,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     if (proj) {
       setCurrentProjectId(proj.id);
       setActiveToolId(proj.toolId);
+      logActivity("project_updated", "Project Opened", `Opened "${proj.title}"`, proj.id, proj.toolId);
     }
   };
 
@@ -533,6 +735,122 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const toggleFavoriteProject = (id: string) => {
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const nextFav = !p.favorite;
+          addNotification(
+            nextFav ? "Starred Project" : "Unstarred Project",
+            `${nextFav ? "Added" : "Removed"} "${p.title}" ${nextFav ? "to" : "from"} favorites`,
+            "info",
+            "system"
+          );
+          return { ...p, favorite: nextFav, updatedAt: new Date().toISOString() };
+        }
+        return p;
+      })
+    );
+  };
+
+  const renameProject = (id: string, newTitle: string) => {
+    if (!newTitle || !newTitle.trim()) return;
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, title: newTitle.trim(), updatedAt: new Date().toISOString() } : p
+      )
+    );
+    addNotification("Project Renamed", `Updated title to "${newTitle.trim()}"`, "success", "system");
+  };
+
+  const updateProjectStatus = (id: string, status: StudioProjectStatus) => {
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, status, updatedAt: new Date().toISOString() } : p
+      )
+    );
+    addNotification("Status Updated", `Project status set to ${status.replace("_", " ").toUpperCase()}`, "info", "system");
+  };
+
+  const moveProject = (id: string, folder: string) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, folder, updatedAt: new Date().toISOString() } : p))
+    );
+    addNotification("Project Moved", `Moved project into "${folder}"`, "info", "system");
+  };
+
+  const archiveProject = (id: string) => {
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const isArchived = p.status === "archived";
+          const newStatus: StudioProjectStatus = isArchived ? "draft" : "archived";
+          addNotification(
+            isArchived ? "Project Restored" : "Project Archived",
+            `${isArchived ? "Restored" : "Archived"} "${p.title}"`,
+            "info",
+            "system"
+          );
+          return { ...p, status: newStatus, updatedAt: new Date().toISOString() };
+        }
+        return p;
+      })
+    );
+  };
+
+  const exportProject = (id: string, format = "PNG") => {
+    const proj = projects.find((p) => p.id === id);
+    if (!proj) return;
+    updateProjectStatus(id, "exported");
+    logActivity("export_completed", "Export Completed", `Exported "${proj.title}" as high-res ${format}`, proj.id, proj.toolId);
+    addNotification("Export Successful", `Downloaded high-res ${format} for "${proj.title}"`, "success", "exports");
+  };
+
+  const shareProject = (id: string) => {
+    const proj = projects.find((p) => p.id === id);
+    if (!proj) return;
+    const shareUrl = `${window.location.origin}/studio?project=${proj.id}`;
+    navigator.clipboard?.writeText(shareUrl);
+    addNotification("Share Link Copied", `Project link for "${proj.title}" copied to clipboard`, "success", "shared");
+  };
+
+  const exportProjectJSON = (id: string) => {
+    const proj = projects.find((p) => p.id === id);
+    if (!proj) return;
+    const dataStr =
+      "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(proj, null, 2));
+    const dl = document.createElement("a");
+    dl.setAttribute("href", dataStr);
+    dl.setAttribute("download", `${proj.title.toLowerCase().replace(/\s+/g, "_")}_studio.json`);
+    document.body.appendChild(dl);
+    dl.click();
+    dl.remove();
+    addNotification("Project Exported", `Saved "${proj.title}" JSON project file`, "success", "exports");
+  };
+
+  const importProjectJSON = (jsonStr: string): StudioProject | null => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (parsed && parsed.title && parsed.toolId) {
+        const imported: StudioProject = {
+          ...parsed,
+          id: `proj-imp-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        setProjects((prev) => [imported, ...prev]);
+        setCurrentProjectId(imported.id);
+        setActiveToolId(imported.toolId);
+        logActivity("project_created", "Project Imported", `Imported project "${imported.title}"`, imported.id, imported.toolId);
+        addNotification("Project Imported", `Successfully imported "${imported.title}"`, "success", "system");
+        return imported;
+      }
+    } catch (e) {
+      addNotification("Import Failed", "Invalid project JSON file structure.", "error", "errors");
+    }
+    return null;
+  };
+
   const duplicateProject = (id: string) => {
     const target = projects.find((p) => p.id === id);
     if (!target) return;
@@ -542,13 +860,20 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
       title: `${target.title} (Copy)`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      status: "draft",
     };
     setProjects((prev) => [duplicated, ...prev]);
+    logActivity("project_created", "Project Duplicated", `Cloned "${target.title}"`, duplicated.id, duplicated.toolId);
+    addNotification("Project Duplicated", `Created copy "${duplicated.title}"`, "success", "system");
   };
 
   const deleteProject = (id: string) => {
+    const target = projects.find((p) => p.id === id);
     setProjects((prev) => prev.filter((p) => p.id !== id));
     if (currentProjectId === id) setCurrentProjectId(null);
+    if (target) {
+      addNotification("Project Deleted", `Deleted "${target.title}"`, "info", "system");
+    }
   };
 
   const uploadSharedAsset = (file: File): Promise<SharedAsset> => {
@@ -567,6 +892,8 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
           createdAt: new Date().toISOString(),
         };
         setSharedAssets((prev) => [newAsset, ...prev]);
+        logActivity("asset_uploaded", "Asset Uploaded", `Uploaded file "${file.name}" to Asset Vault`);
+        addNotification("Asset Uploaded", `File "${file.name}" added to shared assets`, "success", "uploads");
         resolve(newAsset);
       };
       reader.readAsDataURL(file);
@@ -587,8 +914,28 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         updateProject,
         duplicateProject,
         deleteProject,
+        toggleFavoriteProject,
+        renameProject,
+        updateProjectStatus,
+        moveProject,
+        archiveProject,
+        exportProject,
+        shareProject,
+        importProjectJSON,
+        exportProjectJSON,
         sharedAssets,
         uploadSharedAsset,
+
+        // Activities
+        activities,
+        logActivity,
+        clearActivities,
+
+        // Sidebar Controls
+        isSidebarCollapsed,
+        setIsSidebarCollapsed,
+        isSidebarPinned,
+        setIsSidebarPinned,
 
         // Brand Kit System
         brandKits,
@@ -608,9 +955,12 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         brandKit: legacyBrandKit,
         updateBrandKit: updateLegacyBrandKit,
 
-        // Modals & Notifications
+        // Search, Modals, Recent Searches & Notifications
         searchQuery,
         setSearchQuery,
+        recentSearches,
+        addRecentSearch,
+        clearRecentSearches,
         isSearchOpen,
         setIsSearchOpen,
         isQuickActionOpen,
@@ -621,6 +971,9 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         addNotification,
         markNotificationRead,
         clearAllNotifications,
+
+        // Storage Usage
+        storageUsage,
       }}
     >
       {children}

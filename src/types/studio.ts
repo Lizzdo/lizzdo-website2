@@ -47,6 +47,8 @@ export interface StudioToolMeta {
   iconName: string;
 }
 
+export type StudioProjectStatus = "draft" | "in_progress" | "exported" | "published" | "archived";
+
 export interface StudioProject {
   id: string;
   title: string;
@@ -56,7 +58,34 @@ export interface StudioProject {
   height: number;
   createdAt: string;
   updatedAt: string;
+  status: StudioProjectStatus;
+  favorite: boolean;
+  tags: string[];
+  platform: string;
+  fileSize: string;
+  folder?: string;
+  category?: string;
   data: any; // Stores canvas elements, video tracks, prompt history, etc.
+}
+
+export type ActivityType =
+  | "project_created"
+  | "project_updated"
+  | "export_completed"
+  | "template_used"
+  | "asset_uploaded"
+  | "ai_generated"
+  | "blog_published"
+  | "portfolio_updated";
+
+export interface StudioActivity {
+  id: string;
+  type: ActivityType;
+  title: string;
+  description: string;
+  timestamp: string;
+  projectId?: string;
+  toolId?: StudioToolId;
 }
 
 export interface SharedAsset {

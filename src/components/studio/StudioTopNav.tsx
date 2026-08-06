@@ -40,6 +40,7 @@ import {
   Sun,
   X,
   ExternalLink,
+  Bell,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -80,6 +81,10 @@ export function StudioTopNav() {
     projects,
     currentProjectId,
     createProject,
+    setIsSearchOpen,
+    setIsQuickActionOpen,
+    setIsNotificationOpen,
+    notifications,
   } = useStudio();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -91,6 +96,8 @@ export function StudioTopNav() {
 
   const activeTool = STUDIO_TOOLS.find((t) => t.id === activeToolId) || STUDIO_TOOLS[0];
   const activeProject = projects.find((p) => p.id === currentProjectId);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Close dropdown menu when clicking outside
   useEffect(() => {
@@ -138,17 +145,17 @@ export function StudioTopNav() {
           className="flex items-center gap-2 group shrink-0"
           title="Back to Lizzdo Website"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-neon-cyan via-neon-purple to-neon-pink p-0.5 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-neon-purple via-neon-pink to-cyan-400 p-0.5 flex items-center justify-center shrink-0">
             <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-neon-cyan group-hover:scale-110 transition-transform" />
+              <Sparkles className="w-4 h-4 text-neon-purple group-hover:scale-110 transition-transform" />
             </div>
           </div>
           <div className="hidden sm:flex flex-col">
             <span className="font-display font-black text-sm tracking-[2px] text-white leading-none">
-              STUDIO<span className="text-neon-cyan">.LIZZDO</span>
+              STUDIO<span className="text-neon-purple">.LIZZDO</span>
             </span>
             <span className="text-[9px] font-mono text-gray-500 tracking-wider">
-              CREATIVE SUITE V3
+              CREATIVE OS V3
             </span>
           </div>
         </Link>
@@ -158,16 +165,16 @@ export function StudioTopNav() {
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/15 hover:border-neon-cyan/50 transition-all font-mono text-xs text-white group"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/15 hover:border-neon-purple/50 transition-all font-mono text-xs text-white group"
           >
             {activeTool && (
               <>
                 {React.createElement(ICON_MAP[activeTool.iconName] || Palette, {
-                  className: "w-4 h-4 text-neon-cyan",
+                  className: "w-4 h-4 text-neon-purple",
                 })}
                 <span className="font-bold tracking-wide">{activeTool.name}</span>
                 {activeTool.badge && (
-                  <span className="px-1.5 py-0.2 rounded bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan text-[9px] font-bold">
+                  <span className="px-1.5 py-0.2 rounded bg-neon-purple/20 border border-neon-purple/40 text-neon-purple text-[9px] font-bold">
                     {activeTool.badge}
                   </span>
                 )}
@@ -187,7 +194,7 @@ export function StudioTopNav() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
-                  className="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 pl-9 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-neon-cyan font-mono"
+                  className="w-full bg-black/80 border border-white/15 rounded-xl px-3 py-2 pl-9 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-neon-purple font-mono"
                 />
                 <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 {searchQuery && (
@@ -226,11 +233,11 @@ export function StudioTopNav() {
                               }}
                               className={`p-2 rounded-xl border text-left transition-all flex items-start gap-2.5 group ${
                                 isCurrent
-                                  ? "bg-neon-cyan/20 border-neon-cyan text-white shadow-[0_0_12px_rgba(0,245,255,0.3)] font-bold"
+                                  ? "bg-neon-purple/20 border-neon-purple text-white shadow-[0_0_12px_rgba(168,85,247,0.3)] font-bold"
                                   : "bg-black/40 border-white/5 hover:border-white/20 hover:bg-white/5 text-gray-300"
                               }`}
                             >
-                              <ToolIcon className={`w-4 h-4 shrink-0 mt-0.5 ${isCurrent ? "text-neon-cyan" : "text-neon-purple group-hover:text-neon-cyan"}`} />
+                              <ToolIcon className={`w-4 h-4 shrink-0 mt-0.5 ${isCurrent ? "text-neon-purple" : "text-neon-pink group-hover:text-neon-purple"}`} />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-mono text-xs truncate font-medium text-white">
@@ -258,83 +265,81 @@ export function StudioTopNav() {
           )}
         </div>
 
-        {/* QUICK TOOL SWITCHER PILLS (Desktop) */}
-        <div className="hidden lg:flex items-center gap-1 border-l border-white/10 pl-3">
-          {[
-            { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-            { id: "designer", label: "Designer", icon: Palette },
-            { id: "ai-generator", label: "AI Generator", icon: Wand2 },
-            { id: "video-editor", label: "Video", icon: Video },
-            { id: "logo-creator", label: "Logo", icon: Shield },
-            { id: "brand-kit", label: "Brand Kit", icon: BookmarkCheck },
-            { id: "projects", label: "Projects", icon: Kanban },
-          ].map((pill) => {
-            const PillIcon = pill.icon;
-            const isActive = activeToolId === pill.id;
-
-            return (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => setActiveToolId(pill.id as StudioToolId)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-white/15 text-neon-cyan font-bold border border-neon-cyan/40"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <PillIcon className="w-3.5 h-3.5" />
-                <span>{pill.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* RIGHT SECTION: ACTIVE PROJECT BADGE + NEW PROJECT + FULLSCREEN */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* ACTIVE PROJECT BADGE */}
-        {activeProject && (
-          <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-black/60 border border-white/10 text-xs font-mono">
-            <span className="text-gray-500 uppercase text-[10px]">Project:</span>
-            <span className="text-neon-cyan font-bold truncate max-w-[140px]">
-              {activeProject.title}
-            </span>
-            <span title="Saved">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            </span>
-          </div>
-        )}
-
-        {/* NEW PROJECT QUICK CREATOR */}
+        {/* UNIVERSAL SEARCH TRIGGER BUTTON */}
         <button
           type="button"
-          onClick={() => {
-            createProject("Untitled Studio Graphic", activeToolId);
-          }}
-          className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/15 hover:border-neon-cyan text-gray-200 hover:text-white font-mono text-xs flex items-center gap-1.5 transition-all"
-          title="Create New Project"
+          onClick={() => setIsSearchOpen(true)}
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 border border-white/10 hover:border-neon-purple text-gray-400 hover:text-white transition-all font-mono text-xs"
         >
-          <Plus className="w-3.5 h-3.5 text-neon-cyan" />
-          <span className="hidden sm:inline">New Project</span>
+          <Search className="w-3.5 h-3.5 text-neon-purple" />
+          <span>Search studio...</span>
+          <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] text-gray-300">⌘K</span>
+        </button>
+      </div>
+
+      {/* RIGHT SECTION: ACTIONS, NOTIFICATIONS, SETTINGS */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* QUICK CREATION LAUNCHER */}
+        <button
+          type="button"
+          onClick={() => setIsQuickActionOpen(true)}
+          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-neon-purple to-neon-pink text-white font-display font-bold text-xs tracking-wider uppercase hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] transition-all flex items-center gap-1.5 shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Quick Action</span>
+        </button>
+
+        {/* NOTIFICATION DRAWER TRIGGER */}
+        <button
+          type="button"
+          onClick={() => setIsNotificationOpen(true)}
+          className="relative p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white transition-all"
+          title="Notifications & Activity Logs"
+        >
+          <Bell className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-neon-purple text-white font-mono text-[9px] font-bold flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
+        </button>
+
+        {/* THEME TOGGLE */}
+        <button
+          type="button"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all hidden sm:flex"
+          title="Toggle Theme Mode"
+        >
+          {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
         </button>
 
         {/* FULLSCREEN WORKSPACE TOGGLE */}
         <button
           type="button"
           onClick={toggleFullscreen}
-          className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all hidden sm:flex items-center justify-center"
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all hidden sm:flex"
           title={isFullscreen ? "Exit Fullscreen" : "Fullscreen Workspace"}
         >
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
 
+        {/* SETTINGS LINK */}
+        <button
+          type="button"
+          onClick={() => setActiveToolId("settings")}
+          className="p-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all"
+          title="Studio Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
+
         {/* RETURN TO MAIN SITE LINK */}
         <Link
           to="/"
-          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink text-white font-display font-bold text-xs tracking-wider uppercase hover:shadow-[0_0_15px_rgba(0,245,255,0.5)] transition-all flex items-center gap-1.5 shrink-0"
+          className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 font-mono text-xs flex items-center gap-1.5 transition-all shrink-0"
         >
-          <span>Exit Studio</span>
+          <span className="hidden md:inline">Exit Studio</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
       </div>

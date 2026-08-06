@@ -1,254 +1,212 @@
 import React, { useState } from "react";
 import { useStudio } from "../../../context/StudioContext";
-import { STUDIO_TOOLS } from "../../../data/studioTools";
-import { StudioToolId } from "../../../types/studio";
+import { ProjectCard } from "../ProjectCard";
+import { QuickActionPanel } from "../QuickActionPanel";
+import { ActivityTimeline } from "../ActivityTimeline";
+import { StorageUsageWidget } from "../StorageUsageWidget";
 import {
-  LayoutDashboard,
-  Palette,
-  Wand2,
-  Video,
-  Shield,
   Sparkles,
-  Share2,
-  FolderOpen,
   Kanban,
-  Plus,
-  ArrowRight,
-  Clock,
-  Trash2,
-  Copy,
-  ExternalLink,
-  Layers,
-  HardDrive,
-  Activity,
-  Bot,
   Search,
-  BookmarkCheck,
-  Shapes,
-  Type,
-  SlidersHorizontal,
+  Plus,
+  Star,
+  FileEdit,
+  Download,
+  Wand2,
+  Filter,
+  Grid,
+  List,
+  FolderPlus,
+  LayoutDashboard,
+  Zap,
 } from "lucide-react";
 
 export function DashboardWorkspace() {
   const {
     projects,
-    openProject,
+    setIsSearchOpen,
+    setIsQuickActionOpen,
     createProject,
-    deleteProject,
-    duplicateProject,
-    setActiveToolId,
-    sharedAssets,
   } = useStudio();
 
+  const [activeTab, setActiveTab] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const filteredProjects = projects.filter((p) =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter projects by Tab and Search
+  const filteredProjects = projects.filter((p) => {
+    // Search Query
+    if (
+      searchQuery &&
+      !p.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !p.toolId.toLowerCase().includes(searchQuery.toLowerCase())
+    ) {
+      return false;
+    }
 
-  const quickLaunchers = [
-    { id: "designer", title: "New Designer Canvas", toolId: "designer" as StudioToolId, icon: Palette, color: "from-cyan-500 to-blue-600", desc: "1920x1080 Vector & Raster Editor" },
-    { id: "ai-generator", title: "AI Image Generator", toolId: "ai-generator" as StudioToolId, icon: Wand2, color: "from-purple-500 to-pink-600", desc: "Turn prompts into 8K artwork" },
-    { id: "video-editor", title: "Video Timeline Suite", toolId: "video-editor" as StudioToolId, icon: Video, color: "from-red-500 to-amber-600", desc: "Multi-track audio/video editor" },
-    { id: "thumbnail-creator", title: "YouTube Thumbnail", toolId: "thumbnail-creator" as StudioToolId, icon: Sparkles, color: "from-amber-500 to-emerald-600", desc: "High-CTR covers with badges" },
-    { id: "logo-creator", title: "Vector Logo Studio", toolId: "logo-creator" as StudioToolId, icon: Shield, color: "from-emerald-500 to-cyan-600", desc: "Emblems, monograms & badges" },
-    { id: "brand-kit", title: "Brand Guidelines", toolId: "brand-kit" as StudioToolId, icon: BookmarkCheck, color: "from-blue-500 to-indigo-600", desc: "Palettes, logos & typography" },
-  ];
+    // Status Filter
+    if (statusFilter !== "all" && p.status !== statusFilter) {
+      return false;
+    }
+
+    // Tab Filters
+    if (activeTab === "favorites") return p.favorite === true;
+    if (activeTab === "drafts") return p.status === "draft";
+    if (activeTab === "exported") return p.status === "exported";
+    if (activeTab === "ai") return p.tags?.includes("ai") || p.toolId === "ai-generator";
+
+    return true;
+  });
 
   return (
-    <div className="flex-1 bg-neutral-950 text-white overflow-y-auto custom-scrollbar p-6 space-y-8 font-sans select-none">
-      {/* HERO BANNER & QUICK ACTION HEADER */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border border-white/10 p-6 md:p-8 overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-neon-cyan/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-neon-purple/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="flex-1 bg-neutral-950 text-white overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 space-y-8 font-sans select-none">
+      {/* TOP COMMAND HERO BANNER */}
+      <div className="relative rounded-3xl bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border border-white/10 p-6 sm:p-8 overflow-hidden shadow-2xl space-y-6">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-neon-purple/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-neon-pink/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan text-xs font-mono">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neon-purple/10 border border-neon-purple/30 text-neon-purple text-xs font-mono">
               <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-              <span>Studio.Lizzdo.com Central Suite</span>
+              <span>Studio.Lizzdo.com Creative Command Center</span>
             </div>
-            <h1 className="font-display font-black text-2xl md:text-4xl tracking-wider text-white uppercase">
-              Creative Hub & Studio Control
+            <h1 className="font-display font-black text-2xl sm:text-4xl tracking-wider text-white uppercase">
+              Workspace & Projects
             </h1>
-            <p className="text-sm text-gray-400 font-mono leading-relaxed">
-              Access 22+ professional creative tools, AI image generators, video editors, vector logos, and shared assets in one unified workspace.
+            <p className="text-xs sm:text-sm text-gray-400 font-mono leading-relaxed">
+              Unified creative dashboard for your graphics, videos, vector logos, YouTube thumbnails, and brand assets.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => createProject("New Studio Project", "designer")}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink text-white font-display font-bold text-sm tracking-wider uppercase hover:shadow-[0_0_25px_rgba(0,245,255,0.6)] transition-all flex items-center gap-2 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Blank Project</span>
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsQuickActionOpen(true)}
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-neon-purple via-neon-pink to-cyan-400 text-white font-display font-bold text-xs uppercase tracking-wider hover:shadow-[0_0_25px_rgba(168,85,247,0.5)] transition-all flex items-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Quick Actions</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => createProject("Untitled Design", "designer")}
+              className="px-5 py-3 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/20 text-white font-display font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Blank Canvas</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* QUICK LAUNCHERS GRID */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold text-white text-sm tracking-wider uppercase flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-neon-cyan" /> Launch Creative Tool
-          </h2>
-          <button
-            type="button"
-            onClick={() => setActiveToolId("projects")}
-            className="text-xs font-mono text-neon-cyan hover:underline flex items-center gap-1"
-          >
-            <span>View All Tools (22)</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+      {/* QUICK ACTION 12 LAUNCHERS GRID */}
+      <QuickActionPanel />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {quickLaunchers.map((ql) => {
-            const Icon = ql.icon;
-            return (
-              <div
-                key={ql.id}
-                onClick={() => createProject(ql.title, ql.toolId)}
-                className="p-5 rounded-2xl bg-neutral-900 border border-white/10 hover:border-neon-cyan/50 hover:bg-neutral-800/80 transition-all cursor-pointer group flex items-start gap-4 shadow-lg"
-              >
-                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${ql.color} p-0.5 shrink-0 shadow-lg group-hover:scale-110 transition-transform`}>
-                  <div className="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <h3 className="font-display font-bold text-white text-sm group-hover:text-neon-cyan transition-colors truncate">
-                    {ql.title}
-                  </h3>
-                  <p className="text-xs text-gray-400 font-mono leading-tight">
-                    {ql.desc}
-                  </p>
-                </div>
+      {/* MAIN WORKSPACE CONTENT: GRID & SIDEBAR WIDGETS */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* LEFT 3 COLS: PROJECTS HUB */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* BAR FILTERS & SEARCH */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+            {/* TABS */}
+            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 text-xs font-mono">
+              {[
+                { id: "all", label: `All Projects (${projects.length})` },
+                { id: "favorites", label: "Favorites", icon: Star },
+                { id: "drafts", label: "Drafts", icon: FileEdit },
+                { id: "exported", label: "Recently Exported", icon: Download },
+                { id: "ai", label: "AI Generations", icon: Wand2 },
+              ].map((tab) => {
+                const TabIcon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shrink-0 ${
+                      activeTab === tab.id
+                        ? "bg-neon-purple text-white font-bold shadow-lg shadow-neon-purple/20"
+                        : "bg-neutral-900 border border-white/5 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {TabIcon && <TabIcon className="w-3.5 h-3.5" />}
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* SEARCH + VIEW MODE */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-56">
+                <input
+                  type="text"
+                  placeholder="Filter projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-neutral-900 border border-white/10 rounded-xl px-3 py-1.5 pl-8 text-xs text-white placeholder-gray-500 font-mono focus:outline-none focus:border-neon-purple"
+                />
+                <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* RECENT PROJECTS SECTION */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <h2 className="font-display font-bold text-white text-sm tracking-wider uppercase flex items-center gap-2">
-            <Kanban className="w-4 h-4 text-neon-purple" /> Saved Projects ({projects.length})
-          </h2>
-
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              placeholder="Search projects..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-neutral-900 border border-white/10 rounded-xl px-3 py-1.5 pl-8 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-neon-purple font-mono"
-            />
-            <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          </div>
-        </div>
-
-        {filteredProjects.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-neutral-900 border border-white/10 font-mono text-gray-500 space-y-3">
-            <Kanban className="w-8 h-8 text-neon-purple mx-auto animate-pulse" />
-            <p className="text-xs">No projects found. Launch any tool above to start creating!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredProjects.map((proj) => {
-              const matchingTool = STUDIO_TOOLS.find((t) => t.id === proj.toolId);
-
-              return (
-                <div
-                  key={proj.id}
-                  onClick={() => openProject(proj.id)}
-                  className="rounded-2xl bg-neutral-900 border border-white/10 hover:border-neon-cyan/50 transition-all cursor-pointer group overflow-hidden flex flex-col justify-between shadow-lg"
+              <div className="flex items-center p-1 rounded-xl bg-neutral-900 border border-white/10 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    viewMode === "grid" ? "bg-white/15 text-white" : "text-gray-500 hover:text-white"
+                  }`}
                 >
-                  {/* PREVIEW THUMBNAIL AREA */}
-                  <div className="h-36 bg-black/80 relative flex items-center justify-center p-4 border-b border-white/5">
-                    <div className="text-center space-y-1">
-                      <Palette className="w-8 h-8 text-neon-cyan mx-auto group-hover:scale-110 transition-transform" />
-                      <span className="font-mono text-[10px] text-gray-500 uppercase block">
-                        {proj.width} × {proj.height} PX
-                      </span>
-                    </div>
-                    {matchingTool && (
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/80 border border-white/10 text-[9px] font-mono text-neon-cyan font-bold">
-                        {matchingTool.name}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* INFO & CONTROLS */}
-                  <div className="p-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold text-white text-xs truncate group-hover:text-neon-cyan transition-colors">
-                        {proj.title}
-                      </h3>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] font-mono text-gray-500 pt-1 border-t border-white/5">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-gray-500" />
-                        {new Date(proj.updatedAt).toLocaleDateString()}
-                      </span>
-
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => duplicateProject(proj.id)}
-                          className="p-1 hover:text-neon-cyan text-gray-400"
-                          title="Duplicate Project"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteProject(proj.id)}
-                          className="p-1 hover:text-red-400 text-gray-400"
-                          title="Delete Project"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  <Grid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    viewMode === "list" ? "bg-white/15 text-white" : "text-gray-500 hover:text-white"
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* SYSTEM STATS & SHARED RESOURCES OVERVIEW */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-white/10 text-xs font-mono">
-        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10 space-y-2">
-          <div className="flex items-center justify-between text-gray-400">
-            <span>SHARED ASSET VAULT</span>
-            <Layers className="w-4 h-4 text-neon-cyan" />
-          </div>
-          <div className="text-xl font-bold text-white">{sharedAssets.length} Stored Assets</div>
-          <p className="text-[10px] text-gray-500">Accessible across all 22 creative tools</p>
+          {/* PROJECTS GRID */}
+          {filteredProjects.length === 0 ? (
+            <div className="py-16 text-center rounded-3xl bg-neutral-900 border border-white/10 space-y-3 font-mono text-xs">
+              <Kanban className="w-10 h-10 text-neon-purple mx-auto animate-pulse" />
+              <p className="text-gray-400">No projects found matching selected tab or filters.</p>
+              <button
+                type="button"
+                onClick={() => createProject("New Creative Graphic", "designer")}
+                className="px-4 py-2 rounded-xl bg-neon-purple text-white font-bold hover:bg-neon-purple/80 transition-colors inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Create New Project
+              </button>
+            </div>
+          ) : (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                  : "space-y-3"
+              }
+            >
+              {filteredProjects.map((p) => (
+                <ProjectCard key={p.id} project={p} />
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10 space-y-2">
-          <div className="flex items-center justify-between text-gray-400">
-            <span>STORAGE ENGINE</span>
-            <HardDrive className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-xl font-bold text-white">Cloud Storage Ready</div>
-          <p className="text-[10px] text-gray-500">Auto-saves locally with cloud backup support</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10 space-y-2">
-          <div className="flex items-center justify-between text-gray-400">
-            <span>AI ACCELERATION</span>
-            <Bot className="w-4 h-4 text-neon-purple" />
-          </div>
-          <div className="text-xl font-bold text-emerald-400">Ultra Fast GPU</div>
-          <p className="text-[10px] text-gray-500">Gemini & Canvas export acceleration active</p>
+        {/* RIGHT COL: TIMELINE & STORAGE VAULT */}
+        <div className="space-y-6">
+          <StorageUsageWidget />
+          <ActivityTimeline />
         </div>
       </div>
     </div>
