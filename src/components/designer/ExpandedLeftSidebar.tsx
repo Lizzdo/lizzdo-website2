@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { CanvasElement, DesignState, DesignTemplate } from "../../types/designer";
 import { TemplateManager } from "./TemplateManager";
+import { useStudio } from "../../context/StudioContext";
 import {
   Bookmark,
   Image as ImageIcon,
@@ -31,6 +32,7 @@ import {
   Sliders,
   Maximize2,
   Check,
+  BookmarkCheck,
 } from "lucide-react";
 
 interface Props {
@@ -58,8 +60,10 @@ export function ExpandedLeftSidebar({
   onMoveLayer,
   onSelectTemplate,
 }: Props) {
+  const { activeBrandKit, brandKits, setActiveBrandId, applyBrandKitToDesign } = useStudio();
+
   const [activeTab, setActiveTab] = useState<
-    "templates" | "elements" | "assets" | "uploads" | "history" | "plugins"
+    "templates" | "elements" | "assets" | "uploads" | "history" | "plugins" | "brand"
   >("elements");
 
   const [assetCategory, setAssetCategory] = useState<
@@ -80,11 +84,11 @@ export function ExpandedLeftSidebar({
   return (
     <div className="w-80 bg-neutral-900 border-r border-white/10 flex flex-col h-full overflow-hidden shrink-0 select-none z-20 text-xs font-sans">
       {/* SIDEBAR TABS HEADER */}
-      <div className="grid grid-cols-6 gap-1 p-1.5 bg-black/60 border-b border-white/10 text-[10px] font-mono shrink-0">
+      <div className="grid grid-cols-7 gap-1 p-1 bg-black/60 border-b border-white/10 text-[9px] font-mono shrink-0">
         <button
           type="button"
           onClick={() => setActiveTab("elements")}
-          className={`py-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
             activeTab === "elements"
               ? "bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold"
               : "text-gray-400 hover:text-white"
@@ -93,6 +97,20 @@ export function ExpandedLeftSidebar({
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Insert</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("brand")}
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
+            activeTab === "brand"
+              ? "bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold"
+              : "text-gray-400 hover:text-white"
+          }`}
+          title="Brand Kit"
+        >
+          <BookmarkCheck className="w-3.5 h-3.5" />
+          <span>Brand</span>
         </button>
 
         <button
@@ -417,6 +435,102 @@ export function ExpandedLeftSidebar({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* TAB: BRAND KIT INTEGRATION */}
+        {activeTab === "brand" && (
+          <div className="space-y-4 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="font-bold text-white uppercase text-xs flex items-center gap-2">
+                <BookmarkCheck className="w-4 h-4 text-neon-cyan" /> Brand Kit
+              </span>
+              <span className="text-[10px] text-neon-cyan font-bold">
+                {activeBrandKit.brandName}
+              </span>
+            </div>
+
+            {/* BRAND SWITCHER SELECT */}
+            <div className="space-y-1">
+              <label className="text-[10px] text-gray-400 block uppercase">Switch Active Brand</label>
+              <select
+                value={activeBrandKit.id}
+                onChange={(e) => setActiveBrandId(e.target.value)}
+                className="w-full bg-black border border-white/15 rounded-xl p-2 text-white font-bold text-xs"
+              >
+                {brandKits.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.brandName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 1-CLICK APPLY BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                const updated = applyBrandKitToDesign(state, activeBrandKit);
+                onChangeState(updated);
+              }}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-white font-display font-bold text-xs uppercase shadow-lg shadow-neon-cyan/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" /> 1-Click Apply {activeBrandKit.brandName}
+            </button>
+
+            {/* PALETTE SWATCHES */}
+            <div className="p-3 rounded-2xl bg-black border border-white/10 space-y-2">
+              <span className="text-[10px] text-gray-400 font-bold block uppercase">Brand Colors</span>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  activeBrandKit.colors.primary,
+                  activeBrandKit.colors.secondary,
+                  activeBrandKit.colors.accent,
+                  activeBrandKit.colors.background,
+                  activeBrandKit.colors.surface,
+                ].map((c, i) => (
+                  <div
+                    key={i}
+                    style={{ backgroundColor: c }}
+                    title={c}
+                    className="h-8 rounded-lg border border-white/10 shadow-sm cursor-pointer"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* TYPOGRAPHY PREVIEW */}
+            <div className="p-3 rounded-2xl bg-black border border-white/10 space-y-2">
+              <span className="text-[10px] text-gray-400 font-bold block uppercase">Brand Typography</span>
+              <div className="space-y-1">
+                <div className="text-white font-bold text-xs truncate">
+                  Heading: {activeBrandKit.typography.heading.fontFamily}
+                </div>
+                <div className="text-gray-400 text-[10px] truncate">
+                  Body: {activeBrandKit.typography.body.fontFamily}
+                </div>
+              </div>
+            </div>
+
+            {/* LOGOS MINI GRID */}
+            {activeBrandKit.logoVariants.length > 0 && (
+              <div className="p-3 rounded-2xl bg-black border border-white/10 space-y-2">
+                <span className="text-[10px] text-gray-400 font-bold block uppercase">Brand Logos</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {activeBrandKit.logoVariants.slice(0, 3).map((logo) => (
+                    <button
+                      key={logo.id}
+                      type="button"
+                      onClick={() => onAddElement("image")}
+                      className="h-12 rounded-lg bg-neutral-900 border border-white/10 p-1 flex items-center justify-center group hover:border-neon-cyan"
+                      title={`Add ${logo.name} to canvas`}
+                    >
+                      <img src={logo.url} alt={logo.name} className="max-h-full max-w-full object-contain" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
