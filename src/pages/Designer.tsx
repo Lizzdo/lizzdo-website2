@@ -1,6 +1,7 @@
 import React from "react";
 import DocumentHead from "../components/DocumentHead";
 import { StudioProvider } from "../context/StudioContext";
+import { EcosystemProvider } from "../context/EcosystemContext";
 import { StudioOS } from "../components/studio/StudioOS";
 
 export default function Designer() {
@@ -11,9 +12,12 @@ export default function Designer() {
         description="Modular creative suite connecting vector design, AI generators, video timelines, brand kits, mockups, and asset management in one seamless workspace."
       />
       <StudioProvider>
-        <StudioOS />
+        <EcosystemProvider>
+          <StudioOS />
+        </EcosystemProvider>
       </StudioProvider>
     </div>
   );
 }
+
 
