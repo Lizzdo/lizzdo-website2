@@ -10,6 +10,14 @@ import {
 } from "../data/assetLibraryData";
 import { DesignState } from "../types/designer";
 
+export interface FolderItem {
+  path: string;
+  name: string;
+  color?: string;
+  favorite?: boolean;
+  archived?: boolean;
+}
+
 export interface AssetCollection {
   id: string;
   name: string;
@@ -42,6 +50,18 @@ interface EcosystemContextType {
   duplicateAsset: (assetId: string) => void;
   renameAsset: (assetId: string, newName: string) => void;
   deleteAsset: (assetId: string) => void;
+  replaceAssetFile: (assetId: string, file: File) => Promise<void>;
+  optimizeAsset: (assetId: string) => void;
+
+  // Folder Management
+  folders: FolderItem[];
+  currentFolder: string;
+  setCurrentFolder: (path: string) => void;
+  createFolder: (path: string, color?: string) => void;
+  renameFolder: (oldPath: string, newPath: string) => void;
+  deleteFolder: (path: string) => void;
+  toggleFavoriteFolder: (path: string) => void;
+  setFolderColor: (path: string, color: string) => void;
 
   // Bulk Operations
   selectedAssetIds: string[];
@@ -52,8 +72,11 @@ interface EcosystemContextType {
   bulkDeleteAssets: () => void;
   bulkTagAssets: (tags: string[]) => void;
   bulkMoveToCollection: (collectionId: string) => void;
+  bulkMoveToFolder: (folderPath: string) => void;
+  bulkRenameAssets: (prefix: string, suffix?: string) => void;
+  bulkOptimizeAssets: () => void;
 
-  // Collections & Folder Management
+  // Collections
   collections: AssetCollection[];
   createCollection: (name: string, description?: string) => AssetCollection;
   deleteCollection: (id: string) => void;
@@ -72,6 +95,12 @@ interface EcosystemContextType {
   setSelectedOrientation: (orientation: string) => void;
   selectedColor: string;
   setSelectedColor: (color: string) => void;
+  selectedType: string;
+  setSelectedType: (type: string) => void;
+  selectedTagPills: string[];
+  toggleTagPill: (tag: string) => void;
+  sortOrder: string;
+  setSortOrder: (sort: string) => void;
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
   resetAllFilters: () => void;
@@ -83,6 +112,7 @@ const STORAGE_KEYS = {
   ASSETS: "lizzdo_studio_custom_assets_v1",
   FAV_ASSETS: "lizzdo_studio_fav_assets_v1",
   COLLECTIONS: "lizzdo_studio_collections_v1",
+  FOLDERS: "lizzdo_studio_folders_v1",
 };
 
 const DEFAULT_COLLECTIONS: AssetCollection[] = [
@@ -164,6 +194,28 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return DEFAULT_COLLECTIONS;
   });
 
+  // Folders state
+  const [folders, setFolders] = useState<FolderItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.FOLDERS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { path: "/Backgrounds", name: "Backgrounds", color: "#00f5ff" },
+      { path: "/Icons", name: "Icons", color: "#a855f7" },
+      { path: "/Logos", name: "Logos", color: "#f59e0b" },
+      { path: "/Brand Assets", name: "Brand Assets", color: "#f43f5e" },
+      { path: "/Videos", name: "Videos", color: "#3b82f6" },
+      { path: "/Audio", name: "Audio", color: "#10b981" },
+      { path: "/Templates", name: "Templates", color: "#ec4899" },
+      { path: "/Mockups", name: "Mockups", color: "#8b5cf6" },
+      { path: "/Portfolio Images", name: "Portfolio Images", color: "#06b6d4" },
+      { path: "/Store Images", name: "Store Images", color: "#eab308" },
+    ];
+  });
+
+  const [currentFolder, setCurrentFolder] = useState<string>("All");
+
   // Selection state
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
@@ -173,9 +225,12 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [selectedStyle, setSelectedStyle] = useState("All Styles");
   const [selectedOrientation, setSelectedOrientation] = useState("All Orientations");
   const [selectedColor, setSelectedColor] = useState("All Colors");
+  const [selectedType, setSelectedType] = useState("All");
+  const [selectedTagPills, setSelectedTagPills] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<string>("newest");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // Sync favorites & collections to localStorage
+  // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FAV_TEMPLATES, JSON.stringify(favoriteTemplateIds));
   }, [favoriteTemplateIds]);
@@ -187,6 +242,10 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
   }, [collections]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
+  }, [folders]);
 
   // FAVORITES HANDLERS
   const toggleFavoriteTemplate = (id: string) => {
@@ -201,49 +260,47 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     );
   };
 
-  // TEMPLATES HANDLERS
-  const saveCustomTemplate = (
-    name: string,
-    category: any,
-    designState: DesignState,
-    tags: string[] = [],
-    style: any = "SaaS Modern"
-  ): ExtendedTemplateMeta => {
-    const newTmpl: ExtendedTemplateMeta = {
-      id: `tmpl-custom-${Date.now()}`,
-      name,
-      category,
-      description: `Custom saved studio template with ${designState.elements.length} elements.`,
-      tags: ["custom", "saved", ...tags],
-      style,
-      colorPalette: [designState.background?.solidColor || "#000000", "#00f5ff", "#a855f7"],
-      orientation:
-        designState.width > designState.height
-          ? "Landscape"
-          : designState.width < designState.height
-          ? "Portrait"
-          : "Square",
-      platform: "Web",
-      width: designState.width,
-      height: designState.height,
-      aspectRatio: `${designState.width}:${designState.height}`,
-      state: designState,
-      author: "User Custom",
-      usesCount: 1,
-      updatedAt: new Date().toISOString(),
-    };
-
-    setTemplates((prev) => {
-      const next = [newTmpl, ...prev];
-      const customOnly = next.filter((t) => t.id.startsWith("tmpl-custom-"));
-      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
-      return next;
-    });
-
-    return newTmpl;
+  // FOLDER HANDLERS
+  const createFolder = (path: string, color = "#00f5ff") => {
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    const name = cleanPath.split("/").pop() || "Folder";
+    if (!folders.some((f) => f.path === cleanPath)) {
+      setFolders((prev) => [...prev, { path: cleanPath, name, color }]);
+    }
   };
 
-  // ASSETS HANDLERS
+  const renameFolder = (oldPath: string, newPath: string) => {
+    const cleanNew = newPath.startsWith("/") ? newPath : `/${newPath}`;
+    const newName = cleanNew.split("/").pop() || "Folder";
+    setFolders((prev) =>
+      prev.map((f) => (f.path === oldPath ? { ...f, path: cleanNew, name: newName } : f))
+    );
+    setAssets((prev) =>
+      prev.map((a) => (a.folderPath === oldPath ? { ...a, folderPath: cleanNew } : a))
+    );
+  };
+
+  const deleteFolder = (path: string) => {
+    setFolders((prev) => prev.filter((f) => f.path !== path));
+    setAssets((prev) =>
+      prev.map((a) => (a.folderPath === path ? { ...a, folderPath: "/Root" } : a))
+    );
+    if (currentFolder === path) {
+      setCurrentFolder("All");
+    }
+  };
+
+  const toggleFavoriteFolder = (path: string) => {
+    setFolders((prev) =>
+      prev.map((f) => (f.path === path ? { ...f, favorite: !f.favorite } : f))
+    );
+  };
+
+  const setFolderColor = (path: string, color: string) => {
+    setFolders((prev) => prev.map((f) => (f.path === path ? { ...f, color } : f)));
+  };
+
+  // ASSET FILE UPLOAD & REPLACEMENT HANDLERS
   const uploadAssetFile = async (
     file: File,
     category = "User Uploads",
@@ -253,17 +310,35 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
+        let assetType: AssetType = "Images";
+
+        if (file.type.includes("svg")) assetType = "SVG Icons";
+        else if (file.type.includes("video")) assetType = "Videos";
+        else if (file.type.includes("audio")) assetType = "Audio";
+        else if (file.type.includes("pdf")) assetType = "PDF & Documents";
+        else if (file.type.includes("json")) assetType = "Lottie & Motion";
+        else if (file.name.endsWith(".psd") || file.name.endsWith(".ai")) assetType = "PSD & Design Files";
+        else if (file.name.endsWith(".ttf") || file.name.endsWith(".woff") || file.name.endsWith(".otf")) assetType = "Fonts";
+
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
         const newAsset: ExtendedAssetMeta = {
           id: `asset-user-${Date.now()}`,
           name: file.name.replace(/\.[^/.]+$/, ""),
-          type: file.type.includes("svg") ? "SVG Icons" : "Images",
+          type: assetType,
           category,
           tags: ["user", "upload", file.type.split("/")[1] || "media"],
           url: dataUrl,
           folderPath,
-          sizeStr: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-          dimensions: "Original",
-          createdAt: new Date().toISOString(),
+          sizeStr: `${sizeMB} MB`,
+          sizeBytes: file.size,
+          dimensions: file.type.startsWith("image") ? "1920x1080" : "N/A",
+          createdAt: new Date().toISOString().split("T")[0],
+          usageCount: 0,
+          colorPalette: ["#00f5ff", "#10b981", "#a855f7"],
+          format: file.name.split(".").pop()?.toUpperCase() || "BIN",
+          mimeType: file.type,
+          optimized: true,
         };
 
         setAssets((prev) => {
@@ -279,6 +354,39 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const replaceAssetFile = async (assetId: string, file: File): Promise<void> => {
+    const updated = await uploadAssetFile(file);
+    setAssets((prev) =>
+      prev.map((a) =>
+        a.id === assetId
+          ? {
+              ...a,
+              url: updated.url,
+              sizeStr: updated.sizeStr,
+              sizeBytes: updated.sizeBytes,
+              format: updated.format,
+              mimeType: updated.mimeType,
+            }
+          : a
+      )
+    );
+  };
+
+  const optimizeAsset = (assetId: string) => {
+    setAssets((prev) =>
+      prev.map((a) =>
+        a.id === assetId
+          ? {
+              ...a,
+              optimized: true,
+              originalSizeStr: a.originalSizeStr || a.sizeStr,
+              sizeStr: `${((a.sizeBytes || 1000000) * 0.65 / 1048576).toFixed(2)} MB`,
+            }
+          : a
+      )
+    );
+  };
+
   const duplicateAsset = (assetId: string) => {
     const target = assets.find((a) => a.id === assetId);
     if (!target) return;
@@ -286,7 +394,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...target,
       id: `asset-user-${Date.now()}`,
       name: `${target.name} (Copy)`,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toISOString().split("T")[0],
     };
     setAssets((prev) => [dup, ...prev]);
   };
@@ -330,6 +438,38 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           : a
       )
     );
+  };
+
+  const bulkMoveToFolder = (folderPath: string) => {
+    setAssets((prev) =>
+      prev.map((a) => (selectedAssetIds.includes(a.id) ? { ...a, folderPath } : a))
+    );
+    clearSelectedAssets();
+  };
+
+  const bulkRenameAssets = (prefix: string, suffix = "") => {
+    setAssets((prev) =>
+      prev.map((a, idx) =>
+        selectedAssetIds.includes(a.id)
+          ? { ...a, name: `${prefix}_${idx + 1}${suffix ? `_${suffix}` : ""}` }
+          : a
+      )
+    );
+  };
+
+  const bulkOptimizeAssets = () => {
+    setAssets((prev) =>
+      prev.map((a) =>
+        selectedAssetIds.includes(a.id)
+          ? {
+              ...a,
+              optimized: true,
+              sizeStr: `${((a.sizeBytes || 1000000) * 0.65 / 1048576).toFixed(2)} MB`,
+            }
+          : a
+      )
+    );
+    clearSelectedAssets();
   };
 
   const bulkMoveToCollection = (collectionId: string) => {
@@ -397,12 +537,22 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     );
   };
 
+  const toggleTagPill = (tag: string) => {
+    setSelectedTagPills((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
   const resetAllFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
     setSelectedStyle("All Styles");
     setSelectedOrientation("All Orientations");
     setSelectedColor("All Colors");
+    setSelectedType("All");
+    setSelectedTagPills([]);
+    setCurrentFolder("All");
+    setSortOrder("newest");
     setShowFavoritesOnly(false);
   };
 
@@ -417,9 +567,19 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         favoriteAssetIds,
         toggleFavoriteAsset,
         uploadAssetFile,
+        replaceAssetFile,
+        optimizeAsset,
         duplicateAsset,
         renameAsset,
         deleteAsset,
+        folders,
+        currentFolder,
+        setCurrentFolder,
+        createFolder,
+        renameFolder,
+        deleteFolder,
+        toggleFavoriteFolder,
+        setFolderColor,
         selectedAssetIds,
         setSelectedAssetIds,
         toggleSelectAsset,
@@ -428,6 +588,9 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         bulkDeleteAssets,
         bulkTagAssets,
         bulkMoveToCollection,
+        bulkMoveToFolder,
+        bulkRenameAssets,
+        bulkOptimizeAssets,
         collections,
         createCollection,
         deleteCollection,
@@ -444,6 +607,12 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSelectedOrientation,
         selectedColor,
         setSelectedColor,
+        selectedType,
+        setSelectedType,
+        selectedTagPills,
+        toggleTagPill,
+        sortOrder,
+        setSortOrder,
         showFavoritesOnly,
         setShowFavoritesOnly,
         resetAllFilters,
@@ -461,3 +630,4 @@ export const useEcosystem = () => {
   }
   return context;
 };
+
