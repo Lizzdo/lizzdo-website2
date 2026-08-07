@@ -1,6 +1,6 @@
 {
-  "name": "Remix Remix cloudRemix: Lizzdo 2.2",
-  "description": "Premium 3D modeling, animation, and game development studio with a futuristic digital presence.",
+  "name": "Studio.Lizzdo.com",
+  "description": "Dedicated creative production, video editing, vector graphic design, brand kit, and AI content platform.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

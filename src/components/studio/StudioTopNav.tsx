@@ -139,11 +139,12 @@ export function StudioTopNav() {
     <header className="h-14 bg-neutral-950 border-b border-white/10 flex items-center justify-between px-3 text-xs select-none shrink-0 z-50 text-gray-200">
       {/* LEFT SECTION: BRAND + TOOL SWITCHER DROPDOWN */}
       <div className="flex items-center gap-3 min-w-0">
-        {/* Main Website Link / Logo */}
-        <Link
-          to="/"
-          className="flex items-center gap-2 group shrink-0"
-          title="Back to Lizzdo Website"
+        {/* Main Brand Logo / Home */}
+        <button
+          type="button"
+          onClick={() => setActiveToolId("dashboard")}
+          className="flex items-center gap-2 group shrink-0 text-left"
+          title="Studio.Lizzdo.com Home"
         >
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-neon-purple via-neon-pink to-cyan-400 p-0.5 flex items-center justify-center shrink-0">
             <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center">
@@ -158,7 +159,7 @@ export function StudioTopNav() {
               CREATIVE OS V3
             </span>
           </div>
-        </Link>
+        </button>
 
         {/* TOOL SWITCHER DROPDOWN BUTTON */}
         <div className="relative" ref={menuRef}>
@@ -334,14 +335,15 @@ export function StudioTopNav() {
           <Settings className="w-4 h-4" />
         </button>
 
-        {/* RETURN TO MAIN SITE LINK */}
-        <Link
-          to="/"
-          className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 font-mono text-xs flex items-center gap-1.5 transition-all shrink-0"
+        {/* EXPORT & SETTINGS ACTION */}
+        <button
+          type="button"
+          onClick={() => setActiveToolId("settings")}
+          className="px-3 py-1.5 rounded-xl bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 font-mono text-xs flex items-center gap-1.5 transition-all shrink-0 font-bold uppercase"
         >
-          <span className="hidden md:inline">Exit Studio</span>
-          <ExternalLink className="w-3.5 h-3.5" />
-        </Link>
+          <Download className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Export</span>
+        </button>
       </div>
     </header>
   );

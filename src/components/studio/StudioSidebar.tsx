@@ -21,6 +21,7 @@ import {
   Wand2,
   HardDrive,
   Plus,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export function StudioSidebar() {
@@ -35,22 +36,23 @@ export function StudioSidebar() {
     setIsQuickActionOpen,
   } = useStudio();
 
-  const mainNavItems = [
-    { id: "dashboard" as StudioToolId, name: "Dashboard", icon: LayoutDashboard },
-    { id: "projects" as StudioToolId, name: "Projects Hub", icon: Kanban },
-    { id: "brand-kit" as StudioToolId, name: "Brand Kit", icon: BookmarkCheck },
-    { id: "asset-library" as StudioToolId, name: "Asset Library", icon: Layers },
+  const workspaceItems = [
+    { id: "dashboard" as StudioToolId, name: "Home", icon: LayoutDashboard },
+    { id: "projects" as StudioToolId, name: "Projects", icon: Kanban },
+    { id: "asset-library" as StudioToolId, name: "Assets", icon: Layers },
     { id: "templates" as StudioToolId, name: "Templates", icon: LayoutTemplate },
-    { id: "ai-assistant" as StudioToolId, name: "AI Assistant", icon: Bot },
-    { id: "settings" as StudioToolId, name: "Settings", icon: Settings },
   ];
 
-  const quickToolSuites = [
+  const createItems = [
     { id: "designer" as StudioToolId, name: "Designer", icon: Palette },
+    { id: "image-editor" as StudioToolId, name: "Image Editor", icon: ImageIcon },
     { id: "video-editor" as StudioToolId, name: "Video Editor", icon: Video },
-    { id: "ai-generator" as StudioToolId, name: "AI Generator", icon: Wand2 },
-    { id: "thumbnail-creator" as StudioToolId, name: "Thumbnails", icon: Sparkles },
-    { id: "logo-creator" as StudioToolId, name: "Logo Studio", icon: Shield },
+  ];
+
+  const toolItems = [
+    { id: "ai-generator" as StudioToolId, name: "AI Tools", icon: Wand2 },
+    { id: "brand-kit" as StudioToolId, name: "Brand Tools", icon: BookmarkCheck },
+    { id: "settings" as StudioToolId, name: "Export & Settings", icon: Settings },
   ];
 
   return (
@@ -125,7 +127,7 @@ export function StudioSidebar() {
               Workspace
             </div>
           )}
-          {mainNavItems.map((item) => {
+          {workspaceItems.map((item) => {
             const IconComp = item.icon;
             const isActive = activeToolId === item.id;
 
@@ -148,14 +150,14 @@ export function StudioSidebar() {
           })}
         </div>
 
-        {/* TOOL SUITES */}
+        {/* CREATE EDITORS */}
         <div className="space-y-1">
           {!isSidebarCollapsed && (
             <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold tracking-wider">
-              Creation Editors
+              Create
             </div>
           )}
-          {quickToolSuites.map((tool) => {
+          {createItems.map((tool) => {
             const IconComp = tool.icon;
             const isActive = activeToolId === tool.id;
 
@@ -172,6 +174,36 @@ export function StudioSidebar() {
                 title={tool.name}
               >
                 <IconComp className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-gray-400"}`} />
+                {!isSidebarCollapsed && <span className="truncate">{tool.name}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* TOOLS */}
+        <div className="space-y-1">
+          {!isSidebarCollapsed && (
+            <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold tracking-wider">
+              Tools
+            </div>
+          )}
+          {toolItems.map((tool) => {
+            const IconComp = tool.icon;
+            const isActive = activeToolId === tool.id;
+
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                onClick={() => setActiveToolId(tool.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                  isActive
+                    ? "bg-neon-cyan text-black font-bold shadow-lg shadow-neon-cyan/20"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                } ${isSidebarCollapsed ? "justify-center px-0" : ""}`}
+                title={tool.name}
+              >
+                <IconComp className={`w-4 h-4 shrink-0 ${isActive ? "text-black" : "text-gray-400"}`} />
                 {!isSidebarCollapsed && <span className="truncate">{tool.name}</span>}
               </button>
             );
