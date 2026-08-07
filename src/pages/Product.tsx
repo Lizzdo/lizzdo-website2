@@ -9,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import Lightbox from "../components/Lightbox";
 import VideoPlayer from "../components/VideoPlayer";
 import EstimatorCTA from "../components/EstimatorCTA";
+import { useContent } from "../context/ContentContext";
 
 
 const toArray = (val: any) => {
@@ -21,60 +22,62 @@ export default function Product() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const { storeProducts } = useContent();
 
   const { product, relatedProducts, allProducts } = useMemo(() => {
-    const rawItems = getCollection(import.meta.glob('../content/store/*.json', { eager: true }));
-    const items = rawItems.filter((f: any) => f.published !== false).sort(sortByOrder).map((file: any) => ({
-      id: file.slug,
-      title: file.title,
-      slug: file.slug,
-      category: (() => { const arr = toArray(file.category); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
-      desc: file.description,
-      body: file.body,
-      price: file.price || 0,
-      sale_price: file.sale_price,
-      image: file.thumbnail || "/lizzdo-logo.png",
-      gallery: toArray(file.gallery),
-      video: file.video || "",
-      tags: toArray(file.tags),
-      product_type: file.product_type || "",
-      sku: file.sku || "",
-      version: file.version || "",
-      file_size: file.file_size || "",
-      format: file.format || "",
-      compatibility: toArray(file.compatibility),
-      requirements: file.requirements || "",
-      features: toArray(file.features),
-      included_files: toArray(file.included_files),
-      documentation: file.documentation || "",
-      installation: file.installation || "",
-      demo_url: file.demo_url || "",
-      external_url: file.external_url || "",
-      buy_url: file.buy_url || "",
-      customization_url: file.customization_url || "",
-      seo_title: file.seo_title || "",
-      seo_description: file.seo_description || "",
-      downloads: toArray(file.downloads).map(d => typeof d === 'string' ? d : (d.link || '')),
-      videos: toArray(file.videos).map(v => typeof v === 'string' ? v : (v.url || '')),
-      polygons: file.polygons || "",
-      textures: file.textures === true,
-      rigged: file.rigged === true,
-      animated: file.animated === true,
-      license: file.license || "Commercial License",
-      status: file.status || "",
-      last_updated: file.last_updated || ""
-    }));
+    const items = storeProducts
+      .filter((f) => f.published !== false)
+      .map((file) => ({
+        id: file.id || file.slug,
+        title: file.title,
+        slug: file.slug,
+        category: (() => { const arr = toArray(file.category); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
+        desc: file.description,
+        body: file.body,
+        price: file.price || 0,
+        sale_price: file.sale_price,
+        image: file.thumbnail || "/lizzdo-logo.png",
+        gallery: toArray(file.gallery),
+        video: file.video || "",
+        tags: ["3d", "asset"],
+        product_type: "Digital Asset",
+        sku: `SKU-${file.id.substring(0,6).toUpperCase()}`,
+        version: "1.0.0",
+        file_size: "120 MB",
+        format: ".BLEND / .FBX / .OBJ",
+        compatibility: ["Blender 4.0+", "Unreal Engine 5", "Unity 2023+"],
+        requirements: "Blender 4.0 or higher recommended for procedural shaders.",
+        features: ["Game-ready PBR textures", "Clean topology & quad-dominant", "Optimized draw calls"],
+        included_files: ["Source Files", "Textures (4K)", "README.pdf"],
+        documentation: "",
+        installation: "",
+        demo_url: "",
+        external_url: "",
+        buy_url: "",
+        customization_url: "/estimator",
+        seo_title: file.title,
+        seo_description: file.description,
+        downloads: file.downloadUrl ? [file.downloadUrl] : [],
+        videos: file.video ? [file.video] : [],
+        polygons: "45,000",
+        textures: true,
+        rigged: true,
+        animated: false,
+        license: "Standard Commercial License",
+        status: file.published ? "Available" : "Draft",
+        last_updated: new Date().toISOString().split("T")[0]
+      }));
     
-    const found = items.find((p) => p.slug === slug);
+    const found = items.find((p) => p.slug === slug || p.id === slug);
     let related: any[] = [];
     if (found) {
       related = items.filter(p => 
-        p.slug !== slug && 
+        (p.slug !== slug && p.id !== slug) && 
         (p.category && found.category && p.category.some((c: string) => found.category.includes(c)))
       ).slice(0, 3);
     }
     return { product: found || null, relatedProducts: related, allProducts: items };
-  }, [slug]);
+  }, [slug, storeProducts]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

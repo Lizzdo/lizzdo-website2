@@ -12,36 +12,39 @@ const toArray = (val: any) => {
   return [];
 };
 
-import { getSingle, getCollection, sortByOrder } from "../lib/content";
+import { getSingle } from "../lib/content";
+import { useContent } from "../context/ContentContext";
 
 export default function Store() {
   const pageData = useMemo(() => getSingle(import.meta.glob("../content/pages/store.json", { eager: true })), []);
   const navigate = useNavigate();
+  const { storeProducts } = useContent();
   const [activeFilters, setActiveFilters] = useState<string[]>(["ALL"]);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { products, storeCategories } = useMemo(() => {
-    const items = getCollection(import.meta.glob('../content/store/*.json', { eager: true }));
-    const formattedItems = items.filter((f: any) => f.published !== false).sort(sortByOrder).map((file: any) => ({
-      id: file.slug,
-      title: file.title,
-      slug: file.slug,
-      category: (() => { const arr = toArray(file.category); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
-      desc: file.description,
-      price: file.price || 0,
-      sale_price: file.sale_price,
-      image: file.thumbnail || "/lizzdo-logo.png",
-    }));
+    const formattedItems = storeProducts
+      .filter((f) => f.published !== false)
+      .map((file) => ({
+        id: file.id || file.slug,
+        title: file.title,
+        slug: file.slug,
+        category: (() => { const arr = toArray(file.category); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
+        desc: file.description,
+        price: file.price || 0,
+        sale_price: file.sale_price,
+        image: file.thumbnail || "/lizzdo-logo.png",
+      }));
     
     const computedCats = new Set<string>();
     computedCats.add("ALL");
-    formattedItems.forEach((p: any) => {
+    formattedItems.forEach((p) => {
       p.category.forEach((cat: string) => {
         computedCats.add(cat);
       });
     });
     return { products: formattedItems, storeCategories: Array.from(computedCats) };
-  }, []);
+  }, [storeProducts]);
 
   const toggleFilter = (cat: string) => {
     setActiveFilters((prev) => {

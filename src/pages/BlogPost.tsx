@@ -6,37 +6,36 @@ import { getCollection } from "../lib/content";
 import Markdown from "react-markdown";
 import { useMemo } from "react";
 import EstimatorCTA from "../components/EstimatorCTA";
+import { useContent } from "../context/ContentContext";
 
 export default function BlogPost() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { blogPosts } = useContent();
 
   const post = useMemo(() => {
-    const rawItems = getCollection(import.meta.glob('../content/blog/*.json', { eager: true }));
-    const items = rawItems
-      .filter((file: any) => file.published !== false)
-      .map((file: any) => ({
-        id: file.slug,
+    const items = blogPosts
+      .filter((file) => file.published !== false)
+      .map((file) => ({
+        id: file.id || file.slug,
         slug: file.slug,
         title: file.title,
         category: (Array.isArray(file.category) ? file.category[0] : file.category) || "Uncategorized",
-        excerpt: file.description || file.excerpt || "",
+        excerpt: file.description || "",
         body: file.body || "",
-        date: new Date(file.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) || "",
+        date: file.date || "",
         image: file.thumbnail || "/lizzdo-logo.png",
         readTime: file.readTime || "5 min read",
         author: file.author || "Team",
-        seo_title: file.seo_title || "",
-        seo_description: file.seo_description || "",
         tags: file.tags || []
       }));
     
-    const foundPost = items.find(p => p.slug === id);
+    const foundPost = items.find(p => p.slug === id || p.id === id);
     if (foundPost) {
       return { ...foundPost, _allPosts: items };
     }
     return null;
-  }, [id]);
+  }, [id, blogPosts]);
   
   if (!post) {
     return (

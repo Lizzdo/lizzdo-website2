@@ -25,6 +25,9 @@ import { ImageEditorWorkspace } from "./workspaces/ImageEditorWorkspace";
 import { BannerCreatorWorkspace } from "./workspaces/BannerCreatorWorkspace";
 import { MockupGeneratorWorkspace } from "./workspaces/MockupGeneratorWorkspace";
 import { SettingsWorkspace } from "./workspaces/SettingsWorkspace";
+import { PortfolioBuilderWorkspace } from "./workspaces/PortfolioBuilderWorkspace";
+import { BlogDesignerWorkspace } from "./workspaces/BlogDesignerWorkspace";
+import { StoreDesignerWorkspace } from "./workspaces/StoreDesignerWorkspace";
 
 export function StudioOS() {
   const {
@@ -71,6 +74,12 @@ export function StudioOS() {
         return <BannerCreatorWorkspace />;
       case "mockup-generator":
         return <MockupGeneratorWorkspace />;
+      case "portfolio-builder":
+        return <PortfolioBuilderWorkspace />;
+      case "blog-designer":
+        return <BlogDesignerWorkspace />;
+      case "store-designer":
+        return <StoreDesignerWorkspace />;
       case "settings":
         return <SettingsWorkspace />;
       default:

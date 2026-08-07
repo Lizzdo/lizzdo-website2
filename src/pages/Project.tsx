@@ -9,6 +9,7 @@ import Lightbox from "../components/Lightbox";
 import VideoPlayer from "../components/VideoPlayer";
 import EstimatorCTA from "../components/EstimatorCTA";
 import { getCollection, sortByOrder } from "../lib/content";
+import { useContent } from "../context/ContentContext";
 
 
 const toArray = (val: any) => {
@@ -20,45 +21,47 @@ const toArray = (val: any) => {
 export default function Project() {
   const { slug } = useParams();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const { portfolioItems } = useContent();
 
   const { project, relatedProjects, allProjects } = useMemo(() => {
-    const rawItems = getCollection(import.meta.glob('../content/portfolio/*.json', { eager: true }));
-    const items = rawItems.filter((f: any) => f.published !== false).sort(sortByOrder).map((file: any) => ({
-      id: file.slug,
-      title: file.title,
-      slug: file.slug,
-      category: (() => { const arr = toArray(file.categories); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
-      desc: file.description,
-      body: file.body,
-      image: file.thumbnail || "/lizzdo-logo.png",
-      gallery: toArray(file.gallery),
-      tags: toArray(file.tags),
-      software: toArray(file.software),
-      technologies: toArray(file.technologies),
-      client: file.client || "",
-      industry: file.industry || "",
-      date: file.date || "",
-      duration: file.duration || "",
-      role: file.role || "",
-      goals: file.goals || "",
-      challenges: file.challenges || "",
-      solution: file.solution || "",
-      results: file.results || "",
-      website: file.website || "",
-      github: file.github || "",
-      download_link: file.download_link || "",
-      video: file.video || "",
-      videos: toArray(file.videos).map(v => typeof v === 'string' ? v : (v.url || '')),
-      seo_title: file.seo_title || "",
-      seo_description: file.seo_description || "",
-      status: file.status || ""
-    }));
+    const items = portfolioItems
+      .filter((f) => f.published !== false)
+      .map((file) => ({
+        id: file.id || file.slug,
+        title: file.title,
+        slug: file.slug,
+        category: (() => { const arr = toArray(file.categories); return arr.length ? arr : ["UNCATEGORIZED"]; })(),
+        desc: file.description,
+        body: file.body,
+        image: file.thumbnail || "/lizzdo-logo.png",
+        gallery: toArray(file.gallery),
+        tags: toArray(file.tags),
+        software: toArray(file.software),
+        technologies: toArray(file.software),
+        client: file.client || "",
+        industry: "",
+        date: file.date || "",
+        duration: "",
+        role: "",
+        goals: "",
+        challenges: "",
+        solution: "",
+        results: "",
+        website: "",
+        github: "",
+        download_link: "",
+        video: "",
+        videos: [],
+        seo_title: file.title,
+        seo_description: file.description,
+        status: file.published ? "Published" : "Draft"
+      }));
     
-    const found = items.find((p) => p.slug === slug);
+    const found = items.find((p) => p.slug === slug || p.id === slug);
     let related: any[] = [];
     if (found) {
       related = items.filter(p => 
-        p.slug !== slug && 
+        (p.slug !== slug && p.id !== slug) && 
         (
           (p.category && found.category && p.category.some((c: string) => found.category.includes(c))) || 
           (p.tags && found.tags && p.tags.some((t: string) => found.tags.includes(t)))
@@ -66,7 +69,7 @@ export default function Project() {
       ).slice(0, 3);
     }
     return { project: found || null, relatedProjects: related, allProjects: items };
-  }, [slug]);
+  }, [slug, portfolioItems]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

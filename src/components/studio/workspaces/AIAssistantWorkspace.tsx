@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useStudio } from "../../../context/StudioContext";
+import { AIEngineService } from "../../../services/aiEngine";
 import {
   Bot,
   Send,
@@ -13,28 +14,43 @@ import {
 } from "lucide-react";
 
 export function AIAssistantWorkspace() {
-  const { createProject } = useStudio();
+  const { createProject, addNotification } = useStudio();
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Hello! I am your AI Creative Assistant in Studio.Lizzdo.com. How can I help you write headlines, brainstorm color palettes, generate image prompts, or critique your layouts today?",
+      text: "Hello! I am your AI Creative Assistant in Studio.Lizzdo.com. How can I help you write slogans, brainstorm color palettes, generate image prompts, or polish your content today?",
     },
   ]);
   const [inputPrompt, setInputPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputPrompt.trim()) return;
     const userMsg = inputPrompt;
     setMessages((prev) => [...prev, { role: "user", text: userMsg }]);
     setInputPrompt("");
     setIsLoading(true);
 
-    setTimeout(() => {
-      let aiReply = "Here is a high-converting headline & color suggestion for your campaign:\n\n• Headline: 'REVOLUTIONIZE YOUR WORKFLOW WITH AI'\n• Primary Color: #00F5FF (Neon Cyan)\n• Secondary Color: #A855F7 (Neon Purple)\n• Suggested Prompt: 'Cyberpunk futuristic dashboard interface, glowing neon lights, 8k render'";
-      setMessages((prev) => [...prev, { role: "assistant", text: aiReply }]);
+    try {
+      const res = await AIEngineService.generateText({
+        writerType: "blog",
+        writerAction: "generate",
+        topicPrompt: userMsg,
+        tone: "Professional & Visionary",
+      });
+
+      setMessages((prev) => [...prev, { role: "assistant", text: res.text }]);
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: "I encountered an error generating your response. Please try rephrasing your request.",
+        },
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -98,15 +114,15 @@ export function AIAssistantWorkspace() {
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            className="flex-1 bg-transparent px-3 text-white focus:outline-none placeholder-gray-500"
+            className="flex-1 bg-transparent px-3 py-2 text-white placeholder-gray-500 focus:outline-none"
           />
           <button
             onClick={handleSendMessage}
-            disabled={!inputPrompt.trim() || isLoading}
-            className="px-4 py-2 rounded-xl bg-neon-cyan text-black font-bold hover:bg-neon-cyan/80 transition-all flex items-center gap-1.5 disabled:opacity-50"
+            disabled={isLoading}
+            className="px-4 py-2 rounded-xl bg-neon-cyan text-black font-bold uppercase hover:bg-neon-cyan/80 transition-all flex items-center gap-1.5"
           >
-            <span>Send</span>
             <Send className="w-3.5 h-3.5" />
+            <span>Send</span>
           </button>
         </div>
       </div>
