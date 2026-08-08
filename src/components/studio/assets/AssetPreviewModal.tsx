@@ -17,6 +17,9 @@ import {
   FileText,
   Clock,
   Code,
+  Music,
+  Video,
+  AlertTriangle,
 } from "lucide-react";
 
 interface AssetPreviewModalProps {
@@ -33,6 +36,7 @@ export function AssetPreviewModal({
   const {
     favoriteAssetIds,
     toggleFavoriteAsset,
+    trackAssetUsed,
     renameAsset,
     deleteAsset,
     duplicateAsset,
@@ -46,6 +50,8 @@ export function AssetPreviewModal({
   const [nameInput, setNameInput] = useState(asset?.name || "");
   const [isCopied, setIsCopied] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSvgCode, setShowSvgCode] = useState(false);
 
   if (!asset) return null;
 
@@ -71,7 +77,7 @@ export function AssetPreviewModal({
     if (asset.url) {
       const link = document.createElement("a");
       link.href = asset.url;
-      link.download = `${asset.name}.png`;
+      link.download = `${asset.name}.${asset.format ? asset.format.toLowerCase() : "png"}`;
       link.click();
     } else if (asset.svgCode) {
       const blob = new Blob([asset.svgCode], { type: "image/svg+xml" });
@@ -91,6 +97,16 @@ export function AssetPreviewModal({
     }
   };
 
+  const handleDeleteConfirm = () => {
+    deleteAsset(asset.id);
+    addNotification("Asset Deleted", `Permanently removed "${asset.name}" from library`, "info");
+    setShowDeleteConfirm(false);
+    onClose();
+  };
+
+  const isVideo = asset.type === "Videos" || asset.mimeType?.includes("video") || asset.url?.startsWith("data:video");
+  const isAudio = asset.type === "Audio" || asset.mimeType?.includes("audio") || asset.url?.startsWith("data:audio");
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 font-mono select-none animate-in fade-in zoom-in-95 duration-200">
       <div className="bg-neutral-900 border border-white/15 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -98,7 +114,7 @@ export function AssetPreviewModal({
         <div className="p-5 border-b border-white/10 flex items-center justify-between bg-black/40">
           <div className="flex items-center gap-3">
             <span className="p-2 rounded-xl bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan">
-              <Layers className="w-5 h-5" />
+              {isVideo ? <Video className="w-5 h-5" /> : isAudio ? <Music className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
             </span>
             <div>
               <div className="flex items-center gap-2">
@@ -148,6 +164,15 @@ export function AssetPreviewModal({
 
             <button
               type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2 rounded-xl bg-neutral-800 border border-white/10 text-gray-400 hover:text-red-400 transition-colors"
+              title="Delete Asset"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
               className="p-2 rounded-xl bg-neutral-800 border border-white/10 text-gray-400 hover:text-white transition-colors"
             >
@@ -161,21 +186,52 @@ export function AssetPreviewModal({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* ASSET PREVIEW STAGE */}
             <div className="md:col-span-7 bg-black/90 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[260px] relative">
-              {asset.url ? (
-                <img
+              {isVideo ? (
+                <video
                   src={asset.url}
-                  alt={asset.name}
-                  className="max-h-64 max-w-full object-contain rounded-lg"
-                  referrerPolicy="no-referrer"
+                  controls
+                  className="max-h-64 max-w-full rounded-lg bg-black"
                 />
+              ) : isAudio ? (
+                <div className="w-full flex flex-col items-center justify-center p-6 space-y-4">
+                  <div className="p-4 rounded-2xl bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan animate-pulse">
+                    <Music className="w-12 h-12" />
+                  </div>
+                  <audio src={asset.url} controls className="w-full" />
+                </div>
               ) : asset.svgCode ? (
-                <div
-                  className="w-32 h-32 flex items-center justify-center"
-                  dangerouslySetInnerHTML={{ __html: asset.svgCode }}
-                />
+                <div className="w-full flex flex-col items-center gap-3">
+                  {showSvgCode ? (
+                    <textarea
+                      readOnly
+                      value={asset.svgCode}
+                      className="w-full h-48 bg-black/80 border border-white/10 rounded-xl p-3 text-[10px] text-neon-cyan font-mono resize-none focus:outline-none"
+                    />
+                  ) : (
+                    <div
+                      className="w-32 h-32 flex items-center justify-center"
+                      dangerouslySetInnerHTML={{ __html: asset.svgCode }}
+                    />
+                  )}
+                  <button
+                    onClick={() => setShowSvgCode(!showSvgCode)}
+                    className="text-[10px] text-gray-400 hover:text-neon-cyan underline flex items-center gap-1"
+                  >
+                    <Code className="w-3 h-3" /> {showSvgCode ? "Show Visual Vector" : "Show SVG Raw Source"}
+                  </button>
+                </div>
+              ) : asset.url ? (
+                <div className="relative group max-h-64 flex items-center justify-center">
+                  <img
+                    src={asset.url}
+                    alt={asset.name}
+                    className="max-h-64 max-w-full object-contain rounded-lg"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
               ) : asset.gradientCSS ? (
                 <div
-                  className="w-full h-40 rounded-xl shadow-xl"
+                  className="w-full h-40 rounded-xl shadow-xl border border-white/10"
                   style={{ background: asset.gradientCSS }}
                 />
               ) : asset.fontFamily ? (
@@ -211,6 +267,10 @@ export function AssetPreviewModal({
                   <span className="text-gray-300 font-mono text-[10px]">
                     {asset.folderPath || "/Root"}
                   </span>
+                </div>
+                <div className="flex justify-between text-gray-400">
+                  <span>Usage Count</span>
+                  <span className="text-white font-bold">{asset.usageCount || 0} times</span>
                 </div>
                 <div className="flex justify-between text-gray-400">
                   <span>Created Date</span>
@@ -273,7 +333,7 @@ export function AssetPreviewModal({
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
-              <span>Copy Data/Code</span>
+              <span>Copy Payload/Code</span>
             </button>
 
             <button
@@ -288,6 +348,7 @@ export function AssetPreviewModal({
           {onInsertToCanvas && (
             <button
               onClick={() => {
+                trackAssetUsed(asset.id);
                 onInsertToCanvas(asset);
                 onClose();
               }}
@@ -298,6 +359,38 @@ export function AssetPreviewModal({
           )}
         </div>
       </div>
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-60 flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-red-500/40 p-6 rounded-2xl max-w-md w-full space-y-4 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-base">Delete Asset Permanently?</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                This asset is saved in your Asset Vault and may be referenced by active design projects.
+                Are you sure you want to delete <strong className="text-white">"{asset.name}"</strong>?
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-xl bg-neutral-800 text-gray-300 text-xs hover:text-white font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-500 shadow-lg"
+              >
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

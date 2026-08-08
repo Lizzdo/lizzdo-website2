@@ -64,13 +64,20 @@ interface EcosystemContextType {
   // Assets State
   assets: ExtendedAssetMeta[];
   favoriteAssetIds: string[];
+  recentlyUsedAssetIds: string[];
   toggleFavoriteAsset: (id: string) => void;
+  trackAssetUsed: (assetId: string) => void;
   uploadAssetFile: (file: File, category?: string, folderPath?: string) => Promise<ExtendedAssetMeta>;
   duplicateAsset: (assetId: string) => void;
   renameAsset: (assetId: string, newName: string) => void;
   deleteAsset: (assetId: string) => void;
   replaceAssetFile: (assetId: string, file: File) => Promise<void>;
   optimizeAsset: (assetId: string) => void;
+
+  // Reusable Elements State
+  myElements: any[];
+  saveMyElement: (name: string, element: any) => void;
+  deleteMyElement: (id: string) => void;
 
   // Folder Management
   folders: FolderItem[];
@@ -211,6 +218,22 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return ["asset-img-1", "asset-icon-1", "asset-grad-1"];
+  });
+
+  const [recentlyUsedAssetIds, setRecentlyUsedAssetIds] = useState<string[]>(() => {
+    try {
+      const saved = getStorageItem("lizzdo_studio_recent_assets_v2");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return ["asset-img-1", "asset-icon-2"];
+  });
+
+  const [myElements, setMyElements] = useState<any[]>(() => {
+    try {
+      const saved = getStorageItem("lizzdo_my_reusable_elements");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
   });
 
   // Collections state
@@ -399,6 +422,36 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     );
   };
 
+  const trackAssetUsed = (assetId: string) => {
+    setRecentlyUsedAssetIds((prev) => [assetId, ...prev.filter((i) => i !== assetId)].slice(0, 16));
+    setAssets((prev) =>
+      prev.map((a) => (a.id === assetId ? { ...a, usageCount: (a.usageCount || 0) + 1 } : a))
+    );
+  };
+
+  const saveMyElement = (name: string, element: any) => {
+    const newReusable = {
+      id: `reusable-${Date.now()}`,
+      name: name || element.name || "Saved Element",
+      type: element.type || "shape",
+      createdAt: new Date().toISOString(),
+      element: { ...element, id: `el-${element.type || "obj"}-${Date.now()}` },
+    };
+    setMyElements((prev) => {
+      const next = [newReusable, ...prev];
+      setStorageItem("lizzdo_my_reusable_elements", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteMyElement = (id: string) => {
+    setMyElements((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      setStorageItem("lizzdo_my_reusable_elements", JSON.stringify(next));
+      return next;
+    });
+  };
+
   // FOLDER HANDLERS
   const createFolder = (path: string, color = "#00f5ff") => {
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -445,7 +498,13 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     category = "User Uploads",
     folderPath = "/Uploads"
   ): Promise<ExtendedAssetMeta> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      // Validation: File size limit check (50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        reject(new Error(`File size exceeds maximum allowed limit (50MB). Current: ${(file.size / (1024 * 1024)).toFixed(1)}MB`));
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
@@ -460,35 +519,52 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         else if (file.name.endsWith(".ttf") || file.name.endsWith(".woff") || file.name.endsWith(".otf")) assetType = "Fonts";
 
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const formatExt = file.name.split(".").pop()?.toUpperCase() || "BIN";
 
-        const newAsset: ExtendedAssetMeta = {
-          id: `asset-user-${Date.now()}`,
-          name: file.name.replace(/\.[^/.]+$/, ""),
-          type: assetType,
-          category,
-          tags: ["user", "upload", file.type.split("/")[1] || "media"],
-          url: dataUrl,
-          folderPath,
-          sizeStr: `${sizeMB} MB`,
-          sizeBytes: file.size,
-          dimensions: file.type.startsWith("image") ? "1920x1080" : "N/A",
-          createdAt: new Date().toISOString().split("T")[0],
-          usageCount: 0,
-          colorPalette: ["#00f5ff", "#10b981", "#a855f7"],
-          format: file.name.split(".").pop()?.toUpperCase() || "BIN",
-          mimeType: file.type,
-          optimized: true,
+        const createAndSaveAsset = (dims: string) => {
+          const newAsset: ExtendedAssetMeta = {
+            id: `asset-user-${Date.now()}`,
+            name: file.name.replace(/\.[^/.]+$/, ""),
+            type: assetType,
+            category,
+            tags: ["user", "upload", file.type.split("/")[1] || "media", formatExt.toLowerCase()],
+            url: dataUrl,
+            folderPath,
+            sizeStr: `${sizeMB} MB`,
+            sizeBytes: file.size,
+            dimensions: dims,
+            createdAt: new Date().toISOString().split("T")[0],
+            usageCount: 0,
+            colorPalette: ["#00f5ff", "#10b981", "#a855f7"],
+            format: formatExt,
+            mimeType: file.type,
+            optimized: true,
+          };
+
+          setAssets((prev) => {
+            const next = [newAsset, ...prev];
+            const userOnly = next.filter((a) => a.id.startsWith("asset-user-"));
+            setStorageItem(STORAGE_KEYS.ASSETS, JSON.stringify(userOnly));
+            return next;
+          });
+
+          resolve(newAsset);
         };
 
-        setAssets((prev) => {
-          const next = [newAsset, ...prev];
-          const userOnly = next.filter((a) => a.id.startsWith("asset-user-"));
-          setStorageItem(STORAGE_KEYS.ASSETS, JSON.stringify(userOnly));
-          return next;
-        });
-
-        resolve(newAsset);
+        if (file.type.startsWith("image") && !file.type.includes("svg")) {
+          const img = new Image();
+          img.onload = () => {
+            createAndSaveAsset(`${img.width}x${img.height}`);
+          };
+          img.onerror = () => {
+            createAndSaveAsset("1920x1080");
+          };
+          img.src = dataUrl;
+        } else {
+          createAndSaveAsset(file.type.includes("svg") ? "Vector" : "N/A");
+        }
       };
+      reader.onerror = () => reject(new Error("Failed to read upload file payload"));
       reader.readAsDataURL(file);
     });
   };
@@ -712,13 +788,18 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         importTemplatePackage,
         assets,
         favoriteAssetIds,
+        recentlyUsedAssetIds,
         toggleFavoriteAsset,
+        trackAssetUsed,
         uploadAssetFile,
         replaceAssetFile,
         optimizeAsset,
         duplicateAsset,
         renameAsset,
         deleteAsset,
+        myElements,
+        saveMyElement,
+        deleteMyElement,
         folders,
         currentFolder,
         setCurrentFolder,
