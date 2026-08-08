@@ -259,10 +259,91 @@ export function ExpandedLeftSidebar({
               <button
                 type="button"
                 onClick={() => onAddElement("shape")}
-                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-pink/50 hover:bg-neon-pink/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group col-span-2"
+                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-pink/50 hover:bg-neon-pink/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
               >
                 <Square className="w-4 h-4 text-neon-pink group-hover:scale-110 transition-transform" />
-                <span>Glass Container / Divider</span>
+                <span>Vector Rectangle</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newEl: CanvasElement = {
+                    id: `circle-${Date.now()}`,
+                    type: "shape",
+                    shapeType: "circle",
+                    name: "Vector Circle",
+                    visible: true,
+                    locked: false,
+                    x: 35,
+                    y: 35,
+                    width: 25,
+                    height: 25,
+                    fillColor: "rgba(168, 85, 247, 0.5)",
+                    strokeColor: "#a855f7",
+                    strokeWidth: 2,
+                    borderStyle: "solid",
+                    zIndex: 10,
+                  };
+                  onChangeState({ ...state, elements: [...state.elements, newEl] });
+                }}
+                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-purple/50 hover:bg-neon-purple/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+              >
+                <Grid className="w-4 h-4 text-neon-purple group-hover:scale-110 transition-transform" />
+                <span>Vector Circle</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newEl: CanvasElement = {
+                    id: `star-${Date.now()}`,
+                    type: "shape",
+                    shapeType: "star",
+                    name: "Vector Star",
+                    visible: true,
+                    locked: false,
+                    x: 40,
+                    y: 40,
+                    width: 20,
+                    height: 20,
+                    fillColor: "rgba(255, 149, 0, 0.6)",
+                    strokeColor: "#ff9500",
+                    strokeWidth: 2,
+                    zIndex: 10,
+                  };
+                  onChangeState({ ...state, elements: [...state.elements, newEl] });
+                }}
+                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/50 hover:bg-amber-400/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span>Vector Star</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newEl: CanvasElement = {
+                    id: `arrow-${Date.now()}`,
+                    type: "arrow",
+                    name: "Vector Arrow",
+                    visible: true,
+                    locked: false,
+                    x: 30,
+                    y: 45,
+                    width: 35,
+                    height: 10,
+                    strokeColor: "#00f5ff",
+                    strokeWidth: 3,
+                    arrowEndHead: "arrow",
+                    zIndex: 10,
+                  };
+                  onChangeState({ ...state, elements: [...state.elements, newEl] });
+                }}
+                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+              >
+                <Zap className="w-4 h-4 text-neon-cyan group-hover:scale-110 transition-transform" />
+                <span>Line / Arrow</span>
               </button>
             </div>
 

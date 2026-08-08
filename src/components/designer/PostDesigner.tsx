@@ -449,7 +449,7 @@ export default function PostDesigner() {
   const selectedElement = designState.elements.find((el) => el.id === selectedElementId);
 
   // ADD NEW DYNAMIC ELEMENT
-  const handleAddElement = (type: ElementType) => {
+  const handleAddElement = (type: string) => {
     const id = `el-${type}-${Date.now()}`;
     let newEl: CanvasElement;
 
@@ -567,16 +567,104 @@ export default function PostDesigner() {
       case "shape":
         newEl = {
           id,
-          name: `Divider ${designState.elements.length + 1}`,
+          name: `Rectangle ${designState.elements.length + 1}`,
           type: "shape",
+          shapeType: "rect",
           visible: true,
           locked: false,
-          x: 10,
+          x: 20,
+          y: 30,
+          width: 40,
+          height: 30,
+          fillColor: "rgba(0, 245, 255, 0.3)",
+          strokeColor: "#00f5ff",
+          strokeWidth: 2,
+          borderStyle: "solid",
+          borderRadius: 8,
+          zIndex: designState.elements.length + 10,
+        };
+        break;
+
+      case "circle":
+        newEl = {
+          id,
+          name: `Circle ${designState.elements.length + 1}`,
+          type: "shape",
+          shapeType: "circle",
+          visible: true,
+          locked: false,
+          x: 35,
+          y: 35,
+          width: 30,
+          height: 30,
+          fillColor: "rgba(168, 85, 247, 0.4)",
+          strokeColor: "#a855f7",
+          strokeWidth: 2,
+          borderStyle: "solid",
+          zIndex: designState.elements.length + 10,
+        };
+        break;
+
+      case "star":
+        newEl = {
+          id,
+          name: `Star ${designState.elements.length + 1}`,
+          type: "shape",
+          shapeType: "star",
+          visible: true,
+          locked: false,
+          x: 40,
+          y: 40,
+          width: 20,
+          height: 20,
+          fillColor: "rgba(255, 149, 0, 0.6)",
+          strokeColor: "#ff9500",
+          strokeWidth: 2,
+          zIndex: designState.elements.length + 10,
+        };
+        break;
+
+      case "arrow":
+      case "line":
+        newEl = {
+          id,
+          name: `Vector Line ${designState.elements.length + 1}`,
+          type: "arrow",
+          visible: true,
+          locked: false,
+          x: 25,
           y: 50,
-          width: 80,
-          height: 2,
-          bg: "rgba(0, 245, 255, 0.4)",
-          borderRadius: 0,
+          width: 50,
+          height: 10,
+          strokeColor: "#00f5ff",
+          strokeWidth: 3,
+          arrowEndHead: "arrow",
+          zIndex: designState.elements.length + 10,
+        };
+        break;
+
+      case "path":
+      case "pen":
+        newEl = {
+          id,
+          name: `Vector Path ${designState.elements.length + 1}`,
+          type: "path",
+          visible: true,
+          locked: false,
+          x: 30,
+          y: 30,
+          width: 40,
+          height: 40,
+          pathPoints: [
+            { x: 10, y: 10, type: "corner" },
+            { x: 90, y: 20, type: "corner" },
+            { x: 80, y: 80, type: "corner" },
+            { x: 20, y: 90, type: "corner" },
+          ],
+          pathClosed: true,
+          fillColor: "rgba(0, 245, 255, 0.2)",
+          strokeColor: "#00f5ff",
+          strokeWidth: 2,
           zIndex: designState.elements.length + 10,
         };
         break;

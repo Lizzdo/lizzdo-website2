@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CanvasElement, ElementType, FilterPreset } from "../../types/designer";
+import { CanvasElement, ElementType, FilterPreset, PathAnchorPoint } from "../../types/designer";
 import { detectAlphaBounds } from "../../utils/imageProcessing";
 import {
   Type,
@@ -548,78 +548,335 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
         </div>
       )}
 
-      {/* 4. SHAPES INSPECTOR */}
-      {element.type === "shape" && (
+      {/* 4. VECTOR SHAPES, DRAWINGS & PATHS INSPECTOR */}
+      {(element.type === "shape" || element.type === "draw" || element.type === "path" || element.type === "line" || element.type === "arrow") && (
         <div className="space-y-4 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
-          <label className="text-[11px] uppercase font-mono text-cyan-400 font-bold block">
-            Shape Properties
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] uppercase font-mono text-cyan-400 font-bold block">
+              Vector & Graphic Properties
+            </label>
 
-          <div>
-            <label className="text-[10px] text-gray-400 block mb-1">Shape Type</label>
-            <select
-              value={element.shapeType || "rect"}
-              onChange={(e) => updateProp("shapeType", e.target.value as any)}
-              className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
-            >
-              <option value="rect">Rectangle</option>
-              <option value="rounded-rect">Rounded Rectangle</option>
-              <option value="circle">Circle / Ellipse</option>
-              <option value="line">Divider Line</option>
-              <option value="glow-card">Cyber Glow Panel</option>
-            </select>
+            {/* Shape to Path Conversion Button */}
+            {element.type === "shape" && (
+              <button
+                type="button"
+                onClick={() => {
+                  let defaultPoints: PathAnchorPoint[] = [
+                    { x: 10, y: 10, type: "corner" },
+                    { x: 90, y: 10, type: "corner" },
+                    { x: 90, y: 90, type: "corner" },
+                    { x: 10, y: 90, type: "corner" },
+                  ];
+                  if (element.shapeType === "triangle") {
+                    defaultPoints = [
+                      { x: 50, y: 10, type: "corner" },
+                      { x: 90, y: 90, type: "corner" },
+                      { x: 10, y: 90, type: "corner" },
+                    ];
+                  } else if (element.shapeType === "star") {
+                    defaultPoints = [
+                      { x: 50, y: 5, type: "corner" }, { x: 63, y: 35, type: "corner" }, { x: 95, y: 38, type: "corner" },
+                      { x: 71, y: 60, type: "corner" }, { x: 78, y: 92, type: "corner" }, { x: 50, y: 75, type: "corner" },
+                      { x: 22, y: 92, type: "corner" }, { x: 29, y: 60, type: "corner" }, { x: 5, y: 38, type: "corner" }, { x: 37, y: 35, type: "corner" }
+                    ];
+                  }
+                  onChange({
+                    ...element,
+                    type: "path",
+                    pathPoints: defaultPoints,
+                    pathClosed: true,
+                  });
+                }}
+                className="px-2 py-1 rounded bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-[10px] font-bold border border-amber-400/40 transition-all flex items-center gap-1"
+                title="Convert shape into editable vector anchor points"
+              >
+                <Scissors className="w-3 h-3" /> Shape → Path
+              </button>
+            )}
           </div>
 
-          {/* Fill Color */}
+          {/* Shape Type Selector if Shape */}
+          {element.type === "shape" && (
+            <div>
+              <label className="text-[10px] text-gray-400 block mb-1">Shape Type</label>
+              <select
+                value={element.shapeType || "rect"}
+                onChange={(e) => updateProp("shapeType", e.target.value as any)}
+                className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+              >
+                <option value="rect">Rectangle</option>
+                <option value="rounded-rect">Rounded Rectangle</option>
+                <option value="circle">Circle / Ellipse</option>
+                <option value="triangle">Triangle</option>
+                <option value="polygon">Polygon</option>
+                <option value="star">Star</option>
+                <option value="hexagon">Hexagon</option>
+                <option value="heart">Heart</option>
+                <option value="arrow">Arrow</option>
+                <option value="line">Line / Divider</option>
+                <option value="glow-card">Cyber Glow Panel</option>
+              </select>
+            </div>
+          )}
+
+          {/* Brush Controls if Freehand Drawing */}
+          {element.type === "draw" && (
+            <div className="space-y-2 border-b border-white/10 pb-3">
+              <label className="text-[10px] text-amber-400 font-bold block">Freehand Brush Settings</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">Brush Size ({element.brushSize || 4}px)</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="80"
+                    value={element.brushSize || 4}
+                    onChange={(e) => updateProp("brushSize", parseInt(e.target.value))}
+                    className="w-full accent-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">Hardness ({Math.round((element.brushHardness ?? 1) * 100)}%)</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={element.brushHardness ?? 1}
+                    onChange={(e) => updateProp("brushHardness", parseFloat(e.target.value))}
+                    className="w-full accent-amber-400"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fill Controls (Solid / Transparent / No Fill) */}
           <div className="space-y-2">
-            <label className="text-[10px] text-gray-400 block">Fill Color</label>
+            <div className="flex items-center justify-between text-[10px]">
+              <label className="text-gray-400">Fill Color</label>
+              <button
+                type="button"
+                onClick={() => updateProp("fillColor", element.fillColor === "transparent" || !element.fillColor ? "rgba(0,245,255,0.4)" : "transparent")}
+                className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                  element.fillColor === "transparent" ? "bg-red-500/20 text-red-400" : "bg-white/10 text-gray-300"
+                }`}
+              >
+                {element.fillColor === "transparent" ? "No Fill (Transparent)" : "Clear Fill"}
+              </button>
+            </div>
+            {element.fillColor !== "transparent" && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={element.fillColor || element.bg || "#00f5ff"}
+                  onChange={(e) => {
+                    updateProp("fillColor", e.target.value);
+                    updateProp("bg", e.target.value);
+                  }}
+                  className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+                />
+                <input
+                  type="text"
+                  value={element.fillColor || element.bg || "#00f5ff"}
+                  onChange={(e) => {
+                    updateProp("fillColor", e.target.value);
+                    updateProp("bg", e.target.value);
+                  }}
+                  className="flex-1 bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Stroke Controls (Color, Width, Style, Alignment) */}
+          <div className="space-y-3 pt-2 border-t border-white/10">
+            <label className="text-[10px] text-cyan-400 font-bold block">Stroke & Border</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-1">Stroke Width ({element.strokeWidth ?? element.borderWidth ?? 0}px)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="40"
+                  value={element.strokeWidth ?? element.borderWidth ?? 0}
+                  onChange={(e) => {
+                    const w = parseInt(e.target.value) || 0;
+                    updateProp("strokeWidth", w);
+                    updateProp("borderWidth", w);
+                  }}
+                  className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-1">Stroke Style</label>
+                <select
+                  value={element.borderStyle || "solid"}
+                  onChange={(e) => updateProp("borderStyle", e.target.value as any)}
+                  className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+                >
+                  <option value="solid">Solid</option>
+                  <option value="dashed">Dashed</option>
+                  <option value="dotted">Dotted</option>
+                </select>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                value={element.fillColor || element.bg || "#00f5ff"}
+                value={element.strokeColor || element.borderColor || "#00f5ff"}
                 onChange={(e) => {
-                  updateProp("fillColor", e.target.value);
-                  updateProp("bg", e.target.value);
+                  updateProp("strokeColor", e.target.value);
+                  updateProp("borderColor", e.target.value);
                 }}
                 className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
               />
               <input
                 type="text"
-                value={element.fillColor || element.bg || "#00f5ff"}
+                value={element.strokeColor || element.borderColor || "#00f5ff"}
                 onChange={(e) => {
-                  updateProp("fillColor", e.target.value);
-                  updateProp("bg", e.target.value);
+                  updateProp("strokeColor", e.target.value);
+                  updateProp("borderColor", e.target.value);
                 }}
                 className="flex-1 bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Border Width & Color */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Border Width ({element.borderWidth || 0}px)</label>
-              <input
-                type="number"
-                min="0"
-                max="20"
-                value={element.borderWidth || 0}
-                onChange={(e) => updateProp("borderWidth", parseInt(e.target.value) || 0)}
-                className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
-              />
+          {/* Corner Radius Controls */}
+          {(element.type === "shape" || element.type === "path") && (
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <div className="flex items-center justify-between text-[10px]">
+                <label className="text-gray-400 font-bold">Corner Radius</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange({
+                      ...element,
+                      borderRadius: 0,
+                      cornerRadiusTL: 0,
+                      cornerRadiusTR: 0,
+                      cornerRadiusBR: 0,
+                      cornerRadiusBL: 0,
+                    });
+                  }}
+                  className="px-1.5 py-0.5 rounded text-[9px] bg-white/10 hover:bg-white/20 text-gray-300 font-mono"
+                  title="Reset corners to 0px square corners"
+                >
+                  Reset (0px Square)
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 w-16">Global:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="60"
+                    value={element.borderRadius || 0}
+                    onChange={(e) => {
+                      const r = parseInt(e.target.value) || 0;
+                      onChange({
+                        ...element,
+                        borderRadius: r,
+                        cornerRadiusTL: r,
+                        cornerRadiusTR: r,
+                        cornerRadiusBR: r,
+                        cornerRadiusBL: r,
+                      });
+                    }}
+                    className="flex-1 accent-cyan-400"
+                  />
+                  <span className="text-[10px] font-mono text-cyan-400 w-8 text-right">{element.borderRadius || 0}px</span>
+                </div>
+
+                {/* Individual Corners Grid */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[9px] text-gray-400 block">Top Left ({element.cornerRadiusTL ?? element.borderRadius ?? 0}px)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={element.cornerRadiusTL ?? element.borderRadius ?? 0}
+                      onChange={(e) => updateProp("cornerRadiusTL", parseInt(e.target.value) || 0)}
+                      className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-white font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 block">Top Right ({element.cornerRadiusTR ?? element.borderRadius ?? 0}px)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={element.cornerRadiusTR ?? element.borderRadius ?? 0}
+                      onChange={(e) => updateProp("cornerRadiusTR", parseInt(e.target.value) || 0)}
+                      className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-white font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 block">Bottom Left ({element.cornerRadiusBL ?? element.borderRadius ?? 0}px)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={element.cornerRadiusBL ?? element.borderRadius ?? 0}
+                      onChange={(e) => updateProp("cornerRadiusBL", parseInt(e.target.value) || 0)}
+                      className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-white font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 block">Bottom Right ({element.cornerRadiusBR ?? element.borderRadius ?? 0}px)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={element.cornerRadiusBR ?? element.borderRadius ?? 0}
+                      onChange={(e) => updateProp("cornerRadiusBR", parseInt(e.target.value) || 0)}
+                      className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-white font-mono text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Corner Radius ({element.borderRadius || 0}px)</label>
-              <input
-                type="number"
-                min="0"
-                max="50"
-                value={element.borderRadius || 0}
-                onChange={(e) => updateProp("borderRadius", parseInt(e.target.value) || 0)}
-                className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
-              />
+          )}
+
+          {/* Arrow Head Controls */}
+          {(element.type === "arrow" || element.shapeType === "arrow" || element.type === "line") && (
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <label className="text-[10px] text-amber-400 font-bold block">Arrow Heads</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] text-gray-400 block mb-1">Start Head</label>
+                  <select
+                    value={element.arrowStartHead || "none"}
+                    onChange={(e) => updateProp("arrowStartHead", e.target.value as any)}
+                    className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                  >
+                    <option value="none">None</option>
+                    <option value="arrow">Arrow</option>
+                    <option value="circle">Circle</option>
+                    <option value="diamond">Diamond</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[9px] text-gray-400 block mb-1">End Head</label>
+                  <select
+                    value={element.arrowEndHead || "arrow"}
+                    onChange={(e) => updateProp("arrowEndHead", e.target.value as any)}
+                    className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                  >
+                    <option value="none">None</option>
+                    <option value="arrow">Arrow</option>
+                    <option value="circle">Circle</option>
+                    <option value="diamond">Diamond</option>
+                  </select>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

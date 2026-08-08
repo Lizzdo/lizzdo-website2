@@ -34,7 +34,26 @@ export type ElementType =
   | "mask"
   | "overlay"
   | "frame"
-  | "group";
+  | "group"
+  | "draw"
+  | "path"
+  | "line"
+  | "arrow";
+
+export interface PathAnchorPoint {
+  id?: string;
+  x: number;
+  y: number;
+  handleIn?: { x: number; y: number };
+  handleOut?: { x: number; y: number };
+  type?: "corner" | "smooth";
+}
+
+export interface DrawPoint {
+  x: number;
+  y: number;
+  pressure?: number;
+}
 export type ExportFormat = "psd" | "ai" | "svg" | "pdf" | "eps" | "png" | "jpg" | "webp";
 export type ExportQuality = 1 | 2 | 3 | 4;
 
@@ -241,10 +260,41 @@ export interface CanvasElement {
   alignment?: "top-left" | "top-center" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom-center" | "bottom-right";
 
   // Shape properties
-  shapeType?: "rect" | "rounded-rect" | "circle" | "ellipse" | "line" | "triangle" | "polygon" | "star" | "heart" | "hexagon" | "glow-card";
+  shapeType?: "rect" | "rounded-rect" | "circle" | "ellipse" | "line" | "triangle" | "polygon" | "star" | "heart" | "hexagon" | "arrow" | "glow-card";
   fillColor?: string;
   fillGradient?: FillGradientConfig;
   borderStyle?: "solid" | "dashed" | "dotted";
+
+  // Vector & Freehand Drawing properties
+  drawPoints?: DrawPoint[];
+  brushSize?: number;
+  brushHardness?: number; // 0 to 1
+  brushSmoothing?: number;
+  isEraser?: boolean;
+
+  pathPoints?: PathAnchorPoint[];
+  pathData?: string;
+  pathClosed?: boolean;
+
+  // Stroke & Arrow Controls
+  strokeColor?: string;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  strokeDashArray?: string;
+  strokeAlign?: "center" | "inside" | "outside";
+
+  arrowStartHead?: "none" | "arrow" | "circle" | "diamond" | "square";
+  arrowEndHead?: "none" | "arrow" | "circle" | "diamond" | "square";
+  arrowHeadSize?: number;
+  lineStart?: { x: number; y: number };
+  lineEnd?: { x: number; y: number };
+
+  // Corners
+  cornerRadiusTL?: number;
+  cornerRadiusTR?: number;
+  cornerRadiusBR?: number;
+  cornerRadiusBL?: number;
+  cornersLinked?: boolean;
 
   // Shadows & Effects
   shadow?: ElementShadowConfig;
@@ -462,6 +512,10 @@ export interface DesignState {
   cornerDecorations?: CornerDecorationConfig;
   frameConfig?: FrameConfig;
   customCornerPresets?: CustomCornerPreset[];
+
+  // Color Palette History
+  projectColors?: string[];
+  recentColors?: string[];
 }
 
 export interface DesignTemplate {

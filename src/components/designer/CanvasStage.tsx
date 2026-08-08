@@ -12,6 +12,47 @@ interface CanvasStageProps {
   onSelectElement?: (elementId: string) => void;
 }
 
+// SVG VECTOR HELPERS
+function getDrawPathSvg(points?: Array<{ x: number; y: number }>) {
+  if (!points || points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y} L ${points[0].x + 0.1} ${points[0].y + 0.1}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const xc = (points[i].x + points[i + 1].x) / 2;
+    const yc = (points[i].y + points[i + 1].y) / 2;
+    d += ` Q ${points[i].x} ${points[i].y}, ${xc} ${yc}`;
+  }
+  d += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+  return d;
+}
+
+function getVectorPathSvg(pathPoints?: Array<any>, pathData?: string, closed?: boolean) {
+  if (pathData) return pathData;
+  if (!pathPoints || pathPoints.length === 0) return "";
+  let d = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
+  for (let i = 1; i < pathPoints.length; i++) {
+    const prev = pathPoints[i - 1];
+    const curr = pathPoints[i];
+    if (prev.handleOut || curr.handleIn) {
+      const h1x = prev.handleOut ? prev.handleOut.x : prev.x;
+      const h1y = prev.handleOut ? prev.handleOut.y : prev.y;
+      const h2x = curr.handleIn ? curr.handleIn.x : curr.x;
+      const h2y = curr.handleIn ? curr.handleIn.y : curr.y;
+      d += ` C ${h1x} ${h1y}, ${h2x} ${h2y}, ${curr.x} ${curr.y}`;
+    } else {
+      d += ` L ${curr.x} ${curr.y}`;
+    }
+  }
+  if (closed) d += " Z";
+  return d;
+}
+
+function getDashArray(style?: string, width: number = 2) {
+  if (style === "dashed") return `${width * 3} ${width * 2}`;
+  if (style === "dotted") return `${width} ${width * 1.5}`;
+  return "none";
+}
+
 export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
   (
     {
@@ -705,10 +746,145 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 );
               }
 
-              // SHAPE ELEMENT (Rect, Circle, Ellipse, Line, Triangle, Polygon, Star, Hexagon, Glow Card)
+              // FREEHAND DRAWING ELEMENT
+              if (el.type === "draw") {
+                const strokeD = getDrawPathSvg(el.drawPoints);
+                return (
+                  <div
+                    key={el.id}
+                    data-element-id={el.id}
+                    style={{
+                      position: "absolute",
+                      left: `${el.x}%`,
+                      top: `${el.y}%`,
+                      width: el.width ? `${el.width}%` : "100%",
+                      height: el.height ? `${el.height}%` : "100%",
+                      zIndex: el.zIndex || 15,
+                      opacity: el.opacity ?? 1,
+                      pointerEvents: interactive ? "auto" : "none",
+                      transform: el.rotation ? `rotate(${el.rotation}deg)` : "none",
+                    }}
+                    onClick={() => interactive && onSelectElement?.(el.id)}
+                    className={selectionStyle}
+                  >
+                    <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <path
+                        d={strokeD}
+                        fill="none"
+                        stroke={el.isEraser ? "#000000" : el.color || el.strokeColor || "#00f5ff"}
+                        strokeWidth={el.brushSize || el.strokeWidth || 4}
+                        strokeOpacity={el.strokeOpacity ?? 1}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          filter: el.brushHardness && el.brushHardness < 0.8 ? `blur(${(1 - el.brushHardness) * 4}px)` : "none",
+                        }}
+                      />
+                    </svg>
+                  </div>
+                );
+              }
+
+              // VECTOR PATH ELEMENT
+              if (el.type === "path") {
+                const pathD = getVectorPathSvg(el.pathPoints, el.pathData, el.pathClosed);
+                const strokeW = el.strokeWidth ?? el.borderWidth ?? 2;
+                const dash = getDashArray(el.borderStyle, strokeW);
+
+                return (
+                  <div
+                    key={el.id}
+                    data-element-id={el.id}
+                    style={{
+                      position: "absolute",
+                      left: `${el.x}%`,
+                      top: `${el.y}%`,
+                      width: el.width ? `${el.width}%` : "100%",
+                      height: el.height ? `${el.height}%` : "100%",
+                      zIndex: el.zIndex || 10,
+                      opacity: el.opacity ?? 1,
+                      transform: el.rotation ? `rotate(${el.rotation}deg)` : "none",
+                      boxShadow: elementBoxShadow,
+                    }}
+                    onClick={() => interactive && onSelectElement?.(el.id)}
+                    className={selectionStyle}
+                  >
+                    <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <path
+                        d={pathD}
+                        fill={el.fillColor || "none"}
+                        stroke={el.strokeColor || el.borderColor || "#00f5ff"}
+                        strokeWidth={strokeW}
+                        strokeDasharray={dash !== "none" ? dash : undefined}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                );
+              }
+
+              // VECTOR LINE / ARROW ELEMENT
+              if (el.type === "line" || el.type === "arrow") {
+                const strokeW = el.strokeWidth ?? el.borderWidth ?? 3;
+                const strokeCol = el.strokeColor || el.color || el.borderColor || "#00f5ff";
+                const dash = getDashArray(el.borderStyle, strokeW);
+                const isArrow = el.type === "arrow" || el.arrowEndHead !== "none";
+
+                return (
+                  <div
+                    key={el.id}
+                    data-element-id={el.id}
+                    style={{
+                      position: "absolute",
+                      left: `${el.x}%`,
+                      top: `${el.y}%`,
+                      width: el.width ? `${el.width}%` : "30%",
+                      height: el.height ? `${el.height}%` : "10%",
+                      zIndex: el.zIndex || 10,
+                      opacity: el.opacity ?? 1,
+                      transform: el.rotation ? `rotate(${el.rotation}deg)` : "none",
+                    }}
+                    onClick={() => interactive && onSelectElement?.(el.id)}
+                    className={selectionStyle}
+                  >
+                    <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <defs>
+                        <marker
+                          id={`arrow-head-${el.id}`}
+                          viewBox="0 0 10 10"
+                          refX="6"
+                          refY="5"
+                          markerWidth="6"
+                          markerHeight="6"
+                          orient="auto-start-reverse"
+                        >
+                          <path d="M 0 0 L 10 5 L 0 10 z" fill={strokeCol} />
+                        </marker>
+                      </defs>
+                      <line
+                        x1={el.lineStart?.x ?? 5}
+                        y1={el.lineStart?.y ?? 50}
+                        x2={el.lineEnd?.x ?? 95}
+                        y2={el.lineEnd?.y ?? 50}
+                        stroke={strokeCol}
+                        strokeWidth={strokeW}
+                        strokeDasharray={dash !== "none" ? dash : undefined}
+                        strokeLinecap="round"
+                        markerEnd={isArrow ? `url(#arrow-head-${el.id})` : undefined}
+                      />
+                    </svg>
+                  </div>
+                );
+              }
+
+              // VECTOR SHAPE ELEMENT
               if (el.type === "shape") {
                 const shape = el.shapeType || "rect";
                 const fg = el.fillGradient;
+                const strokeW = el.strokeWidth ?? el.borderWidth ?? 0;
+                const strokeCol = el.strokeColor || el.borderColor || "#00f5ff";
+                const dash = getDashArray(el.borderStyle, strokeW);
 
                 let fillStyle: React.CSSProperties = {
                   backgroundColor: el.fillColor || el.bg || "rgba(0, 245, 255, 0.5)",
@@ -723,9 +899,52 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                   };
                 }
 
+                // Custom corner radiiTL, TR, BR, BL if set
                 let shapeRadius = `${el.borderRadius ?? 0}px`;
-                if (shape === "circle" || shape === "ellipse") {
+                if (el.cornerRadiusTL !== undefined || el.cornerRadiusTR !== undefined) {
+                  shapeRadius = `${el.cornerRadiusTL ?? el.borderRadius ?? 0}px ${el.cornerRadiusTR ?? el.borderRadius ?? 0}px ${el.cornerRadiusBR ?? el.borderRadius ?? 0}px ${el.cornerRadiusBL ?? el.borderRadius ?? 0}px`;
+                } else if (shape === "circle" || shape === "ellipse") {
                   shapeRadius = "50%";
+                }
+
+                // If complex shape like Star, Triangle, Polygon, Hexagon, render SVG
+                if (shape === "triangle" || shape === "star" || shape === "polygon" || shape === "hexagon" || shape === "heart" || shape === "arrow") {
+                  let pointsStr = "";
+                  if (shape === "triangle") pointsStr = "50,5 95,95 5,95";
+                  if (shape === "polygon" || shape === "hexagon") pointsStr = "50,5 90,25 90,75 50,95 10,75 10,25";
+                  if (shape === "star") pointsStr = "50,5 63,35 95,38 71,60 78,92 50,75 22,92 29,60 5,38 37,35";
+                  if (shape === "arrow") pointsStr = "5,35 60,35 60,10 95,50 60,90 60,65 5,65";
+
+                  return (
+                    <div
+                      key={el.id}
+                      data-element-id={el.id}
+                      style={{
+                        position: "absolute",
+                        left: `${el.x}%`,
+                        top: `${el.y}%`,
+                        width: el.width ? `${el.width}%` : "20%",
+                        height: el.height ? `${el.height}%` : "20%",
+                        zIndex: el.zIndex || 5,
+                        opacity: el.opacity ?? 1,
+                        transform: el.rotation ? `rotate(${el.rotation}deg)` : "none",
+                        boxShadow: elementBoxShadow,
+                      }}
+                      onClick={() => interactive && onSelectElement?.(el.id)}
+                      className={selectionStyle}
+                    >
+                      <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <polygon
+                          points={pointsStr}
+                          fill={el.fillColor || "rgba(0, 245, 255, 0.4)"}
+                          stroke={strokeW > 0 ? strokeCol : "none"}
+                          strokeWidth={strokeW}
+                          strokeDasharray={dash !== "none" ? dash : undefined}
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  );
                 }
 
                 return (
@@ -737,9 +956,9 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                       left: `${el.x}%`,
                       top: `${el.y}%`,
                       width: el.width ? `${el.width}%` : "50%",
-                      height: el.height ? `${el.height}px` : "10px",
+                      height: el.height ? `${el.height}%` : "10px",
                       borderRadius: shapeRadius,
-                      border: el.borderWidth ? `${el.borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#00f5ff"}` : "none",
+                      border: strokeW > 0 ? `${strokeW}px ${el.borderStyle || "solid"} ${strokeCol}` : "none",
                       boxShadow: elementBoxShadow,
                       zIndex: el.zIndex || 5,
                       opacity: el.opacity ?? 1,
@@ -749,6 +968,35 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                     onClick={() => interactive && onSelectElement?.(el.id)}
                     className={selectionStyle}
                   />
+                );
+              }
+
+              // GROUP ELEMENT
+              if (el.type === "group") {
+                return (
+                  <div
+                    key={el.id}
+                    data-element-id={el.id}
+                    style={{
+                      position: "absolute",
+                      left: `${el.x}%`,
+                      top: `${el.y}%`,
+                      width: el.width ? `${el.width}%` : "40%",
+                      height: el.height ? `${el.height}%` : "40%",
+                      zIndex: el.zIndex || 10,
+                      opacity: el.opacity ?? 1,
+                      transform: el.rotation ? `rotate(${el.rotation}deg)` : "none",
+                    }}
+                    onClick={() => interactive && onSelectElement?.(el.id)}
+                    className={selectionStyle}
+                  >
+                    {/* Render group children */}
+                    <div className="relative w-full h-full border border-dashed border-neon-cyan/40 rounded-xl bg-white/[0.02]">
+                      <div className="absolute top-1 left-2 text-[9px] font-mono text-neon-cyan font-bold uppercase">
+                        GROUP: {el.name}
+                      </div>
+                    </div>
+                  </div>
                 );
               }
 
