@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { toPng, toJpeg } from "html-to-image";
 import { DesignState, ExportFormat, ExportQuality, ProfessionalExportOptions } from "../types/designer";
+import { getCanvasElementCssFilter } from "./imageProcessing";
 import { CanvasStage } from "../components/designer/CanvasStage";
 import {
   generatePsdExport,
@@ -574,26 +575,112 @@ export async function renderStateToCanvas2DFallback(
           await new Promise((res) => {
             img.onload = res;
             img.onerror = res;
-            setTimeout(res, 500);
+            setTimeout(res, 600);
           });
 
-          const bRad = Math.round((el.borderRadius ?? 16) * quality);
           ctx.save();
+
+          // 1. Path creation for frame clipping & border
+          const frameShape = el.frame?.shape || "rectangle";
+          const cr = el.cornerRadii;
+          const bRad =
+            cr && !cr.disabled
+              ? [
+                  Math.round(cr.topLeft * quality),
+                  Math.round(cr.topRight * quality),
+                  Math.round(cr.bottomRight * quality),
+                  Math.round(cr.bottomLeft * quality),
+                ]
+              : [Math.round((el.borderRadius ?? 16) * quality)];
+
           ctx.beginPath();
-          if (typeof ctx.roundRect === "function") {
+          if (frameShape === "circle") {
+            const radius = Math.min(elW, elH) / 2;
+            ctx.arc(elX + elW / 2, elY + elH / 2, radius, 0, Math.PI * 2);
+          } else if (frameShape === "oval") {
+            ctx.ellipse(elX + elW / 2, elY + elH / 2, elW / 2, elH / 2, 0, 0, Math.PI * 2);
+          } else if (typeof ctx.roundRect === "function") {
             ctx.roundRect(elX, elY, elW, elH, bRad);
           } else {
             ctx.rect(elX, elY, elW, elH);
           }
-          ctx.clip();
-          ctx.drawImage(img, elX, elY, elW, elH);
+
+          ctx.save();
+          ctx.clip(); // Clip everything to the frame shape
+
+          // 2. Crop Sub-clipping
+          if (el.crop && el.crop.enabled) {
+            const cropX = elX + (el.crop.x / 100) * elW;
+            const cropY = elY + (el.crop.y / 100) * elH;
+            const cropW = (el.crop.width / 100) * elW;
+            const cropH = (el.crop.height / 100) * elH;
+            ctx.beginPath();
+            ctx.rect(cropX, cropY, cropW, cropH);
+            ctx.clip();
+          }
+
+          // 3. Filter & Adjustments
+          const filterStr = getCanvasElementCssFilter(el);
+          if (filterStr && ctx.filter) {
+            ctx.filter = filterStr;
+          }
+
+          // 4. Transforms inside frame
+          const zoom = el.frame?.zoom || el.scale || 1;
+          const offsetX = (el.frame?.offsetX || el.xOffset || 0) * quality;
+          const offsetY = (el.frame?.offsetY || el.yOffset || 0) * quality;
+          const flipXScale = el.flipX ? -1 : 1;
+          const flipYScale = el.flipY ? -1 : 1;
+          const imgRotation = el.frame?.rotation || el.rotation || 0;
+
+          ctx.save();
+          ctx.translate(elX + elW / 2, elY + elH / 2);
+          if (imgRotation) ctx.rotate((imgRotation * Math.PI) / 180);
+          ctx.scale(zoom * flipXScale, zoom * flipYScale);
+          ctx.translate(offsetX, offsetY);
+
+          ctx.drawImage(img, -elW / 2, -elH / 2, elW, elH);
           ctx.restore();
 
-          if (el.borderWidth) {
+          if (ctx.filter) ctx.filter = "none";
+          ctx.restore(); // Restore clip
+
+          // 5. Border Following Frame Shape
+          const borderObj = el.border;
+          if (borderObj && borderObj.enabled) {
+            ctx.save();
+            ctx.globalAlpha = borderObj.opacity ?? 1;
+            ctx.strokeStyle = borderObj.color || "#00f5ff";
+            ctx.lineWidth = Math.round((borderObj.width || 2) * quality);
+
+            if (borderObj.style === "dashed") {
+              ctx.setLineDash([8 * quality, 4 * quality]);
+            } else if (borderObj.style === "dotted") {
+              ctx.setLineDash([2 * quality, 2 * quality]);
+            }
+
+            ctx.beginPath();
+            if (frameShape === "circle") {
+              const radius = Math.min(elW, elH) / 2;
+              ctx.arc(elX + elW / 2, elY + elH / 2, radius, 0, Math.PI * 2);
+            } else if (frameShape === "oval") {
+              ctx.ellipse(elX + elW / 2, elY + elH / 2, elW / 2, elH / 2, 0, 0, Math.PI * 2);
+            } else if (typeof ctx.roundRect === "function") {
+              ctx.roundRect(elX, elY, elW, elH, bRad);
+            } else {
+              ctx.rect(elX, elY, elW, elH);
+            }
+            ctx.stroke();
+            ctx.restore();
+          } else if (el.borderWidth) {
+            ctx.save();
             ctx.strokeStyle = el.borderColor || "rgba(255,255,255,0.1)";
             ctx.lineWidth = Math.round(el.borderWidth * quality);
             ctx.strokeRect(elX, elY, elW, elH);
+            ctx.restore();
           }
+
+          ctx.restore(); // Final restore for el
         } catch (e) {
           ctx.fillStyle = "#1e293b";
           ctx.fillRect(elX, elY, elW, elH);

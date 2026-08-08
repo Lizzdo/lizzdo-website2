@@ -127,6 +127,119 @@ export function getCssFilterString(
 }
 
 /**
+ * Detect visible (non-transparent) pixel bounding box for PNG / WebP / SVG images
+ */
+export async function detectAlphaBounds(
+  src: string
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  return new Promise((resolve) => {
+    if (!src) return resolve({ x: 0, y: 0, width: 100, height: 100 });
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const w = Math.min(img.naturalWidth || 400, 400);
+        const h = Math.max(1, Math.round(w * ((img.naturalHeight || 400) / (img.naturalWidth || 400))));
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return resolve({ x: 0, y: 0, width: 100, height: 100 });
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+
+        let minX = w, minY = h, maxX = 0, maxY = 0;
+        let found = false;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const alpha = data[(y * w + x) * 4 + 3];
+            if (alpha > 15) {
+              found = true;
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+
+        if (!found || (minX === 0 && minY === 0 && maxX === w - 1 && maxY === h - 1)) {
+          return resolve({ x: 0, y: 0, width: 100, height: 100 });
+        }
+
+        const visibleX = Math.round((minX / w) * 100);
+        const visibleY = Math.round((minY / h) * 100);
+        const visibleW = Math.max(5, Math.round(((maxX - minX + 1) / w) * 100));
+        const visibleH = Math.max(5, Math.round(((maxY - minY + 1) / h) * 100));
+
+        resolve({ x: visibleX, y: visibleY, width: visibleW, height: visibleH });
+      } catch (e) {
+        resolve({ x: 0, y: 0, width: 100, height: 100 });
+      }
+    };
+    img.onerror = () => resolve({ x: 0, y: 0, width: 100, height: 100 });
+    img.src = src;
+  });
+}
+
+/**
+ * Generate CSS filter string for CanvasElement adjustments and filter presets
+ */
+export function getCanvasElementCssFilter(el: {
+  adjustments?: {
+    brightness?: number;
+    contrast?: number;
+    saturation?: number;
+    exposure?: number;
+    temperature?: number;
+    tint?: number;
+    blur?: number;
+  };
+  filterPreset?: string;
+}): string {
+  const adj = el.adjustments || {};
+  const b = 100 + (adj.brightness || 0) + (adj.exposure || 0);
+  const c = 100 + (adj.contrast || 0);
+  const s = 100 + (adj.saturation || 0);
+  const blur = adj.blur || 0;
+
+  let presetFilter = "";
+  switch (el.filterPreset) {
+    case "grayscale":
+      presetFilter = "grayscale(100%)";
+      break;
+    case "sepia":
+      presetFilter = "sepia(100%)";
+      break;
+    case "vintage":
+      presetFilter = "sepia(40%) contrast(110%) brightness(95%)";
+      break;
+    case "cool":
+      presetFilter = "hue-rotate(25deg) saturate(110%)";
+      break;
+    case "warm":
+      presetFilter = "sepia(25%) saturate(120%) brightness(105%)";
+      break;
+    case "high-contrast":
+      presetFilter = "contrast(160%) saturate(120%)";
+      break;
+    case "black-and-white":
+      presetFilter = "grayscale(100%) contrast(140%)";
+      break;
+    default:
+      presetFilter = "";
+      break;
+  }
+
+  const baseFilter = `brightness(${Math.max(0, b)}%) contrast(${Math.max(0, c)}%) saturate(${Math.max(0, s)}%) blur(${blur}px)`;
+  return [baseFilter, presetFilter].filter(Boolean).join(" ");
+}
+
+/**
  * Render Cyber Wireframe or Blueprint Grid background on canvas
  */
 export function renderBackgroundOnCanvas(

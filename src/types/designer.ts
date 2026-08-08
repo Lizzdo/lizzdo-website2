@@ -24,25 +24,140 @@ export interface CanvasPreset {
 }
 
 export type ImageFitMode = "cover" | "contain" | "fill" | "smart";
-export type ElementType = "text" | "badge" | "image" | "button" | "logo" | "shape";
+export type ElementType =
+  | "text"
+  | "badge"
+  | "image"
+  | "button"
+  | "logo"
+  | "shape"
+  | "mask"
+  | "overlay"
+  | "frame"
+  | "group";
 export type ExportFormat = "psd" | "ai" | "svg" | "pdf" | "eps" | "png" | "jpg" | "webp";
 export type ExportQuality = 1 | 2 | 3 | 4;
-
-export type ColorMode = "rgb" | "cmyk";
-export type TextExportMode = "editable" | "outlines";
-export type ImageExportMode = "embedded" | "linked";
-export type LayerExportMode = "layered" | "flattened";
 
 export interface ProfessionalExportOptions {
   format: ExportFormat;
   quality: ExportQuality;
-  layerMode: LayerExportMode;
-  textMode: TextExportMode;
-  imageMode: ImageExportMode;
-  colorMode: ColorMode;
-  transparentBg: boolean;
-  dpi: 72 | 150 | 300 | 600;
-  compression: "high_quality" | "balanced" | "compact";
+  layerMode?: "layered" | "flattened";
+  textMode?: "editable" | "vector_paths";
+  imageMode?: "embedded" | "linked";
+  colorMode?: "rgb" | "cmyk";
+  transparentBg?: boolean;
+  dpi?: 72 | 150 | 300 | 600;
+  compression?: "high_quality" | "balanced" | "max_compression";
+}
+
+export interface ElementCrop {
+  enabled: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  aspectRatio?: string;
+}
+
+export interface ElementFrame {
+  shape?: "rectangle" | "square" | "circle" | "oval" | "portrait" | "landscape" | "16:9" | "9:16";
+  fit?: "fill" | "fit" | "center" | "contain" | "cover";
+  zoom?: number;
+  offsetX?: number;
+  offsetY?: number;
+  rotation?: number;
+}
+
+export interface ElementCornerRadii {
+  disabled?: boolean;
+  topLeft: number;
+  topRight: number;
+  bottomRight: number;
+  bottomLeft: number;
+}
+
+export interface ElementBorder {
+  enabled: boolean;
+  width?: number;
+  style?: "solid" | "dashed" | "dotted";
+  color?: string;
+  opacity?: number;
+}
+
+export interface ElementAdjustments {
+  brightness?: number;
+  contrast?: number;
+  saturate?: number;
+  blur?: number;
+  hueRotate?: number;
+  sepia?: number;
+}
+
+export type FilterPreset = "normal" | "cyber" | "vintage" | "noir" | "warm" | "cool" | "vivid" | "monochrome";
+
+export interface TextShadowConfig {
+  enabled: boolean;
+  color: string;
+  blur: number;
+  offsetX: number;
+  offsetY: number;
+}
+
+export interface TextStrokeConfig {
+  enabled: boolean;
+  color: string;
+  width: number;
+}
+
+export interface TextGlowConfig {
+  enabled: boolean;
+  color: string;
+  blur: number;
+}
+
+export interface TextBgConfig {
+  enabled: boolean;
+  color: string;
+  padding: number;
+  borderRadius: number;
+}
+
+export interface ElementShadowConfig {
+  enabled: boolean;
+  color: string;
+  blur: number;
+  spread: number;
+  offsetX: number;
+  offsetY: number;
+  opacity: number;
+}
+
+export interface ElementInnerShadowConfig {
+  enabled: boolean;
+  color: string;
+  blur: number;
+  offsetX: number;
+  offsetY: number;
+  opacity: number;
+}
+
+export interface ElementMaskConfig {
+  enabled: boolean;
+  shape: "none" | "circle" | "rectangle" | "rounded" | "ellipse" | "star" | "hexagon" | "triangle" | "custom";
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+  rotation: number;
+}
+
+export interface FillGradientConfig {
+  enabled: boolean;
+  type: "linear" | "radial";
+  from: string;
+  via?: string;
+  to: string;
+  angle: number; // 0-360
+  opacity?: number;
 }
 
 export interface CanvasElement {
@@ -51,25 +166,39 @@ export interface CanvasElement {
   type: ElementType;
   visible: boolean;
   locked: boolean;
-  x: number; // percentage (0-100)
-  y: number; // percentage (0-100)
+  x: number; // percentage (0-100) or px
+  y: number; // percentage (0-100) or px
   width?: number; // percentage or px
   height?: number; // percentage or px
   rotation?: number; // degrees
   opacity?: number; // 0 to 1
   zIndex?: number;
+  aspectRatioLocked?: boolean;
+
+  // Grouping
+  groupId?: string;
+  isGroup?: boolean;
+  childrenIds?: string[];
 
   // Text properties
   text?: string;
   fontSize?: number;
-  fontFamily?: "Orbitron" | "Rajdhani" | "Inter" | "Space Mono";
+  fontFamily?: "Orbitron" | "Rajdhani" | "Inter" | "Space Mono" | "Playfair Display" | "Plus Jakarta Sans" | string;
   fontWeight?: "normal" | "semibold" | "bold" | "black";
+  fontStyle?: "normal" | "italic";
+  textDecoration?: "none" | "underline" | "line-through";
   color?: string;
-  textAlign?: "left" | "center" | "right";
+  textAlign?: "left" | "center" | "right" | "justify";
+  verticalAlign?: "top" | "middle" | "bottom";
   letterSpacing?: number;
   lineHeight?: number;
-  textTransform?: "uppercase" | "none" | "capitalize";
+  textTransform?: "uppercase" | "none" | "capitalize" | "lowercase";
   gradientText?: boolean;
+  autoWrap?: boolean;
+  textShadow?: TextShadowConfig;
+  textStroke?: TextStrokeConfig;
+  textGlow?: TextGlowConfig;
+  textBg?: TextBgConfig;
 
   // Badge / Tag properties
   bg?: string;
@@ -87,6 +216,19 @@ export interface CanvasElement {
   borderWidth?: number;
   shadowGlow?: string;
 
+  // Advanced Image & Graphics properties
+  boundsMode?: "object" | "visible";
+  visibleBounds?: { x: number; y: number; width: number; height: number };
+  crop?: ElementCrop;
+  frame?: ElementFrame;
+  cornerRadii?: ElementCornerRadii;
+  border?: ElementBorder;
+  adjustments?: ElementAdjustments;
+  filterPreset?: FilterPreset;
+  flipX?: boolean;
+  flipY?: boolean;
+  mask?: ElementMaskConfig;
+
   // Button properties
   bgGradient?: string;
 
@@ -99,7 +241,15 @@ export interface CanvasElement {
   alignment?: "top-left" | "top-center" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom-center" | "bottom-right";
 
   // Shape properties
-  shapeType?: "rect" | "circle" | "line" | "glow-card";
+  shapeType?: "rect" | "rounded-rect" | "circle" | "ellipse" | "line" | "triangle" | "polygon" | "star" | "heart" | "hexagon" | "glow-card";
+  fillColor?: string;
+  fillGradient?: FillGradientConfig;
+  borderStyle?: "solid" | "dashed" | "dotted";
+
+  // Shadows & Effects
+  shadow?: ElementShadowConfig;
+  innerShadow?: ElementInnerShadowConfig;
+  backdropBlur?: number;
 }
 
 export type BackgroundType = "gradient" | "radial" | "mesh" | "solid" | "image" | "pattern" | "glass";
@@ -136,6 +286,13 @@ export interface DesignBackground {
   pattern?: "grid" | "scanline" | "dots" | "hexagons" | "circuit" | "cross" | "cyber" | "noise" | "none";
   patternColor?: string;
   patternOpacity?: number;
+
+  // Wireframe & Grid Background Customization
+  wireframeDensity?: number; // 10 to 100
+  wireframeOpacity?: number; // 0 to 1
+  wireframePerspective?: number; // 0 to 100
+  wireframeScale?: number; // 0.5 to 3
+  wireframeLineSpacing?: number; // 5 to 50 px
 
   // Image background
   imageUrl?: string;
@@ -292,7 +449,9 @@ export interface DesignState {
   glassBlur: number;
   showGuides?: boolean;
   showGrid?: boolean;
+  showRulers?: boolean;
   showSafeMargins?: boolean;
+  snappingEnabled?: boolean;
   safeMarginPct?: number;
   safeNote?: string;
   allowTransparentBackground?: boolean;

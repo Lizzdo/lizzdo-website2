@@ -1,5 +1,6 @@
-import React from "react";
-import { CanvasElement, ElementType } from "../../types/designer";
+import React, { useState } from "react";
+import { CanvasElement, ElementType, FilterPreset } from "../../types/designer";
+import { detectAlphaBounds } from "../../utils/imageProcessing";
 import {
   Type,
   Tag,
@@ -17,6 +18,27 @@ import {
   Sliders,
   Maximize2,
   RotateCw,
+  Crop,
+  FlipHorizontal,
+  FlipVertical,
+  RotateCcw,
+  Sun,
+  SlidersHorizontal,
+  Box,
+  Circle as CircleIcon,
+  Scissors,
+  Lock,
+  Unlock,
+  Move,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  AlignJustify,
+  Italic,
+  Underline,
+  Sparkle,
+  Layers,
+  Sparkles as SparklesIcon,
 } from "lucide-react";
 
 interface ElementInspectorProps {
@@ -25,6 +47,7 @@ interface ElementInspectorProps {
   onDelete: (id: string) => void;
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
+  onOpenCropper?: () => void;
 }
 
 const COLOR_PRESETS = [
@@ -44,6 +67,7 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
   onDelete,
   onMoveUp,
   onMoveDown,
+  onOpenCropper,
 }) => {
   if (!element) {
     return (
@@ -61,6 +85,24 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
     onChange({ ...element, [key]: value });
   };
 
+  const handleWidthChange = (newW: number) => {
+    if (element.aspectRatioLocked && element.width && element.height && element.width > 0) {
+      const ratio = element.height / element.width;
+      onChange({ ...element, width: newW, height: Math.round(newW * ratio * 100) / 100 });
+    } else {
+      onChange({ ...element, width: newW });
+    }
+  };
+
+  const handleHeightChange = (newH: number) => {
+    if (element.aspectRatioLocked && element.width && element.height && element.height > 0) {
+      const ratio = element.width / element.height;
+      onChange({ ...element, height: newH, width: Math.round(newH * ratio * 100) / 100 });
+    } else {
+      onChange({ ...element, height: newH });
+    }
+  };
+
   return (
     <div className="space-y-6 text-sm text-gray-300">
       {/* Header & Quick Action */}
@@ -69,8 +111,8 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
           {element.type === "text" && <Type className="w-4 h-4 text-neon-cyan" />}
           {element.type === "badge" && <Tag className="w-4 h-4 text-neon-purple" />}
           {element.type === "image" && <ImageIcon className="w-4 h-4 text-neon-pink" />}
-          {element.type === "button" && <MousePointer className="w-4 h-4 text-neon-green" />}
-          {element.type === "logo" && <Shield className="w-4 h-4 text-neon-orange" />}
+          {element.type === "button" && <MousePointer className="w-4 h-4 text-emerald-400" />}
+          {element.type === "logo" && <Shield className="w-4 h-4 text-amber-400" />}
           {element.type === "shape" && <Square className="w-4 h-4 text-cyan-400" />}
 
           <input
@@ -113,533 +155,507 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
         </div>
       </div>
 
-      {/* CONTENT FIELDS */}
-      {(element.type === "text" || element.type === "badge" || element.type === "button" || element.type === "logo") && (
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-wider font-mono text-gray-400">Content Text</label>
-          {element.type === "text" ? (
-            <textarea
-              rows={3}
-              value={element.text || ""}
-              onChange={(e) => updateProp("text", e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-neon-cyan focus:outline-none font-sans text-sm"
-              placeholder="Enter text..."
-            />
-          ) : (
-            <input
-              type="text"
-              value={element.text || ""}
-              onChange={(e) => updateProp("text", e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white focus:border-neon-cyan focus:outline-none text-sm font-sans"
-              placeholder="Enter text label..."
-            />
-          )}
+      {/* 1. POSITION & SIZE PANEL */}
+      <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] uppercase font-mono text-neon-cyan font-bold flex items-center gap-1.5">
+            <Move className="w-3.5 h-3.5" /> Position & Dimensions
+          </label>
+          <button
+            type="button"
+            onClick={() => updateProp("aspectRatioLocked", !element.aspectRatioLocked)}
+            className={`p-1 rounded-lg border text-[10px] font-mono flex items-center gap-1 transition-all ${
+              element.aspectRatioLocked
+                ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan"
+                : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
+            }`}
+            title="Lock Aspect Ratio"
+          >
+            {element.aspectRatioLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+            {element.aspectRatioLocked ? "Ratio Locked" : "Free Ratio"}
+          </button>
         </div>
-      )}
 
-      {/* IMAGE SPECIFIC CONTROLS */}
-      {element.type === "image" && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider font-mono text-gray-400">Image Source URL</label>
+        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+          <div>
+            <label className="text-[10px] text-gray-400 block mb-1">X Position (%)</label>
             <input
-              type="text"
-              value={element.url || ""}
-              onChange={(e) => updateProp("url", e.target.value)}
-              placeholder="https://..."
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-neon-cyan focus:outline-none font-mono"
+              type="number"
+              value={element.x}
+              onChange={(e) => updateProp("x", parseFloat(e.target.value) || 0)}
+              className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
             />
           </div>
-
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wider font-mono text-gray-400">Or Upload Image File</label>
+          <div>
+            <label className="text-[10px] text-gray-400 block mb-1">Y Position (%)</label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (event) => {
-                    if (event.target?.result) {
-                      updateProp("url", event.target.result as string);
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-              className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-neon-cyan/20 file:text-neon-cyan hover:file:bg-neon-cyan/30"
+              type="number"
+              value={element.y}
+              onChange={(e) => updateProp("y", parseFloat(e.target.value) || 0)}
+              className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Fit Mode</label>
-              <select
-                value={element.fitMode || "smart"}
-                onChange={(e) => updateProp("fitMode", e.target.value as any)}
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-neon-cyan focus:outline-none"
-              >
-                <option value="smart">Smart Cover</option>
-                <option value="cover">Crop Fill (Cover)</option>
-                <option value="contain">Fit Frame (Contain)</option>
-                <option value="fill">Stretch Fill</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Scale ({Math.round((element.scale || 1) * 100)}%)</label>
-              <input
-                type="range"
-                min="0.5"
-                max="2"
-                step="0.05"
-                value={element.scale || 1}
-                onChange={(e) => updateProp("scale", parseFloat(e.target.value))}
-                className="w-full accent-neon-cyan"
-              />
-            </div>
+          <div>
+            <label className="text-[10px] text-gray-400 block mb-1">Width (%)</label>
+            <input
+              type="number"
+              value={element.width ?? 100}
+              onChange={(e) => handleWidthChange(parseFloat(e.target.value) || 1)}
+              className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
+            />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Pan X Offset ({element.xOffset || 0}px)</label>
-              <input
-                type="range"
-                min="-200"
-                max="200"
-                value={element.xOffset || 0}
-                onChange={(e) => updateProp("xOffset", parseInt(e.target.value))}
-                className="w-full accent-neon-cyan"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Pan Y Offset ({element.yOffset || 0}px)</label>
-              <input
-                type="range"
-                min="-200"
-                max="200"
-                value={element.yOffset || 0}
-                onChange={(e) => updateProp("yOffset", parseInt(e.target.value))}
-                className="w-full accent-neon-cyan"
-              />
-            </div>
+          <div>
+            <label className="text-[10px] text-gray-400 block mb-1">Height (%)</label>
+            <input
+              type="number"
+              value={element.height ?? 100}
+              onChange={(e) => handleHeightChange(parseFloat(e.target.value) || 1)}
+              className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
+            />
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Glow Aura</label>
-              <select
-                value={element.shadowGlow || "none"}
-                onChange={(e) => updateProp("shadowGlow", e.target.value)}
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-neon-cyan focus:outline-none"
-              >
-                <option value="none">None</option>
-                <option value="cyan">Neon Cyan</option>
-                <option value="purple">Neon Purple</option>
-                <option value="pink">Neon Pink</option>
-                <option value="orange">Neon Orange</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Corner Radius ({element.borderRadius ?? 16}px)</label>
-              <input
-                type="range"
-                min="0"
-                max="48"
-                value={element.borderRadius ?? 16}
-                onChange={(e) => updateProp("borderRadius", parseInt(e.target.value))}
-                className="w-full accent-neon-cyan"
-              />
-            </div>
+        {/* Rotation & Flip */}
+        <div className="space-y-2 pt-2 border-t border-white/10">
+          <div className="flex items-center justify-between text-xs font-mono">
+            <span className="text-gray-400">Rotation</span>
+            <span className="text-neon-cyan font-bold">{element.rotation || 0}°</span>
           </div>
+          <input
+            type="range"
+            min="-180"
+            max="180"
+            value={element.rotation || 0}
+            onChange={(e) => updateProp("rotation", parseInt(e.target.value))}
+            className="w-full accent-neon-cyan"
+          />
 
-          <div className="pt-1 flex items-center gap-2">
+          <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
-              onClick={() => onChange({ ...element, scale: 1, xOffset: 0, yOffset: 0 })}
-              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-mono text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+              onClick={() => updateProp("flipX", !element.flipX)}
+              className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-mono flex items-center justify-center gap-1 transition-all ${
+                element.flipX
+                  ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan"
+                  : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10"
+              }`}
             >
-              Reset Image Alignment
+              <FlipHorizontal className="w-3.5 h-3.5" /> Flip H
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* TYPOGRAPHY CONTROLS FOR TEXT & BUTTONS */}
-      {(element.type === "text" || element.type === "badge" || element.type === "button") && (
-        <div className="space-y-4 pt-2 border-t border-white/10">
-          <div className="flex items-center gap-2 text-xs font-mono uppercase text-neon-cyan">
-            <Type className="w-3.5 h-3.5" /> Typography & Style
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Font Family</label>
-              <select
-                value={element.fontFamily || "Orbitron"}
-                onChange={(e) => updateProp("fontFamily", e.target.value as any)}
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-neon-cyan focus:outline-none"
-              >
-                <option value="Orbitron">Orbitron (Display Header)</option>
-                <option value="Rajdhani">Rajdhani (Future Subtitle)</option>
-                <option value="Inter">Inter (Clean Body)</option>
-                <option value="Space Mono">Space Mono (Tech Code)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Font Weight</label>
-              <select
-                value={element.fontWeight || "bold"}
-                onChange={(e) => updateProp("fontWeight", e.target.value as any)}
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-neon-cyan focus:outline-none"
-              >
-                <option value="normal">Normal (400)</option>
-                <option value="semibold">SemiBold (600)</option>
-                <option value="bold">Bold (700)</option>
-                <option value="black">Black Heavy (900)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Font Size ({element.fontSize || 16}px)</label>
-              <input
-                type="range"
-                min="10"
-                max="80"
-                value={element.fontSize || 16}
-                onChange={(e) => updateProp("fontSize", parseInt(e.target.value))}
-                className="w-full accent-neon-cyan"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Letter Spacing ({element.letterSpacing || 0}px)</label>
-              <input
-                type="range"
-                min="0"
-                max="10"
-                value={element.letterSpacing || 0}
-                onChange={(e) => updateProp("letterSpacing", parseInt(e.target.value))}
-                className="w-full accent-neon-cyan"
-              />
-            </div>
-          </div>
-
-          {element.type === "text" && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/10">
-              <span className="text-xs font-mono uppercase text-gray-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-neon-purple" /> Holographic Gradient
-              </span>
-              <button
-                type="button"
-                onClick={() => updateProp("gradientText", !element.gradientText)}
-                className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
-                  element.gradientText ? "bg-neon-purple" : "bg-white/20"
-                }`}
-              >
-                <div
-                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                    element.gradientText ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* COLOR PICKER & PRESETS */}
-      <div className="space-y-3 pt-2 border-t border-white/10">
-        <label className="text-xs font-mono uppercase text-neon-cyan block">Color & Palette</label>
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={element.color || element.textColor || "#ffffff"}
-            onChange={(e) => {
-              if (element.type === "text") updateProp("color", e.target.value);
-              else updateProp("textColor", e.target.value);
-            }}
-            className="w-9 h-9 rounded-lg cursor-pointer bg-transparent border-0"
-          />
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {COLOR_PRESETS.map((hex) => (
-              <button
-                key={hex}
-                onClick={() => {
-                  if (element.type === "text") updateProp("color", hex);
-                  else updateProp("textColor", hex);
-                }}
-                style={{ backgroundColor: hex }}
-                className="w-6 h-6 rounded-full border border-white/20 hover:scale-110 transition-transform"
-              />
-            ))}
+            <button
+              type="button"
+              onClick={() => updateProp("flipY", !element.flipY)}
+              className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-mono flex items-center justify-center gap-1 transition-all ${
+                element.flipY
+                  ? "bg-neon-cyan/20 border-neon-cyan text-neon-cyan"
+                  : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10"
+              }`}
+            >
+              <FlipVertical className="w-3.5 h-3.5" /> Flip V
+            </button>
           </div>
         </div>
       </div>
 
-      {/* LOGO SPECIFIC CONTROLS */}
-      {element.type === "logo" && (
-        <div className="space-y-4 pt-2 border-t border-white/10">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono uppercase text-neon-orange font-bold flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5" /> Logo Customizer
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-black/60 border border-white/10 text-xs font-mono">
+      {/* 2. IMAGE QUICK ACTION PRESETS */}
+      {element.type === "image" && (
+        <div className="space-y-2 bg-black/40 p-3 rounded-xl border border-white/10">
+          <label className="text-[11px] uppercase font-mono text-neon-purple font-bold block mb-2">
+            Image Quick Actions
+          </label>
+          <div className="grid grid-cols-2 gap-1.5 text-xs font-mono">
             <button
               type="button"
-              onClick={() => updateProp("logoType", "image")}
-              className={`py-1.5 rounded-lg transition-all ${
-                element.logoType === "image" || (element.url && element.logoType !== "text")
-                  ? "bg-neon-orange/20 border border-neon-orange/50 text-neon-orange font-bold"
-                  : "text-gray-400 hover:text-white"
-              }`}
+              onClick={() =>
+                onChange({
+                  ...element,
+                  x: 0,
+                  y: 0,
+                  width: 100,
+                  height: 100,
+                  fitMode: "contain",
+                })
+              }
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
             >
-              Graphic / Image Logo
+              Fit Canvas
             </button>
+
             <button
               type="button"
-              onClick={() => updateProp("logoType", "text")}
-              className={`py-1.5 rounded-lg transition-all ${
-                element.logoType === "text"
-                  ? "bg-neon-orange/20 border border-neon-orange/50 text-neon-orange font-bold"
-                  : "text-gray-400 hover:text-white"
-              }`}
+              onClick={() =>
+                onChange({
+                  ...element,
+                  x: 0,
+                  y: 0,
+                  width: 100,
+                  height: 100,
+                  fitMode: "fill",
+                })
+              }
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
             >
-              Text Brand Badge
+              Fill Canvas
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...element,
+                  x: 25,
+                  y: 25,
+                  width: 50,
+                  height: 50,
+                })
+              }
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
+            >
+              Center Image
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...element,
+                  rotation: 0,
+                  scale: 1,
+                  flipX: false,
+                  flipY: false,
+                  xOffset: 0,
+                  yOffset: 0,
+                })
+              }
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
+            >
+              Reset Transform
             </button>
           </div>
+        </div>
+      )}
 
-          {(element.logoType === "image" || (element.url && element.logoType !== "text")) ? (
-            <div className="space-y-3">
-              <div>
-                <label className="text-[11px] text-gray-400 font-mono block mb-1">Upload Custom Logo File</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        if (event.target?.result) {
-                          onChange({ ...element, url: event.target.result as string, logoType: "image" });
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-neon-orange/20 file:text-neon-orange hover:file:bg-neon-orange/30"
-                />
-              </div>
+      {/* 3. CONTENT & TYPOGRAPHY TOOL */}
+      {(element.type === "text" || element.type === "badge" || element.type === "button" || element.type === "logo") && (
+        <div className="space-y-4 bg-black/40 p-3 rounded-xl border border-white/10">
+          <label className="text-[11px] uppercase font-mono text-neon-cyan font-bold block">
+            Typography & Style
+          </label>
 
-              <div>
-                <label className="text-[11px] text-gray-400 font-mono block mb-1">Logo Color Effect & Filter</label>
-                <select
-                  value={element.filterEffect || "none"}
-                  onChange={(e) => updateProp("filterEffect", e.target.value as any)}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-neon-orange focus:outline-none"
-                >
-                  <option value="none">Original Colors</option>
-                  <option value="invert">Invert White (For dark backgrounds)</option>
-                  <option value="cyan-tint">Neon Cyan Tint & Glow</option>
-                  <option value="purple-tint">Electric Purple Glow</option>
-                  <option value="gold-tint">Luxury Gold Tint</option>
-                  <option value="grayscale">Monochrome Silver</option>
-                  <option value="brightness-boost">Brightness Boost (High Contrast)</option>
-                </select>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <label className="text-[11px] text-gray-400 font-mono block mb-1">Brand Name Text</label>
-                <input
-                  type="text"
-                  value={element.text || "LIZZDO"}
-                  onChange={(e) => updateProp("text", e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-sm focus:border-neon-orange"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Sizing & Pill Container Settings */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Logo Size ({element.size || 24}px)</label>
-              <input
-                type="range"
-                min="12"
-                max="96"
-                value={element.size || 24}
-                onChange={(e) => updateProp("size", parseInt(e.target.value))}
-                className="w-full accent-neon-orange"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Pill Padding ({element.padding ?? 8}px)</label>
-              <input
-                type="range"
-                min="0"
-                max="32"
-                value={element.padding ?? 8}
-                onChange={(e) => updateProp("padding", parseInt(e.target.value))}
-                className="w-full accent-neon-orange"
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-xs font-mono text-gray-400 block">Text Content</label>
+            <textarea
+              rows={2}
+              value={element.text || ""}
+              onChange={(e) => updateProp("text", e.target.value)}
+              className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-white focus:border-neon-cyan focus:outline-none text-xs font-sans"
+              placeholder="Type content..."
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Font Family & Weight */}
+          <div className="grid grid-cols-2 gap-2 font-mono text-xs">
             <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Container Pill BG</label>
-              <input
-                type="color"
-                value={element.bg || "#000000"}
-                onChange={(e) => updateProp("bg", e.target.value)}
-                className="w-full h-8 rounded-lg bg-transparent border border-white/20 cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Corner Radius ({element.borderRadius ?? 12}px)</label>
-              <input
-                type="range"
-                min="0"
-                max="32"
-                value={element.borderRadius ?? 12}
-                onChange={(e) => updateProp("borderRadius", parseInt(e.target.value))}
-                className="w-full accent-neon-orange"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Glow Aura</label>
+              <label className="text-[10px] text-gray-400 block mb-1">Font Family</label>
               <select
-                value={element.shadowGlow || "none"}
-                onChange={(e) => updateProp("shadowGlow", e.target.value as any)}
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-white text-xs focus:border-neon-orange"
+                value={element.fontFamily || "Orbitron"}
+                onChange={(e) => updateProp("fontFamily", e.target.value as any)}
+                className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
               >
-                <option value="none">None</option>
-                <option value="cyan">Neon Cyan</option>
-                <option value="purple">Neon Purple</option>
-                <option value="pink">Neon Pink</option>
-                <option value="orange">Neon Amber</option>
+                <option value="Orbitron">Orbitron (Display)</option>
+                <option value="Rajdhani">Rajdhani (Clean Tech)</option>
+                <option value="Inter">Inter (Sans)</option>
+                <option value="Space Mono">Space Mono (Code)</option>
+                <option value="Playfair Display">Playfair (Serif)</option>
+                <option value="Plus Jakarta Sans">Plus Jakarta</option>
               </select>
             </div>
+
             <div>
-              <label className="text-xs text-gray-400 font-mono block mb-1">Border Width ({element.borderWidth || 0}px)</label>
+              <label className="text-[10px] text-gray-400 block mb-1">Font Size ({element.fontSize || 16}px)</label>
               <input
-                type="range"
-                min="0"
-                max="6"
-                value={element.borderWidth || 0}
-                onChange={(e) => updateProp("borderWidth", parseInt(e.target.value))}
-                className="w-full accent-neon-orange"
+                type="number"
+                value={element.fontSize || 16}
+                onChange={(e) => updateProp("fontSize", parseInt(e.target.value) || 12)}
+                className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Alignments & Format Toggle */}
+          <div className="flex items-center justify-between gap-1 pt-1">
+            <div className="flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-white/10">
+              <button
+                type="button"
+                onClick={() => updateProp("textAlign", "left")}
+                className={`p-1.5 rounded ${element.textAlign === "left" || !element.textAlign ? "bg-neon-cyan text-black" : "text-gray-400 hover:text-white"}`}
+              >
+                <AlignLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateProp("textAlign", "center")}
+                className={`p-1.5 rounded ${element.textAlign === "center" ? "bg-neon-cyan text-black" : "text-gray-400 hover:text-white"}`}
+              >
+                <AlignCenter className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateProp("textAlign", "right")}
+                className={`p-1.5 rounded ${element.textAlign === "right" ? "bg-neon-cyan text-black" : "text-gray-400 hover:text-white"}`}
+              >
+                <AlignRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-white/10">
+              <button
+                type="button"
+                onClick={() => updateProp("fontStyle", element.fontStyle === "italic" ? "normal" : "italic")}
+                className={`p-1.5 rounded ${element.fontStyle === "italic" ? "bg-neon-purple text-white" : "text-gray-400 hover:text-white"}`}
+                title="Italic"
+              >
+                <Italic className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => updateProp("textDecoration", element.textDecoration === "underline" ? "none" : "underline")}
+                className={`p-1.5 rounded ${element.textDecoration === "underline" ? "bg-neon-purple text-white" : "text-gray-400 hover:text-white"}`}
+                title="Underline"
+              >
+                <Underline className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Color & Gradient Text */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <label className="text-gray-400">Text Color</label>
+              <button
+                type="button"
+                onClick={() => updateProp("gradientText", !element.gradientText)}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                  element.gradientText ? "bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink text-white" : "bg-white/10 text-gray-400"
+                }`}
+              >
+                Gradient Text
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={element.color || "#ffffff"}
+                onChange={(e) => updateProp("color", e.target.value)}
+                className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+              />
+              <input
+                type="text"
+                value={element.color || "#ffffff"}
+                onChange={(e) => updateProp("color", e.target.value)}
+                className="flex-1 bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-neon-cyan focus:outline-none"
               />
             </div>
           </div>
         </div>
       )}
-      <div className="space-y-4 pt-2 border-t border-white/10">
-        <div className="flex items-center gap-2 text-xs font-mono uppercase text-neon-cyan">
-          <Sliders className="w-3.5 h-3.5" /> Position & Opacity
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-gray-400 font-mono block mb-1">X Position ({element.x}%)</label>
-            <input
-              type="range"
-              min="0"
-              max="90"
-              value={element.x}
-              onChange={(e) => updateProp("x", parseInt(e.target.value))}
-              className="w-full accent-neon-cyan"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-gray-400 font-mono block mb-1">Y Position ({element.y}%)</label>
-            <input
-              type="range"
-              min="0"
-              max="90"
-              value={element.y}
-              onChange={(e) => updateProp("y", parseInt(e.target.value))}
-              className="w-full accent-neon-cyan"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-400 font-mono block mb-1">Align & Snap to Guides</label>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => updateProp("x", 50)}
-              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-neon-cyan"
-            >
-              Center X (50%)
-            </button>
-            <button
-              type="button"
-              onClick={() => updateProp("y", 50)}
-              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-neon-cyan"
-            >
-              Center Y (50%)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onChange({ ...element, x: 50, y: 50 });
-              }}
-              className="px-2.5 py-1 rounded-lg bg-neon-cyan/20 border border-neon-cyan/40 text-[10px] font-mono font-bold text-neon-cyan"
-            >
-              Center Canvas
-            </button>
-            <button
-              type="button"
-              onClick={() => updateProp("x", 6)}
-              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-gray-300"
-            >
-              Left Margin (6%)
-            </button>
-            <button
-              type="button"
-              onClick={() => updateProp("y", 8)}
-              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-gray-300"
-            >
-              Top Safe (8%)
-            </button>
-            <button
-              type="button"
-              onClick={() => updateProp("y", 80)}
-              className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-gray-300"
-            >
-              Bottom Safe (80%)
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-400 font-mono block mb-1">
-            Element Opacity ({Math.round((element.opacity ?? 1) * 100)}%)
+      {/* 4. SHAPES INSPECTOR */}
+      {element.type === "shape" && (
+        <div className="space-y-4 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+          <label className="text-[11px] uppercase font-mono text-cyan-400 font-bold block">
+            Shape Properties
           </label>
-          <input
-            type="range"
-            min="0.1"
-            max="1"
-            step="0.05"
-            value={element.opacity ?? 1}
-            onChange={(e) => updateProp("opacity", parseFloat(e.target.value))}
-            className="w-full accent-neon-cyan"
-          />
+
+          <div>
+            <label className="text-[10px] text-gray-400 block mb-1">Shape Type</label>
+            <select
+              value={element.shapeType || "rect"}
+              onChange={(e) => updateProp("shapeType", e.target.value as any)}
+              className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+            >
+              <option value="rect">Rectangle</option>
+              <option value="rounded-rect">Rounded Rectangle</option>
+              <option value="circle">Circle / Ellipse</option>
+              <option value="line">Divider Line</option>
+              <option value="glow-card">Cyber Glow Panel</option>
+            </select>
+          </div>
+
+          {/* Fill Color */}
+          <div className="space-y-2">
+            <label className="text-[10px] text-gray-400 block">Fill Color</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={element.fillColor || element.bg || "#00f5ff"}
+                onChange={(e) => {
+                  updateProp("fillColor", e.target.value);
+                  updateProp("bg", e.target.value);
+                }}
+                className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+              />
+              <input
+                type="text"
+                value={element.fillColor || element.bg || "#00f5ff"}
+                onChange={(e) => {
+                  updateProp("fillColor", e.target.value);
+                  updateProp("bg", e.target.value);
+                }}
+                className="flex-1 bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Border Width & Color */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-gray-400 block mb-1">Border Width ({element.borderWidth || 0}px)</label>
+              <input
+                type="number"
+                min="0"
+                max="20"
+                value={element.borderWidth || 0}
+                onChange={(e) => updateProp("borderWidth", parseInt(e.target.value) || 0)}
+                className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 block mb-1">Corner Radius ({element.borderRadius || 0}px)</label>
+              <input
+                type="number"
+                min="0"
+                max="50"
+                value={element.borderRadius || 0}
+                onChange={(e) => updateProp("borderRadius", parseInt(e.target.value) || 0)}
+                className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* 5. IMAGE MASKING SYSTEM */}
+      {element.type === "image" && (
+        <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] uppercase text-amber-400 font-bold flex items-center gap-1.5">
+              <Scissors className="w-3.5 h-3.5" /> Masking System
+            </label>
+            <button
+              type="button"
+              onClick={() =>
+                updateProp("mask", {
+                  enabled: !(element.mask?.enabled),
+                  shape: element.mask?.shape || "circle",
+                  zoom: 1,
+                  offsetX: 0,
+                  offsetY: 0,
+                  rotation: 0,
+                })
+              }
+              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                element.mask?.enabled ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400 hover:text-white"
+              }`}
+            >
+              {element.mask?.enabled ? "Mask Enabled" : "Enable Mask"}
+            </button>
+          </div>
+
+          {element.mask?.enabled && (
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-1">Mask Shape</label>
+                <select
+                  value={element.mask.shape || "circle"}
+                  onChange={(e) =>
+                    updateProp("mask", { ...element.mask!, shape: e.target.value as any })
+                  }
+                  className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-amber-400 focus:outline-none"
+                >
+                  <option value="circle">Circle Mask</option>
+                  <option value="ellipse">Ellipse Mask</option>
+                  <option value="rounded">Rounded Rectangle</option>
+                  <option value="star">Star Mask</option>
+                  <option value="hexagon">Hexagon Mask</option>
+                  <option value="triangle">Triangle Mask</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. DROP SHADOW & OBJECT EFFECTS */}
+      <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] uppercase text-neon-pink font-bold flex items-center gap-1.5">
+            <SparklesIcon className="w-3.5 h-3.5" /> Shadow & Effects
+          </label>
+          <button
+            type="button"
+            onClick={() =>
+              updateProp("shadow", {
+                enabled: !(element.shadow?.enabled),
+                color: "rgba(0, 0, 0, 0.6)",
+                blur: 15,
+                spread: 0,
+                offsetX: 0,
+                offsetY: 8,
+                opacity: 0.8,
+              })
+            }
+            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+              element.shadow?.enabled ? "bg-neon-pink text-white" : "bg-white/10 text-gray-400 hover:text-white"
+            }`}
+          >
+            {element.shadow?.enabled ? "Shadow ON" : "Add Shadow"}
+          </button>
+        </div>
+
+        {element.shadow?.enabled && (
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-1">Offset X/Y</label>
+                <div className="flex gap-1">
+                  <input
+                    type="number"
+                    value={element.shadow.offsetX}
+                    onChange={(e) =>
+                      updateProp("shadow", { ...element.shadow!, offsetX: parseInt(e.target.value) || 0 })
+                    }
+                    className="w-1/2 bg-black/60 border border-white/10 rounded px-1.5 py-1 text-white"
+                    placeholder="X"
+                  />
+                  <input
+                    type="number"
+                    value={element.shadow.offsetY}
+                    onChange={(e) =>
+                      updateProp("shadow", { ...element.shadow!, offsetY: parseInt(e.target.value) || 0 })
+                    }
+                    className="w-1/2 bg-black/60 border border-white/10 rounded px-1.5 py-1 text-white"
+                    placeholder="Y"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-1">Blur Radius ({element.shadow.blur}px)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  value={element.shadow.blur}
+                  onChange={(e) =>
+                    updateProp("shadow", { ...element.shadow!, blur: parseInt(e.target.value) })
+                  }
+                  className="w-full accent-neon-pink"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

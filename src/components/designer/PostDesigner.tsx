@@ -16,6 +16,7 @@ import { Canvas } from "./Canvas";
 import { PrepareExportModal } from "./PrepareExportModal";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { VersionHistoryModal } from "./VersionHistoryModal";
+import { ImageCropperModal } from "./ImageCropperModal";
 import { ElementInspector } from "./ElementInspector";
 import { BackgroundInspector } from "./BackgroundInspector";
 import { FrameCornerInspector } from "./FrameCornerInspector";
@@ -150,6 +151,7 @@ export default function PostDesigner() {
   const [showQualityModal, setShowQualityModal] = useState<boolean>(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState<boolean>(false);
   const [showSnapshotsModal, setShowSnapshotsModal] = useState<boolean>(false);
+  const [showCropperModal, setShowCropperModal] = useState<boolean>(false);
   const [autosaveNotice, setAutosaveNotice] = useState<boolean>(false);
 
   // AUTOSAVE PROJECT STATE TO STUDIO CONTEXT & LOCALSTORAGE
@@ -528,7 +530,7 @@ export default function PostDesigner() {
     }
   };
 
-  // MOVE LAYER Z-INDEX UP/DOWN
+  // MOVE LAYER Z-INDEX UP/DOWN/TOP/BOTTOM & REORDER
   const handleMoveLayer = (id: string, direction: "up" | "down") => {
     const idx = designState.elements.findIndex((el) => el.id === id);
     if (idx === -1) return;
@@ -539,6 +541,40 @@ export default function PostDesigner() {
     const temp = newElements[idx];
     newElements[idx] = newElements[targetIdx];
     newElements[targetIdx] = temp;
+
+    const updated = {
+      ...designState,
+      elements: newElements.map((el, i) => ({ ...el, zIndex: (i + 1) * 5 })),
+    };
+    updateStateAndHistory(updated);
+  };
+
+  const handleMoveLayerToTop = (id: string) => {
+    const idx = designState.elements.findIndex((el) => el.id === id);
+    if (idx === -1 || idx === designState.elements.length - 1) return;
+    const item = designState.elements[idx];
+    const rest = designState.elements.filter((el) => el.id !== id);
+    const newElements = [...rest, item].map((el, i) => ({ ...el, zIndex: (i + 1) * 5 }));
+    updateStateAndHistory({ ...designState, elements: newElements });
+  };
+
+  const handleMoveLayerToBottom = (id: string) => {
+    const idx = designState.elements.findIndex((el) => el.id === id);
+    if (idx === -1 || idx === 0) return;
+    const item = designState.elements[idx];
+    const rest = designState.elements.filter((el) => el.id !== id);
+    const newElements = [item, ...rest].map((el, i) => ({ ...el, zIndex: (i + 1) * 5 }));
+    updateStateAndHistory({ ...designState, elements: newElements });
+  };
+
+  const handleReorderLayers = (draggedId: string, targetId: string) => {
+    const draggedIdx = designState.elements.findIndex((el) => el.id === draggedId);
+    const targetIdx = designState.elements.findIndex((el) => el.id === targetId);
+    if (draggedIdx === -1 || targetIdx === -1 || draggedIdx === targetIdx) return;
+
+    const newElements = [...designState.elements];
+    const [removed] = newElements.splice(draggedIdx, 1);
+    newElements.splice(targetIdx, 0, removed);
 
     const updated = {
       ...designState,
@@ -910,6 +946,7 @@ export default function PostDesigner() {
                   onDelete={handleDeleteElement}
                   onMoveUp={(id) => handleMoveLayer(id, "up")}
                   onMoveDown={(id) => handleMoveLayer(id, "down")}
+                  onOpenCropper={() => setShowCropperModal(true)}
                 />
               )}
 
@@ -936,6 +973,9 @@ export default function PostDesigner() {
                   onDuplicateElement={handleDuplicateElement}
                   onDeleteElement={handleDeleteElement}
                   onMoveLayer={handleMoveLayer}
+                  onMoveLayerToTop={handleMoveLayerToTop}
+                  onMoveLayerToBottom={handleMoveLayerToBottom}
+                  onReorderLayers={handleReorderLayers}
                 />
               )}
             </div>
@@ -971,6 +1011,19 @@ export default function PostDesigner() {
         currentState={designState}
         onRestoreState={(restoredState) => updateStateAndHistory(restoredState)}
       />
+
+      {/* NON-DESTRUCTIVE IMAGE CROPPER MODAL */}
+      {selectedElement && selectedElement.type === "image" && (
+        <ImageCropperModal
+          isOpen={showCropperModal}
+          onClose={() => setShowCropperModal(false)}
+          element={selectedElement}
+          onApplyCrop={(crop) => {
+            handleUpdateElement({ ...selectedElement, crop });
+            setShowCropperModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

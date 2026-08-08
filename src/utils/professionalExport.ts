@@ -284,7 +284,7 @@ export async function generateAiOrEpsExport(
     const elH = ((el.height || 10) / 100) * height;
 
     if (el.type === "text" && el.text) {
-      if (options.textMode === "outlines") {
+      if (options.textMode === "vector_paths") {
         // Outline representation as vector box
         const { r, g, b } = hexToRgb(el.color || "#ffffff");
         body += `${(r / 255).toFixed(3)} ${(g / 255).toFixed(3)} ${(b / 255).toFixed(3)} setrgbcolor\n`;
