@@ -129,7 +129,155 @@ export default function PostDesigner() {
   };
 
   const [selectedElementId, setSelectedElementId] = useState<string | null>("el-title-1");
+  const [selectedElementIds, setSelectedElementIds] = useState<string[]>(["el-title-1"]);
   const [activeRightTab, setActiveRightTab] = useState<"inspector" | "background" | "frames" | "layers">("inspector");
+
+  const handleUpdateElement = useCallback(
+    (id: string, updates: Partial<CanvasElement>) => {
+      const updated = {
+        ...designState,
+        elements: designState.elements.map((el) => (el.id === id ? { ...el, ...updates } : el)),
+      };
+      updateStateAndHistory(updated);
+    },
+    [designState, updateStateAndHistory]
+  );
+
+  // DUPLICATE ELEMENT
+  const handleDuplicateElement = useCallback(
+    (id: string) => {
+      const target = designState.elements.find((el) => el.id === id);
+      if (!target) return;
+      const newId = `el-${target.type}-${Date.now()}`;
+      const duplicated: CanvasElement = {
+        ...target,
+        id: newId,
+        name: `${target.name} (Copy)`,
+        x: Math.min(85, target.x + 4),
+        y: Math.min(85, target.y + 4),
+        zIndex: designState.elements.length + 10,
+      };
+      const updated = {
+        ...designState,
+        elements: [...designState.elements, duplicated],
+      };
+      updateStateAndHistory(updated);
+      setSelectedElementId(newId);
+    },
+    [designState, updateStateAndHistory]
+  );
+
+  // DELETE ELEMENT
+  const handleDeleteElement = useCallback(
+    (id: string) => {
+      const updated = {
+        ...designState,
+        elements: designState.elements.filter((el) => el.id !== id),
+      };
+      updateStateAndHistory(updated);
+      if (selectedElementId === id) {
+        setSelectedElementId(null);
+      }
+    },
+    [designState, selectedElementId, updateStateAndHistory]
+  );
+
+  // GLOBAL KEYBOARD SHORTCUTS LISTENER
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || "").toUpperCase();
+      const isInput =
+        ["INPUT", "TEXTAREA", "SELECT"].includes(activeTag) ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
+
+      // Escape -> Deselect
+      if (e.key === "Escape") {
+        setSelectedElementId(null);
+        setSelectedElementIds([]);
+        return;
+      }
+
+      // Undo / Redo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+        e.preventDefault();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        handleRedo();
+        e.preventDefault();
+        return;
+      }
+
+      // Save
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        setStorageItem("lizzdo_current_design_project", JSON.stringify(designState));
+        if (currentProject) {
+          updateProject(currentProject.id, { data: designState });
+        }
+        return;
+      }
+
+      // If user is actively typing in an input, do not intercept editing shortcuts
+      if (isInput) return;
+
+      // Select All
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        if (designState.elements.length > 0) {
+          const allIds = designState.elements.map((el) => el.id);
+          setSelectedElementIds(allIds);
+          setSelectedElementId(allIds[0]);
+        }
+        return;
+      }
+
+      // Duplicate
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        if (selectedElementId) {
+          handleDuplicateElement(selectedElementId);
+        }
+        return;
+      }
+
+      // Delete
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedElementId) {
+          handleDeleteElement(selectedElementId);
+        }
+        return;
+      }
+
+      // Arrow Nudging
+      if (selectedElementId && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 2 : 0.5;
+        const currentEl = designState.elements.find((el) => el.id === selectedElementId);
+        if (!currentEl || currentEl.locked) return;
+
+        let deltaX = 0;
+        let deltaY = 0;
+        if (e.key === "ArrowLeft") deltaX = -step;
+        if (e.key === "ArrowRight") deltaX = step;
+        if (e.key === "ArrowUp") deltaY = -step;
+        if (e.key === "ArrowDown") deltaY = step;
+
+        handleUpdateElement(selectedElementId, {
+          x: Math.round((currentEl.x + deltaX) * 10) / 10,
+          y: Math.round((currentEl.y + deltaY) * 10) / 10,
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [designState, selectedElementId, historyIndex, historyStack, currentProject, updateProject, handleDuplicateElement, handleDeleteElement, handleUndo, handleRedo, handleUpdateElement]);
   const [activeTool, setActiveTool] = useState<ToolMode>("select");
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [zoomScale, setZoomScale] = useState<number>(0.85);
@@ -488,46 +636,13 @@ export default function PostDesigner() {
     e.target.value = "";
   };
 
-  // DUPLICATE ELEMENT
-  const handleDuplicateElement = (id: string) => {
-    const target = designState.elements.find((el) => el.id === id);
-    if (!target) return;
-    const newId = `el-${target.type}-${Date.now()}`;
-    const duplicated: CanvasElement = {
-      ...target,
-      id: newId,
-      name: `${target.name} (Copy)`,
-      x: Math.min(85, target.x + 4),
-      y: Math.min(85, target.y + 4),
-      zIndex: designState.elements.length + 10,
-    };
-    const updated = {
-      ...designState,
-      elements: [...designState.elements, duplicated],
-    };
-    updateStateAndHistory(updated);
-    setSelectedElementId(newId);
-  };
-
-  // UPDATE ELEMENT
-  const handleUpdateElement = (updated: CanvasElement) => {
+  // UPDATE ELEMENT OBJECT
+  const handleUpdateElementObject = (updated: CanvasElement) => {
     const updatedState = {
       ...designState,
       elements: designState.elements.map((el) => (el.id === updated.id ? updated : el)),
     };
-    setDesignState(updatedState);
-  };
-
-  // DELETE ELEMENT
-  const handleDeleteElement = (id: string) => {
-    const updated = {
-      ...designState,
-      elements: designState.elements.filter((el) => el.id !== id),
-    };
-    updateStateAndHistory(updated);
-    if (selectedElementId === id) {
-      setSelectedElementId(null);
-    }
+    updateStateAndHistory(updatedState);
   };
 
   // MOVE LAYER Z-INDEX UP/DOWN/TOP/BOTTOM & REORDER
@@ -864,15 +979,20 @@ export default function PostDesigner() {
               scaleFactor={zoomScale}
               interactive={!isGeneratingExport}
               selectedElementId={selectedElementId || undefined}
+              selectedElementIds={selectedElementIds}
               onSelectElement={(id) => {
                 setSelectedElementId(id);
+                setSelectedElementIds([id]);
                 setRightSidebarOpen(true);
                 setActiveRightTab("inspector");
               }}
-              onUpdateElement={(id, updates) => {
-                const target = designState.elements.find((e) => e.id === id);
-                if (target) handleUpdateElement({ ...target, ...updates });
+              onSelectMultipleElements={(ids) => {
+                setSelectedElementIds(ids);
+                if (ids.length > 0) setSelectedElementId(ids[0]);
               }}
+              onUpdateElement={(id, updates) => handleUpdateElement(id, updates)}
+              onDeleteElement={handleDeleteElement}
+              onDuplicateElement={handleDuplicateElement}
               onZoomChange={setZoomScale}
               snapToGrid={designState.showGrid}
             />
@@ -942,7 +1062,7 @@ export default function PostDesigner() {
               {activeRightTab === "inspector" && (
                 <ElementInspector
                   element={selectedElement || null}
-                  onChange={handleUpdateElement}
+                  onChange={handleUpdateElementObject}
                   onDelete={handleDeleteElement}
                   onMoveUp={(id) => handleMoveLayer(id, "up")}
                   onMoveDown={(id) => handleMoveLayer(id, "down")}
@@ -969,7 +1089,7 @@ export default function PostDesigner() {
                   state={designState}
                   selectedElementId={selectedElementId}
                   onSelectElement={setSelectedElementId}
-                  onUpdateElement={handleUpdateElement}
+                  onUpdateElement={handleUpdateElementObject}
                   onDuplicateElement={handleDuplicateElement}
                   onDeleteElement={handleDeleteElement}
                   onMoveLayer={handleMoveLayer}
@@ -1019,7 +1139,7 @@ export default function PostDesigner() {
           onClose={() => setShowCropperModal(false)}
           element={selectedElement}
           onApplyCrop={(crop) => {
-            handleUpdateElement({ ...selectedElement, crop });
+            handleUpdateElementObject({ ...selectedElement, crop });
             setShowCropperModal(false);
           }}
         />

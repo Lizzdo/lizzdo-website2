@@ -69,6 +69,10 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
   onMoveDown,
   onOpenCropper,
 }) => {
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [comparingBeforeAfter, setComparingBeforeAfter] = useState<boolean>(false);
+  const [cornersLinked, setCornersLinked] = useState<boolean>(true);
+
   if (!element) {
     return (
       <div className="p-6 text-center text-gray-500 font-mono text-xs space-y-3">
@@ -80,6 +84,10 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
       </div>
     );
   }
+
+  const toggleSection = (id: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const updateProp = <K extends keyof CanvasElement>(key: K, value: CanvasElement[K]) => {
     onChange({ ...element, [key]: value });
@@ -95,11 +103,32 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
   };
 
   const handleHeightChange = (newH: number) => {
-    if (element.aspectRatioLocked && element.width && element.height && element.height > 0) {
+    if (element.aspectRatioLocked && element.width && element.height && element.width > 0) {
       const ratio = element.width / element.height;
       onChange({ ...element, height: newH, width: Math.round(newH * ratio * 100) / 100 });
     } else {
       onChange({ ...element, height: newH });
+    }
+  };
+
+  const handleAutoTrimAlphaBounds = async () => {
+    if (!element.src) return;
+    try {
+      const bounds = await detectAlphaBounds(element.src);
+      if (bounds) {
+        onChange({
+          ...element,
+          crop: {
+            enabled: true,
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("Alpha bounds detection failed:", err);
     }
   };
 
@@ -260,10 +289,69 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
       {/* 2. IMAGE QUICK ACTION PRESETS */}
       {element.type === "image" && (
         <div className="space-y-2 bg-black/40 p-3 rounded-xl border border-white/10">
-          <label className="text-[11px] uppercase font-mono text-neon-purple font-bold block mb-2">
-            Image Quick Actions
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[11px] uppercase font-mono text-neon-purple font-bold">
+              Image Quick Actions
+            </label>
+            <button
+              type="button"
+              onMouseDown={() => setComparingBeforeAfter(true)}
+              onMouseUp={() => setComparingBeforeAfter(false)}
+              onMouseLeave={() => setComparingBeforeAfter(false)}
+              className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 hover:bg-amber-400/30 transition-all"
+              title="Hold to preview raw original un-edited image"
+            >
+              Hold: Before / After
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-1.5 text-xs font-mono">
+            {/* REPLACE IMAGE BUTTON */}
+            <label className="col-span-2 py-2 px-3 bg-neon-purple/20 hover:bg-neon-purple/30 border border-neon-purple/50 text-neon-purple font-bold rounded-xl cursor-pointer flex items-center justify-center gap-2 text-xs transition-all shadow-md group">
+              <ImageIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span>Replace Image (Keep Frame & Styles)</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      if (ev.target?.result) {
+                        const newUrl = ev.target.result as string;
+                        onChange({
+                          ...element,
+                          url: newUrl,
+                          src: newUrl,
+                        });
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleAutoTrimAlphaBounds}
+              className="py-1.5 px-2 bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/30 text-neon-cyan rounded-lg transition-all text-center flex items-center justify-center gap-1 text-[11px] font-bold"
+              title="Auto-detect non-transparent pixels on cutout PNGs"
+            >
+              <Scissors className="w-3 h-3" /> Auto-Trim Bounds
+            </button>
+
+            {onOpenCropper && (
+              <button
+                type="button"
+                onClick={onOpenCropper}
+                className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center flex items-center justify-center gap-1 text-[11px]"
+              >
+                <Crop className="w-3 h-3 text-neon-purple" /> Interactive Crop
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() =>
@@ -276,7 +364,7 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
                   fitMode: "contain",
                 })
               }
-              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
             >
               Fit Canvas
             </button>
@@ -293,7 +381,7 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
                   fitMode: "fill",
                 })
               }
-              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
             >
               Fill Canvas
             </button>
@@ -309,7 +397,7 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
                   height: 50,
                 })
               }
-              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
             >
               Center Image
             </button>
@@ -327,7 +415,7 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
                   yOffset: 0,
                 })
               }
-              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center"
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
             >
               Reset Transform
             </button>
@@ -656,6 +744,35 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* 7. REUSABLE ELEMENT ACTIONS */}
+      <div className="pt-2 border-t border-white/10">
+        <button
+          type="button"
+          onClick={() => {
+            try {
+              const existingStr = localStorage.getItem("lizzdo_my_reusable_elements");
+              const existing = existingStr ? JSON.parse(existingStr) : [];
+              const newReusable = {
+                id: `reusable-${Date.now()}`,
+                name: element.name || "Saved Element",
+                type: element.type,
+                createdAt: new Date().toISOString(),
+                element: { ...element, id: `el-${element.type}-${Date.now()}` },
+              };
+              const updated = [newReusable, ...existing];
+              localStorage.setItem("lizzdo_my_reusable_elements", JSON.stringify(updated));
+              alert(`Saved "${element.name}" to My Elements Library! You can reuse it in any design.`);
+            } catch (err) {
+              console.error("Failed to save reusable element:", err);
+            }
+          }}
+          className="w-full py-2.5 px-3 rounded-xl bg-neon-cyan/15 border border-neon-cyan/40 hover:bg-neon-cyan/25 text-neon-cyan font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 group shadow-lg"
+        >
+          <Box className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          <span>Save to My Elements Library</span>
+        </button>
       </div>
     </div>
   );

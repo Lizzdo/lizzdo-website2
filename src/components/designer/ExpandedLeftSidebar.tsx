@@ -33,6 +33,7 @@ import {
   Maximize2,
   Check,
   BookmarkCheck,
+  Box,
 } from "lucide-react";
 
 interface Props {
@@ -63,7 +64,7 @@ export function ExpandedLeftSidebar({
   const { activeBrandKit, brandKits, setActiveBrandId, applyBrandKitToDesign } = useStudio();
 
   const [activeTab, setActiveTab] = useState<
-    "templates" | "elements" | "assets" | "uploads" | "history" | "plugins" | "brand"
+    "templates" | "elements" | "my-elements" | "assets" | "uploads" | "history" | "plugins" | "brand"
   >("elements");
 
   const [assetCategory, setAssetCategory] = useState<
@@ -71,6 +72,17 @@ export function ExpandedLeftSidebar({
   >("icons");
 
   const [searchAssetQuery, setSearchAssetQuery] = useState("");
+  const [myElements, setMyElements] = useState<any[]>([]);
+
+  // Load reusable elements
+  React.useEffect(() => {
+    if (activeTab === "my-elements" || activeTab === "elements") {
+      try {
+        const saved = localStorage.getItem("lizzdo_my_reusable_elements");
+        if (saved) setMyElements(JSON.parse(saved));
+      } catch (e) {}
+    }
+  }, [activeTab]);
 
   // History action log simulation
   const [historyLogs, setHistoryLogs] = useState<string[]>([
@@ -84,7 +96,7 @@ export function ExpandedLeftSidebar({
   return (
     <div className="w-80 bg-neutral-900 border-r border-white/10 flex flex-col h-full overflow-hidden shrink-0 select-none z-20 text-xs font-sans">
       {/* SIDEBAR TABS HEADER */}
-      <div className="grid grid-cols-7 gap-1 p-1 bg-black/60 border-b border-white/10 text-[9px] font-mono shrink-0">
+      <div className="grid grid-cols-8 gap-0.5 p-1 bg-black/60 border-b border-white/10 text-[9px] font-mono shrink-0">
         <button
           type="button"
           onClick={() => setActiveTab("elements")}
@@ -97,6 +109,20 @@ export function ExpandedLeftSidebar({
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Insert</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("my-elements")}
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
+            activeTab === "my-elements"
+              ? "bg-amber-400/20 border border-amber-400/50 text-amber-300 font-bold"
+              : "text-gray-400 hover:text-white"
+          }`}
+          title="Saved Elements Library"
+        >
+          <Box className="w-3.5 h-3.5" />
+          <span>My Objects</span>
         </button>
 
         <button
@@ -116,7 +142,7 @@ export function ExpandedLeftSidebar({
         <button
           type="button"
           onClick={() => setActiveTab("templates")}
-          className={`py-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
             activeTab === "templates"
               ? "bg-neon-pink/20 border border-neon-pink/50 text-neon-pink font-bold"
               : "text-gray-400 hover:text-white"
@@ -130,7 +156,7 @@ export function ExpandedLeftSidebar({
         <button
           type="button"
           onClick={() => setActiveTab("assets")}
-          className={`py-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
             activeTab === "assets"
               ? "bg-neon-purple/20 border border-neon-purple/50 text-neon-purple font-bold"
               : "text-gray-400 hover:text-white"
@@ -144,7 +170,7 @@ export function ExpandedLeftSidebar({
         <button
           type="button"
           onClick={() => setActiveTab("uploads")}
-          className={`py-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
             activeTab === "uploads"
               ? "bg-amber-400/20 border border-amber-400/50 text-amber-300 font-bold"
               : "text-gray-400 hover:text-white"
@@ -158,7 +184,7 @@ export function ExpandedLeftSidebar({
         <button
           type="button"
           onClick={() => setActiveTab("history")}
-          className={`py-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
             activeTab === "history"
               ? "bg-emerald-400/20 border border-emerald-400/50 text-emerald-300 font-bold"
               : "text-gray-400 hover:text-white"
@@ -172,7 +198,7 @@ export function ExpandedLeftSidebar({
         <button
           type="button"
           onClick={() => setActiveTab("plugins")}
-          className={`py-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
             activeTab === "plugins"
               ? "bg-blue-400/20 border border-blue-400/50 text-blue-300 font-bold"
               : "text-gray-400 hover:text-white"
@@ -180,7 +206,7 @@ export function ExpandedLeftSidebar({
           title="AI Plugins"
         >
           <Wand2 className="w-3.5 h-3.5" />
-          <span>AI & Plugins</span>
+          <span>AI</span>
         </button>
       </div>
 
@@ -262,6 +288,87 @@ export function ExpandedLeftSidebar({
                 />
               </label>
             </div>
+          </div>
+        )}
+
+        {/* TAB 1.5: MY SAVED REUSABLE ELEMENTS */}
+        {activeTab === "my-elements" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
+                <Box className="w-4 h-4 text-amber-400" /> My Reusable Objects
+              </h3>
+              <span className="text-[10px] font-mono text-amber-400 font-bold">
+                {myElements.length} Saved
+              </span>
+            </div>
+
+            {myElements.length === 0 ? (
+              <div className="p-6 text-center text-gray-500 font-mono text-xs space-y-2 bg-black/40 rounded-2xl border border-white/5">
+                <Box className="w-8 h-8 text-amber-400/40 mx-auto animate-pulse" />
+                <p className="text-gray-300 font-bold">No Saved Objects Yet</p>
+                <p className="text-[10px] leading-relaxed text-gray-500">
+                  Select any object on the canvas and click "Save to My Elements Library" in the Inspector panel to store custom brand components!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myElements.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-2xl bg-black/40 border border-white/10 hover:border-amber-400/50 transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center shrink-0">
+                        <Box className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <div className="truncate">
+                        <div className="text-white font-bold text-xs truncate">
+                          {item.name}
+                        </div>
+                        <div className="text-[10px] font-mono text-gray-400 uppercase">
+                          {item.type}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newEl = {
+                            ...item.element,
+                            id: `el-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                            x: 100,
+                            y: 100,
+                          };
+                          onChangeState({
+                            ...state,
+                            elements: [...state.elements, newEl],
+                          });
+                        }}
+                        className="p-1.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-[10px] font-mono font-bold flex items-center gap-1 transition-all"
+                        title="Insert into Canvas"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Insert
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = myElements.filter((m) => m.id !== item.id);
+                          setMyElements(updated);
+                          localStorage.setItem("lizzdo_my_reusable_elements", JSON.stringify(updated));
+                        }}
+                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
+                        title="Delete from My Objects"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

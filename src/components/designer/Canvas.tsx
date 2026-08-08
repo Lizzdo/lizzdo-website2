@@ -96,9 +96,12 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(
 
     // Element Dragging & Transform state
     const [draggingElementId, setDraggingElementId] = useState<string | null>(null);
+    const [transformHandle, setTransformHandle] = useState<"drag" | "rotate" | "nw" | "ne" | "sw" | "se" | "n" | "s" | "e" | "w" | null>(null);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [liveCoords, setLiveCoords] = useState<{ x: number; y: number; w?: number; h?: number } | null>(null);
+    const [transformStart, setTransformStart] = useState<{ x: number; y: number; w: number; h: number; rot: number; mouseX: number; mouseY: number } | null>(null);
+    const [liveCoords, setLiveCoords] = useState<{ x: number; y: number; w?: number; h?: number; rot?: number } | null>(null);
     const [activeSmartGuides, setActiveSmartGuides] = useState<{ x?: number; y?: number }>({});
+    const [comparingBeforeAfter, setComparingBeforeAfter] = useState<boolean>(false);
 
     // Clipboard buffer
     const [clipboardElement, setClipboardElement] = useState<CanvasElement | null>(null);
@@ -211,37 +214,99 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(
         }
       }
 
-      // Handle element position drag
-      if (draggingElementId && primarySelectedElement && !primarySelectedElement.locked) {
+      // Handle element transform (position, resize handles, or rotation)
+      if (draggingElementId && primarySelectedElement && !primarySelectedElement.locked && transformStart) {
         const canvasNode = containerRef.current?.querySelector("#lizzdo-designer-canvas");
         if (canvasNode) {
           const rect = canvasNode.getBoundingClientRect();
-          let newX = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
-          let newY = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
+          const dxPercent = ((e.clientX - transformStart.mouseX) / rect.width) * 100;
+          const dyPercent = ((e.clientY - transformStart.mouseY) / rect.height) * 100;
 
-          // Clamp
-          newX = Math.max(-10, Math.min(110, newX));
-          newY = Math.max(-10, Math.min(110, newY));
+          if (transformHandle === "drag") {
+            let newX = transformStart.x + dxPercent;
+            let newY = transformStart.y + dyPercent;
 
-          // Snap to Center Guides
-          const guides: { x?: number; y?: number } = {};
-          if (snapToGrid) {
-            if (Math.abs(newX - 50) < 2) {
-              newX = 50;
-              guides.x = 50;
+            // Smart Guides & Snapping
+            const guides: { x?: number; y?: number } = {};
+            if (snapToGrid) {
+              if (Math.abs(newX - 50) < 2) {
+                newX = 50;
+                guides.x = 50;
+              }
+              if (Math.abs(newY - 50) < 2) {
+                newY = 50;
+                guides.y = 50;
+              }
             }
-            if (Math.abs(newY - 50) < 2) {
-              newY = 50;
-              guides.y = 50;
+
+            setActiveSmartGuides(guides);
+            const finalX = Math.round(newX * 10) / 10;
+            const finalY = Math.round(newY * 10) / 10;
+
+            setLiveCoords({ x: finalX, y: finalY, w: primarySelectedElement.width, h: primarySelectedElement.height });
+            onUpdateElement?.(draggingElementId, { x: finalX, y: finalY });
+          } else if (transformHandle === "rotate") {
+            // Compute rotation angle around element center
+            const centerX = rect.left + ((transformStart.x + (transformStart.w / 2)) / 100) * rect.width;
+            const centerY = rect.top + ((transformStart.y + (transformStart.h / 2)) / 100) * rect.height;
+            const rad = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+            let deg = Math.round((rad * 180) / Math.PI + 90);
+            if (deg < 0) deg += 360;
+
+            // Snap rotation if Shift held
+            if (e.shiftKey) {
+              deg = Math.round(deg / 15) * 15;
             }
+
+            setLiveCoords({ x: transformStart.x, y: transformStart.y, w: transformStart.w, h: transformStart.h, rot: deg });
+            onUpdateElement?.(draggingElementId, { rotation: deg });
+          } else if (transformHandle) {
+            // Resize handles (nw, ne, sw, se, n, s, e, w)
+            let newX = transformStart.x;
+            let newY = transformStart.y;
+            let newW = transformStart.w;
+            let newH = transformStart.h;
+
+            if (transformHandle.includes("e")) {
+              newW = Math.max(2, transformStart.w + dxPercent);
+            }
+            if (transformHandle.includes("s")) {
+              newH = Math.max(2, transformStart.h + dyPercent);
+            }
+            if (transformHandle.includes("w")) {
+              const possibleW = Math.max(2, transformStart.w - dxPercent);
+              newX = transformStart.x + (transformStart.w - possibleW);
+              newW = possibleW;
+            }
+            if (transformHandle.includes("n")) {
+              const possibleH = Math.max(2, transformStart.h - dyPercent);
+              newY = transformStart.y + (transformStart.h - possibleH);
+              newH = possibleH;
+            }
+
+            // Aspect Ratio Locking if requested or Shift key held
+            if (primarySelectedElement.aspectRatioLocked || e.shiftKey) {
+              const initialRatio = transformStart.w / transformStart.h;
+              if (transformHandle === "e" || transformHandle === "w" || transformHandle === "se" || transformHandle === "sw") {
+                newH = newW / initialRatio;
+              } else {
+                newW = newH * initialRatio;
+              }
+            }
+
+            const finalW = Math.round(newW * 10) / 10;
+            const finalH = Math.round(newH * 10) / 10;
+            const finalX = Math.round(newX * 10) / 10;
+            const finalY = Math.round(newY * 10) / 10;
+
+            setLiveCoords({ x: finalX, y: finalY, w: finalW, h: finalH });
+            onUpdateElement?.(draggingElementId, {
+              x: finalX,
+              y: finalY,
+              width: finalW,
+              height: finalH,
+            });
           }
-
-          setActiveSmartGuides(guides);
-          const finalX = Math.round(newX * 10) / 10;
-          const finalY = Math.round(newY * 10) / 10;
-
-          setLiveCoords({ x: finalX, y: finalY });
-          onUpdateElement?.(draggingElementId, { x: finalX, y: finalY });
         }
       }
     };
@@ -250,6 +315,8 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(
       setIsPanning(false);
       setIsMarqueeSelecting(false);
       setDraggingElementId(null);
+      setTransformHandle(null);
+      setTransformStart(null);
       setLiveCoords(null);
       setActiveSmartGuides({});
     };
@@ -385,6 +452,153 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(
               onSelectElement?.(id);
             }}
           />
+
+          {/* SELECTION OVERLAY WITH INTERACTIVE RESIZE & ROTATE HANDLES */}
+          {primarySelectedElement && (
+            <div
+              className="absolute pointer-events-none z-40 border-2 border-neon-cyan shadow-[0_0_15px_rgba(0,245,255,0.4)]"
+              style={{
+                left: `${primarySelectedElement.x}%`,
+                top: `${primarySelectedElement.y}%`,
+                width: `${primarySelectedElement.width || 20}%`,
+                height: `${primarySelectedElement.height || 20}%`,
+                transform: `rotate(${primarySelectedElement.rotation || 0}deg)`,
+                transformOrigin: "center center",
+              }}
+            >
+              {/* TOP ROTATION HANDLE STALK & BUTTON */}
+              {!primarySelectedElement.locked && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto cursor-grab active:cursor-grabbing">
+                  <div
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      setDraggingElementId(primarySelectedElement.id);
+                      setTransformHandle("rotate");
+                      setTransformStart({
+                        x: primarySelectedElement.x,
+                        y: primarySelectedElement.y,
+                        w: primarySelectedElement.width || 20,
+                        h: primarySelectedElement.height || 20,
+                        rot: primarySelectedElement.rotation || 0,
+                        mouseX: e.clientX,
+                        mouseY: e.clientY,
+                      });
+                    }}
+                    className="w-6 h-6 rounded-full bg-neon-cyan text-black flex items-center justify-center shadow-lg hover:scale-125 transition-transform"
+                    title="Drag to Rotate (Hold Shift to snap 15°)"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="w-0.5 h-3 bg-neon-cyan" />
+                </div>
+              )}
+
+              {/* 8 RESIZE HANDLES (CORNER & EDGE) */}
+              {!primarySelectedElement.locked && (
+                <>
+                  {["nw", "ne", "sw", "se", "n", "s", "e", "w"].map((handle) => {
+                    let positionClasses = "";
+                    let cursorClass = "";
+                    switch (handle) {
+                      case "nw": positionClasses = "-top-1.5 -left-1.5"; cursorClass = "cursor-nwse-resize"; break;
+                      case "ne": positionClasses = "-top-1.5 -right-1.5"; cursorClass = "cursor-nesw-resize"; break;
+                      case "sw": positionClasses = "-bottom-1.5 -left-1.5"; cursorClass = "cursor-nesw-resize"; break;
+                      case "se": positionClasses = "-bottom-1.5 -right-1.5"; cursorClass = "cursor-nwse-resize"; break;
+                      case "n": positionClasses = "-top-1.5 left-1/2 -translate-x-1/2"; cursorClass = "cursor-ns-resize"; break;
+                      case "s": positionClasses = "-bottom-1.5 left-1/2 -translate-x-1/2"; cursorClass = "cursor-ns-resize"; break;
+                      case "e": positionClasses = "top-1/2 -right-1.5 -translate-y-1/2"; cursorClass = "cursor-ew-resize"; break;
+                      case "w": positionClasses = "top-1/2 -left-1.5 -translate-y-1/2"; cursorClass = "cursor-ew-resize"; break;
+                    }
+                    return (
+                      <div
+                        key={handle}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setDraggingElementId(primarySelectedElement.id);
+                          setTransformHandle(handle as any);
+                          setTransformStart({
+                            x: primarySelectedElement.x,
+                            y: primarySelectedElement.y,
+                            w: primarySelectedElement.width || 20,
+                            h: primarySelectedElement.height || 20,
+                            rot: primarySelectedElement.rotation || 0,
+                            mouseX: e.clientX,
+                            mouseY: e.clientY,
+                          });
+                        }}
+                        className={`absolute w-3 h-3 bg-white border-2 border-neon-cyan rounded-sm shadow-md pointer-events-auto hover:scale-150 transition-transform ${positionClasses} ${cursorClass}`}
+                        title={`Resize ${handle.toUpperCase()}`}
+                      />
+                    );
+                  })}
+                </>
+              )}
+
+              {/* REAL-TIME DIMENSION & POSITION BADGE */}
+              <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md text-neon-cyan font-mono text-[10px] px-2 py-0.5 rounded border border-neon-cyan/40 shadow-xl whitespace-nowrap">
+                {Math.round(primarySelectedElement.width || 20)}% × {Math.round(primarySelectedElement.height || 20)}% | X:{Math.round(primarySelectedElement.x)}%, Y:{Math.round(primarySelectedElement.y)}%
+              </div>
+
+              {/* FLOATING QUICK ACTIONS BAR */}
+              <div className="absolute -top-12 left-0 flex items-center gap-1 bg-neutral-900/90 backdrop-blur-xl border border-white/20 rounded-xl p-1 shadow-2xl pointer-events-auto whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdateElement?.(primarySelectedElement.id, { x: 50 - (primarySelectedElement.width || 20) / 2, y: 50 - (primarySelectedElement.height || 20) / 2 });
+                  }}
+                  className="px-2 py-1 hover:bg-white/10 rounded text-[10px] font-mono text-gray-200 hover:text-neon-cyan flex items-center gap-1"
+                  title="Center on Canvas"
+                >
+                  <AlignCenter className="w-3 h-3 text-neon-cyan" /> Center
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdateElement?.(primarySelectedElement.id, { flipX: !primarySelectedElement.flipX });
+                  }}
+                  className="px-2 py-1 hover:bg-white/10 rounded text-[10px] font-mono text-gray-200 hover:text-neon-purple flex items-center gap-1"
+                  title="Flip Horizontal"
+                >
+                  Flip H
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDuplicateElement?.(primarySelectedElement.id);
+                  }}
+                  className="px-2 py-1 hover:bg-white/10 rounded text-[10px] font-mono text-gray-200 hover:text-emerald-400 flex items-center gap-1"
+                  title="Duplicate Object"
+                >
+                  <Copy className="w-3 h-3 text-emerald-400" /> Dup
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdateElement?.(primarySelectedElement.id, { locked: !primarySelectedElement.locked });
+                  }}
+                  className="px-2 py-1 hover:bg-white/10 rounded text-[10px] font-mono text-gray-200 flex items-center gap-1"
+                  title={primarySelectedElement.locked ? "Unlock" : "Lock"}
+                >
+                  {primarySelectedElement.locked ? <Unlock className="w-3 h-3 text-emerald-400" /> : <Lock className="w-3 h-3 text-amber-400" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteElement?.(primarySelectedElement.id);
+                  }}
+                  className="px-2 py-1 hover:bg-red-500/20 rounded text-[10px] font-mono text-red-400 flex items-center gap-1"
+                  title="Delete Object"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* LIVE TRANSFORM COORDINATES BADGE */}
           {liveCoords && (
