@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import JSZip from "jszip";
+import { getStorageItem, setStorageItem } from "../utils/storage";
 import {
   StudioToolId,
   StudioProject,
@@ -362,9 +363,9 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [activeToolId, setActiveToolId] = useState<StudioToolId>("dashboard");
   const [projects, setProjects] = useState<StudioProject[]>(() => {
     try {
-      const saved = localStorage.getItem("lizzdo_studio_projects_v2");
+      const saved = getStorageItem("lizzdo_studio_projects_v2");
       if (saved) return JSON.parse(saved);
-      const oldSaved = localStorage.getItem("lizzdo_studio_projects");
+      const oldSaved = getStorageItem("lizzdo_studio_projects");
       return oldSaved ? JSON.parse(oldSaved) : INITIAL_PROJECTS;
     } catch {
       return INITIAL_PROJECTS;
@@ -373,7 +374,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   const [folders, setFolders] = useState<StudioFolder[]>(() => {
     try {
-      const saved = localStorage.getItem("lizzdo_studio_folders");
+      const saved = getStorageItem("lizzdo_studio_folders");
       return saved ? JSON.parse(saved) : DEFAULT_STUDIO_FOLDERS;
     } catch {
       return DEFAULT_STUDIO_FOLDERS;
@@ -384,7 +385,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   const [sharedAssets, setSharedAssets] = useState<SharedAsset[]>(() => {
     try {
-      const saved = localStorage.getItem("lizzdo_studio_assets");
+      const saved = getStorageItem("lizzdo_studio_assets");
       return saved ? JSON.parse(saved) : INITIAL_ASSETS;
     } catch {
       return INITIAL_ASSETS;
@@ -394,17 +395,15 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   // BRAND KITS STATE
   const [brandKits, setBrandKits] = useState<BrandKitProfile[]>(() => {
     try {
-      const saved = localStorage.getItem("lizzdo_studio_brandkits_v2");
+      const saved = getStorageItem("lizzdo_studio_brandkits_v2");
       if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn("Failed to load brandkits:", e);
-    }
+    } catch (e) {}
     return DEFAULT_BRAND_KITS;
   });
 
   const [activeBrandId, setActiveBrandId] = useState<string>(() => {
     try {
-      const savedId = localStorage.getItem("lizzdo_active_brand_id");
+      const savedId = getStorageItem("lizzdo_active_brand_id");
       if (savedId && DEFAULT_BRAND_KITS.some((b) => b.id === savedId)) return savedId;
     } catch (e) {}
     return DEFAULT_BRAND_KITS[0].id;
@@ -417,7 +416,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [lastAutoSaveTime, setLastAutoSaveTime] = useState<string | null>(null);
   const [recoveryDrafts, setRecoveryDrafts] = useState<UnsavedRecoveryDraft[]>(() => {
     try {
-      const saved = localStorage.getItem("lizzdo_studio_recovery_drafts");
+      const saved = getStorageItem("lizzdo_studio_recovery_drafts");
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -428,7 +427,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem("lizzdo_studio_recent_searches");
+      const saved = getStorageItem("lizzdo_studio_recent_searches");
       return saved ? JSON.parse(saved) : ["Neon Logo", "Instagram Reel", "Thumbnail", "Brand Kit"];
     } catch {
       return ["Neon Logo", "Instagram Reel", "Thumbnail", "Brand Kit"];
@@ -446,7 +445,7 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   // Activities Log State
   const [activities, setActivities] = useState<StudioActivity[]>(() => {
     try {
-      const saved = localStorage.getItem("lizzdo_studio_activities");
+      const saved = getStorageItem("lizzdo_studio_activities");
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return [
@@ -575,51 +574,35 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   // Persistence Effects
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_studio_projects_v2", JSON.stringify(projects));
-    } catch (e) {}
+    setStorageItem("lizzdo_studio_projects_v2", JSON.stringify(projects));
   }, [projects]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_studio_folders", JSON.stringify(folders));
-    } catch (e) {}
+    setStorageItem("lizzdo_studio_folders", JSON.stringify(folders));
   }, [folders]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_studio_assets", JSON.stringify(sharedAssets));
-    } catch (e) {}
+    setStorageItem("lizzdo_studio_assets", JSON.stringify(sharedAssets));
   }, [sharedAssets]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_studio_brandkits_v2", JSON.stringify(brandKits));
-    } catch (e) {}
+    setStorageItem("lizzdo_studio_brandkits_v2", JSON.stringify(brandKits));
   }, [brandKits]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_active_brand_id", activeBrandId);
-    } catch (e) {}
+    setStorageItem("lizzdo_active_brand_id", activeBrandId);
   }, [activeBrandId]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_studio_activities", JSON.stringify(activities));
-    } catch (e) {}
+    setStorageItem("lizzdo_studio_activities", JSON.stringify(activities));
   }, [activities]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_studio_recent_searches", JSON.stringify(recentSearches));
-    } catch (e) {}
+    setStorageItem("lizzdo_studio_recent_searches", JSON.stringify(recentSearches));
   }, [recentSearches]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("lizzdo_studio_recovery_drafts", JSON.stringify(recoveryDrafts));
-    } catch (e) {}
+    setStorageItem("lizzdo_studio_recovery_drafts", JSON.stringify(recoveryDrafts));
   }, [recoveryDrafts]);
 
   // BACKGROUND AUTO-SAVE ENGINE FOR CURRENT PROJECT

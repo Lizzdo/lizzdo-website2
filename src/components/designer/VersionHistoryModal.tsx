@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, History, RotateCcw, Save, ShieldCheck, Trash2, Clock } from "lucide-react";
 import { DesignState } from "../../types/designer";
+import { getStorageItem, setStorageItem } from "../../utils/storage";
 
 interface VersionSnapshot {
   id: string;
@@ -28,7 +29,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   // Load existing snapshots from localStorage
   useEffect(() => {
     if (isOpen) {
-      const saved = localStorage.getItem(`lizzdo_snapshots_${currentState.id}`);
+      const saved = getStorageItem(`lizzdo_snapshots_${currentState.id}`);
       if (saved) {
         try {
           setSnapshots(JSON.parse(saved));
@@ -51,7 +52,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
 
     const updated = [newSnapshot, ...snapshots];
     setSnapshots(updated);
-    localStorage.setItem(`lizzdo_snapshots_${currentState.id}`, JSON.stringify(updated));
+    setStorageItem(`lizzdo_snapshots_${currentState.id}`, JSON.stringify(updated));
     setSnapshotLabel("");
   };
 
@@ -63,7 +64,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   const handleDeleteSnapshot = (id: string) => {
     const updated = snapshots.filter((s) => s.id !== id);
     setSnapshots(updated);
-    localStorage.setItem(`lizzdo_snapshots_${currentState.id}`, JSON.stringify(updated));
+    setStorageItem(`lizzdo_snapshots_${currentState.id}`, JSON.stringify(updated));
   };
 
   return (

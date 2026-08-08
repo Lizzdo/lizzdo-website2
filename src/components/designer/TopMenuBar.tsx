@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useStudio } from "../../context/StudioContext";
 import { CanvasPreset } from "../../types/designer";
 import { CANVAS_PRESETS } from "../../data/designerTemplates";
 import {
@@ -95,6 +96,7 @@ export function TopMenuBar({
   onOpenShortcuts,
   onOpenSnapshots,
 }: Props) {
+  const { setActiveToolId } = useStudio();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -123,14 +125,15 @@ export function TopMenuBar({
       <div className="h-11 px-3 flex items-center justify-between border-b border-white/5 text-xs font-sans gap-2">
         {/* LEFT: BACK TO WEBSITE & PROJECT TITLE */}
         <div className="flex items-center gap-3 min-w-0 shrink-0">
-          <a
-            href="/"
+          <button
+            type="button"
+            onClick={() => setActiveToolId("dashboard")}
             className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/15 hover:bg-white/10 hover:border-neon-cyan/50 text-gray-300 hover:text-white transition-all text-xs font-mono flex items-center gap-1.5 shrink-0 group"
-            title="Exit Designer & Return to Main Website"
+            title="Return to Studio Workspace Dashboard"
           >
             <Sparkles className="w-3.5 h-3.5 text-neon-cyan group-hover:rotate-12 transition-transform" />
-            <span className="font-semibold text-[11px]">Back to Website</span>
-          </a>
+            <span className="font-semibold text-[11px]">Studio Home</span>
+          </button>
 
           <div className="h-4 w-px bg-white/10 shrink-0" />
 

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getStorageItem, setStorageItem, removeStorageItem } from "../utils/storage";
 import { getCollection, sortByOrder } from "../lib/content";
 
 export interface PortfolioItem {
@@ -238,7 +239,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Portfolio State
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PORTFOLIO);
+      const saved = getStorageItem(STORAGE_KEYS.PORTFOLIO);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return loadInitialPortfolio();
@@ -247,7 +248,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Blog State
   const [blogPosts, setBlogPosts] = useState<BlogPostItem[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.BLOG);
+      const saved = getStorageItem(STORAGE_KEYS.BLOG);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return loadInitialBlog();
@@ -256,7 +257,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Store State
   const [storeProducts, setStoreProducts] = useState<StoreProductItem[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.STORE);
+      const saved = getStorageItem(STORAGE_KEYS.STORE);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return loadInitialStore();
@@ -264,15 +265,15 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Sync to local storage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PORTFOLIO, JSON.stringify(portfolioItems));
+    setStorageItem(STORAGE_KEYS.PORTFOLIO, JSON.stringify(portfolioItems));
   }, [portfolioItems]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.BLOG, JSON.stringify(blogPosts));
+    setStorageItem(STORAGE_KEYS.BLOG, JSON.stringify(blogPosts));
   }, [blogPosts]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.STORE, JSON.stringify(storeProducts));
+    setStorageItem(STORAGE_KEYS.STORE, JSON.stringify(storeProducts));
   }, [storeProducts]);
 
   // Portfolio Handlers
@@ -308,7 +309,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const resetPortfolioItems = () => {
-    localStorage.removeItem(STORAGE_KEYS.PORTFOLIO);
+    removeStorageItem(STORAGE_KEYS.PORTFOLIO);
     setPortfolioItems(loadInitialPortfolio());
   };
 
@@ -350,7 +351,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const resetBlogPosts = () => {
-    localStorage.removeItem(STORAGE_KEYS.BLOG);
+    removeStorageItem(STORAGE_KEYS.BLOG);
     setBlogPosts(loadInitialBlog());
   };
 
@@ -392,7 +393,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const resetStoreProducts = () => {
-    localStorage.removeItem(STORAGE_KEYS.STORE);
+    removeStorageItem(STORAGE_KEYS.STORE);
     setStoreProducts(loadInitialStore());
   };
 

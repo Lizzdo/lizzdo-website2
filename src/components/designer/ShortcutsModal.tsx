@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Command, Keyboard, Check, RotateCcw } from "lucide-react";
+import { getStorageItem, removeStorageItem } from "../../utils/storage";
 
 interface ShortcutsModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ const DEFAULT_SHORTCUTS: ShortcutItem[] = [
 
 export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose }) => {
   const [shortcuts, setShortcuts] = useState<ShortcutItem[]>(() => {
-    const saved = localStorage.getItem("lizzdo_custom_shortcuts");
+    const saved = getStorageItem("lizzdo_custom_shortcuts");
     return saved ? JSON.parse(saved) : DEFAULT_SHORTCUTS;
   });
 
@@ -53,7 +54,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
 
   const handleResetDefaults = () => {
     setShortcuts(DEFAULT_SHORTCUTS);
-    localStorage.removeItem("lizzdo_custom_shortcuts");
+    removeStorageItem("lizzdo_custom_shortcuts");
   };
 
   return (

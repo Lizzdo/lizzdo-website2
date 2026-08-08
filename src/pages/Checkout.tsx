@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, Lock, CreditCard, User, Truck, Check, AlertCircle } from "lucide-react";
+import { getStorageItem, removeStorageItem } from "../utils/storage";
 import DocumentHead from "../components/DocumentHead";
 
 export default function Checkout() {
@@ -26,7 +27,7 @@ export default function Checkout() {
   useEffect(() => {
     // In a real app, this would fetch from global state or local storage
     // For now, we'll try to get it from localStorage if we implemented it, or just show empty
-    const storedCart = localStorage.getItem("lizzdo_cart");
+    const storedCart = getStorageItem("lizzdo_cart");
     if (storedCart) {
       setCart(JSON.parse(storedCart));
     } else {
@@ -63,7 +64,7 @@ export default function Checkout() {
     setTimeout(() => {
       setIsProcessing(false);
       setIsSuccess(true);
-      localStorage.removeItem("lizzdo_cart");
+      removeStorageItem("lizzdo_cart");
       setCart([]);
     }, 2000);
   };

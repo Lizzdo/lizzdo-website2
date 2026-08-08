@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { getStorageItem, setStorageItem } from "../utils/storage";
 import { V2Project, V2Artboard, WorkspaceConfig, HistoryEntry, V2Tool } from "../types/designerV2";
 import { CanvasElement, DesignState } from "../types/designer";
 import { createDefaultV2Project, addArtboardToV2Project } from "../utils/designerV2Migration";
@@ -22,7 +23,7 @@ export default function DesignerV2() {
   // 1. Initial State Load (Local Storage or Default)
   const [project, setProject] = useState<V2Project>(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = getStorageItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.artboards && parsed.version === "2.0") {
@@ -82,7 +83,7 @@ export default function DesignerV2() {
     (newProject: V2Project, description: string) => {
       setProject(newProject);
       try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newProject));
+        setStorageItem(LOCAL_STORAGE_KEY, JSON.stringify(newProject));
       } catch (e) {
         /* storage limit fallback */
       }

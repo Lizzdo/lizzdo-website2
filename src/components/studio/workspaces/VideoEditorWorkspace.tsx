@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { getStorageItem, setStorageItem } from "../../../utils/storage";
 import {
   MediaFolder,
   MediaItem,
@@ -25,7 +26,7 @@ import { VideoExportModal } from "../video/VideoExportModal";
 export function VideoEditorWorkspace() {
   // 1. Initial Project State
   const [project, setProject] = useState<VideoProjectData>(() => {
-    const saved = localStorage.getItem("lizzdo_video_project");
+    const saved = getStorageItem("lizzdo_video_project");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -43,7 +44,7 @@ export function VideoEditorWorkspace() {
   const updateProjectWithHistory = (updated: Partial<VideoProjectData>) => {
     setProject((prev) => {
       const next = { ...prev, ...updated, updatedAt: new Date().toISOString() };
-      localStorage.setItem("lizzdo_video_project", JSON.stringify(next));
+      setStorageItem("lizzdo_video_project", JSON.stringify(next));
 
       // Push to history
       const newHistory = history.slice(0, historyIndex + 1);

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { getStorageItem, setStorageItem } from "../../utils/storage";
 import {
   DesignState,
   CanvasElement,
@@ -131,7 +132,7 @@ export default function PostDesigner() {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem("lizzdo_current_design_project", JSON.stringify(designState));
+        setStorageItem("lizzdo_current_design_project", JSON.stringify(designState));
         setAutosaveNotice(true);
         const hideTimer = setTimeout(() => setAutosaveNotice(false), 2000);
         return () => clearTimeout(hideTimer);
@@ -144,7 +145,7 @@ export default function PostDesigner() {
 
   // RESTORE AUTOSAVED PROJECT ON FIRST LOAD
   useEffect(() => {
-    const saved = localStorage.getItem("lizzdo_current_design_project");
+    const saved = getStorageItem("lizzdo_current_design_project");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -689,7 +690,7 @@ export default function PostDesigner() {
   return (
     <div
       ref={workspaceRef}
-      className={`fixed inset-0 z-50 bg-neutral-950 text-white flex flex-col select-none overflow-hidden font-sans selection:bg-neon-cyan selection:text-black ${
+      className={`w-full h-full bg-neutral-950 text-white flex flex-col select-none overflow-hidden font-sans relative ${
         theme === "light" ? "bg-gray-100 text-gray-900" : ""
       }`}
     >

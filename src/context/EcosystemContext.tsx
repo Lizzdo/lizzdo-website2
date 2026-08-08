@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getStorageItem, setStorageItem } from "../utils/storage";
 import {
   ExtendedTemplateMeta,
   MARKETPLACE_TEMPLATES,
@@ -167,20 +168,18 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Templates state
   const [templates, setTemplates] = useState<ExtendedTemplateMeta[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
+      const saved = getStorageItem(STORAGE_KEYS.TEMPLATES);
       if (saved) {
         const custom = JSON.parse(saved);
         return [...MARKETPLACE_TEMPLATES, ...custom];
       }
-    } catch (e) {
-      console.warn("Failed to load custom templates:", e);
-    }
+    } catch (e) {}
     return MARKETPLACE_TEMPLATES;
   });
 
   const [favoriteTemplateIds, setFavoriteTemplateIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.FAV_TEMPLATES);
+      const saved = getStorageItem(STORAGE_KEYS.FAV_TEMPLATES);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return ["tmpl-soc-ig-post-1", "tmpl-web-hero-1", "tmpl-mkt-fiverr-1"];
@@ -188,7 +187,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const [recentlyUsedTemplateIds, setRecentlyUsedTemplateIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.RECENT_TEMPLATES);
+      const saved = getStorageItem(STORAGE_KEYS.RECENT_TEMPLATES);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return ["tmpl-soc-ig-post-1", "tmpl-web-hero-1"];
@@ -197,20 +196,18 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Assets state
   const [assets, setAssets] = useState<ExtendedAssetMeta[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.ASSETS);
+      const saved = getStorageItem(STORAGE_KEYS.ASSETS);
       if (saved) {
         const custom = JSON.parse(saved);
         return [...INITIAL_MARKETPLACE_ASSETS, ...custom];
       }
-    } catch (e) {
-      console.warn("Failed to load custom assets:", e);
-    }
+    } catch (e) {}
     return INITIAL_MARKETPLACE_ASSETS;
   });
 
   const [favoriteAssetIds, setFavoriteAssetIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.FAV_ASSETS);
+      const saved = getStorageItem(STORAGE_KEYS.FAV_ASSETS);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return ["asset-img-1", "asset-icon-1", "asset-grad-1"];
@@ -219,7 +216,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Collections state
   const [collections, setCollections] = useState<AssetCollection[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
+      const saved = getStorageItem(STORAGE_KEYS.COLLECTIONS);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return DEFAULT_COLLECTIONS;
@@ -228,7 +225,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Folders state
   const [folders, setFolders] = useState<FolderItem[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.FOLDERS);
+      const saved = getStorageItem(STORAGE_KEYS.FOLDERS);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return [
@@ -265,23 +262,23 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Sync state to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FAV_TEMPLATES, JSON.stringify(favoriteTemplateIds));
+    setStorageItem(STORAGE_KEYS.FAV_TEMPLATES, JSON.stringify(favoriteTemplateIds));
   }, [favoriteTemplateIds]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.RECENT_TEMPLATES, JSON.stringify(recentlyUsedTemplateIds));
+    setStorageItem(STORAGE_KEYS.RECENT_TEMPLATES, JSON.stringify(recentlyUsedTemplateIds));
   }, [recentlyUsedTemplateIds]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FAV_ASSETS, JSON.stringify(favoriteAssetIds));
+    setStorageItem(STORAGE_KEYS.FAV_ASSETS, JSON.stringify(favoriteAssetIds));
   }, [favoriteAssetIds]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
+    setStorageItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
   }, [collections]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
+    setStorageItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
   }, [folders]);
 
   // TEMPLATES HANDLERS
@@ -333,7 +330,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTemplates((prev) => {
       const next = [newTmpl, ...prev];
       const customOnly = next.filter((t) => t.isCustom);
-      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      setStorageItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
       return next;
     });
 
@@ -344,7 +341,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTemplates((prev) => {
       const next = prev.filter((t) => t.id !== id);
       const customOnly = next.filter((t) => t.isCustom);
-      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      setStorageItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
       return next;
     });
   };
@@ -367,7 +364,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTemplates((prev) => {
       const next = [dup, ...prev];
       const customOnly = next.filter((t) => t.isCustom);
-      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      setStorageItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
       return next;
     });
 
@@ -388,7 +385,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTemplates((prev) => {
       const next = [imported, ...prev];
       const customOnly = next.filter((t) => t.isCustom);
-      localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
+      setStorageItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(customOnly));
       return next;
     });
 
@@ -486,7 +483,7 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setAssets((prev) => {
           const next = [newAsset, ...prev];
           const userOnly = next.filter((a) => a.id.startsWith("asset-user-"));
-          localStorage.setItem(STORAGE_KEYS.ASSETS, JSON.stringify(userOnly));
+          setStorageItem(STORAGE_KEYS.ASSETS, JSON.stringify(userOnly));
           return next;
         });
 

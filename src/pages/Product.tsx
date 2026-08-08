@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, ArrowRight, X, ExternalLink, Download, CheckCircle2, LayoutGrid, ChevronLeft, ChevronRight, Play, ShoppingCart, Tag, Share2, Info, Package, HardDrive, Settings, FileBox, Cpu, FileText, Calendar, Box, ShieldCheck, Video, Calculator } from "lucide-react";
+import { getStorageItem, setStorageItem } from "../utils/storage";
 import { getCollection, sortByOrder } from "../lib/content";
 import DocumentHead from "../components/DocumentHead";
 import SmartCardImage from "../components/SmartCardImage";
@@ -90,9 +91,9 @@ export default function Product() {
       window.open(product.buy_url, '_blank');
       return;
     }
-    const cart = JSON.parse(localStorage.getItem("lizzdo_cart") || "[]");
+    const cart = JSON.parse(getStorageItem("lizzdo_cart") || "[]");
     cart.push({ id: product.id, name: product.title, price: product.sale_price || product.price });
-    localStorage.setItem("lizzdo_cart", JSON.stringify(cart));
+    setStorageItem("lizzdo_cart", JSON.stringify(cart));
     navigate('/checkout');
   };
 
