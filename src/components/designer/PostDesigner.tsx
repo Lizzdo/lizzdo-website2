@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useStudio } from "../../context/StudioContext";
 import { getStorageItem, setStorageItem } from "../../utils/storage";
 import {
   DesignState,
@@ -72,10 +73,33 @@ import {
 } from "lucide-react";
 
 export default function PostDesigner() {
-  const [designState, setDesignState] = useState<DesignState>(DEFAULT_DESIGN_STATE);
+  const { currentProject, updateProject, exportProjectJSON } = useStudio();
+
+  const getInitialDesign = (): DesignState => {
+    if (currentProject && currentProject.data) {
+      return {
+        ...DEFAULT_DESIGN_STATE,
+        ...currentProject.data,
+        id: currentProject.id || DEFAULT_DESIGN_STATE.id,
+        title: currentProject.title || DEFAULT_DESIGN_STATE.title,
+        width: currentProject.width || currentProject.data.width || 1200,
+        height: currentProject.height || currentProject.data.height || 1200,
+      };
+    }
+    const saved = getStorageItem("lizzdo_current_design_project");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.elements) return parsed;
+      } catch (e) {}
+    }
+    return DEFAULT_DESIGN_STATE;
+  };
+
+  const [designState, setDesignState] = useState<DesignState>(getInitialDesign);
   
   // HISTORY UNDO/REDO STACK
-  const [historyStack, setHistoryStack] = useState<DesignState[]>([DEFAULT_DESIGN_STATE]);
+  const [historyStack, setHistoryStack] = useState<DesignState[]>([getInitialDesign()]);
   const [historyIndex, setHistoryIndex] = useState<number>(0);
 
   const updateStateAndHistory = useCallback((newState: DesignState) => {
@@ -128,20 +152,28 @@ export default function PostDesigner() {
   const [showSnapshotsModal, setShowSnapshotsModal] = useState<boolean>(false);
   const [autosaveNotice, setAutosaveNotice] = useState<boolean>(false);
 
-  // AUTOSAVE PROJECT STATE TO LOCALSTORAGE
+  // AUTOSAVE PROJECT STATE TO STUDIO CONTEXT & LOCALSTORAGE
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
         setStorageItem("lizzdo_current_design_project", JSON.stringify(designState));
+        if (currentProject?.id) {
+          updateProject(currentProject.id, {
+            data: designState,
+            width: designState.width,
+            height: designState.height,
+            title: designState.title,
+          });
+        }
         setAutosaveNotice(true);
-        const hideTimer = setTimeout(() => setAutosaveNotice(false), 2000);
+        const hideTimer = setTimeout(() => setAutosaveNotice(false), 1500);
         return () => clearTimeout(hideTimer);
       } catch (e) {
         console.error("Autosave failed", e);
       }
-    }, 1000);
+    }, 600);
     return () => clearTimeout(timer);
-  }, [designState]);
+  }, [designState, currentProject?.id, updateProject]);
 
   // RESTORE AUTOSAVED PROJECT ON FIRST LOAD
   useEffect(() => {

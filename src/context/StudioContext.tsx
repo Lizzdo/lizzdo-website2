@@ -93,9 +93,9 @@ interface StudioContextType {
   discardRecoveryDraft: (projectId: string) => void;
 
   // Package Import / Export
-  exportProjectJSON: (id: string) => void;
+  exportProjectJSON: (id?: string) => void;
   importProjectJSON: (jsonStr: string) => StudioProject | null;
-  exportProjectZIP: (id: string) => Promise<void>;
+  exportProjectZIP: (id?: string) => Promise<void>;
   exportFullStudioBackupZIP: () => Promise<void>;
   importProjectPackageZIP: (file: File) => Promise<StudioProject | null>;
 
@@ -148,6 +148,10 @@ interface StudioContextType {
   setIsQuickActionOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isNotificationOpen: boolean;
   setIsNotificationOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isCreateProjectOpen: boolean;
+  setIsCreateProjectOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  createProjectDefaultTool: StudioToolId;
+  openCreateProjectModal: (defaultTool?: StudioToolId) => void;
   notifications: StudioNotification[];
   addNotification: (title: string, message: string, type?: "success" | "info" | "error", category?: StudioNotification["category"]) => void;
   markNotificationRead: (id: string) => void;
@@ -437,6 +441,13 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [createProjectDefaultTool, setCreateProjectDefaultTool] = useState<StudioToolId>("designer");
+
+  const openCreateProjectModal = (defaultTool: StudioToolId = "designer") => {
+    setCreateProjectDefaultTool(defaultTool);
+    setIsCreateProjectOpen(true);
+  };
 
   // Sidebar controls
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -1316,8 +1327,9 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   };
 
   // PACKAGE IMPORT / EXPORT (ZIP & JSON)
-  const exportProjectJSON = (id: string) => {
-    const proj = projects.find((p) => p.id === id);
+  const exportProjectJSON = (id?: string) => {
+    const targetId = id || currentProjectId;
+    const proj = projects.find((p) => p.id === targetId);
     if (!proj) return;
     const dataStr =
       "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(proj, null, 2));
@@ -1330,8 +1342,9 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     addNotification("Project JSON Exported", `Saved "${proj.title}" JSON project file`, "success", "exports");
   };
 
-  const exportProjectZIP = async (id: string) => {
-    const proj = projects.find((p) => p.id === id);
+  const exportProjectZIP = async (id?: string) => {
+    const targetId = id || currentProjectId;
+    const proj = projects.find((p) => p.id === targetId);
     if (!proj) return;
 
     try {
@@ -1635,6 +1648,10 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         setIsQuickActionOpen,
         isNotificationOpen,
         setIsNotificationOpen,
+        isCreateProjectOpen,
+        setIsCreateProjectOpen,
+        createProjectDefaultTool,
+        openCreateProjectModal,
         notifications,
         addNotification,
         markNotificationRead,

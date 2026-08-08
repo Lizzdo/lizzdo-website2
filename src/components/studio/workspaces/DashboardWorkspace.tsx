@@ -27,6 +27,7 @@ export function DashboardWorkspace() {
     setIsSearchOpen,
     setIsQuickActionOpen,
     createProject,
+    openCreateProjectModal,
   } = useStudio();
 
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -92,11 +93,11 @@ export function DashboardWorkspace() {
 
             <button
               type="button"
-              onClick={() => createProject("Untitled Design", "designer")}
+              onClick={() => openCreateProjectModal("designer")}
               className="px-5 py-3 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/20 text-white font-display font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Blank Canvas</span>
+              <span>New Project</span>
             </button>
           </div>
         </div>
@@ -182,7 +183,7 @@ export function DashboardWorkspace() {
               <p className="text-gray-400">No projects found matching selected tab or filters.</p>
               <button
                 type="button"
-                onClick={() => createProject("New Creative Graphic", "designer")}
+                onClick={() => openCreateProjectModal("designer")}
                 className="px-4 py-2 rounded-xl bg-neon-purple text-white font-bold hover:bg-neon-purple/80 transition-colors inline-flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" /> Create New Project

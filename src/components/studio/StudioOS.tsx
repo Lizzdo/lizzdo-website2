@@ -5,6 +5,7 @@ import { StudioSidebar } from "./StudioSidebar";
 import { GlobalSearchModal } from "./GlobalSearchModal";
 import { QuickActionPanel } from "./QuickActionPanel";
 import { NotificationCenterDrawer } from "./NotificationCenterDrawer";
+import { CreateProjectModal } from "./modals/CreateProjectModal";
 
 // Import all workspace views
 import { DashboardWorkspace } from "./workspaces/DashboardWorkspace";
@@ -34,6 +35,9 @@ export function StudioOS() {
     activeToolId,
     isQuickActionOpen,
     setIsQuickActionOpen,
+    isCreateProjectOpen,
+    setIsCreateProjectOpen,
+    createProjectDefaultTool,
   } = useStudio();
 
   // Render workspace depending on activeToolId
@@ -105,6 +109,11 @@ export function StudioOS() {
       {/* MODALS AND DRAWERS */}
       <GlobalSearchModal />
       <NotificationCenterDrawer />
+      <CreateProjectModal
+        isOpen={isCreateProjectOpen}
+        onClose={() => setIsCreateProjectOpen(false)}
+        defaultToolId={createProjectDefaultTool}
+      />
 
       {/* QUICK ACTION MODAL */}
       {isQuickActionOpen && (

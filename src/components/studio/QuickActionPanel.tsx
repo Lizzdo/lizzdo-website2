@@ -25,6 +25,7 @@ interface QuickActionPanelProps {
 export function QuickActionPanel({ onClose }: QuickActionPanelProps) {
   const {
     createProject,
+    openCreateProjectModal,
     openProject,
     projects,
     uploadSharedAsset,
@@ -36,7 +37,7 @@ export function QuickActionPanel({ onClose }: QuickActionPanelProps) {
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
   const handleLaunch = (title: string, toolId: StudioToolId) => {
-    createProject(title, toolId);
+    openCreateProjectModal(toolId);
     if (onClose) onClose();
     setIsQuickActionOpen(false);
   };

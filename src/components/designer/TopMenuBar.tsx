@@ -96,7 +96,12 @@ export function TopMenuBar({
   onOpenShortcuts,
   onOpenSnapshots,
 }: Props) {
-  const { setActiveToolId } = useStudio();
+  const {
+    setActiveToolId,
+    openCreateProjectModal,
+    exportProjectJSON,
+    importProjectJSON,
+  } = useStudio();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -291,13 +296,33 @@ export function TopMenuBar({
                   <>
                     <button
                       onClick={() => {
+                        openCreateProjectModal("designer");
+                        setActiveMenu(null);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-neon-purple/20 hover:text-neon-purple flex items-center justify-between"
+                    >
+                      <span>New Project...</span>
+                      <span className="text-[10px] text-gray-500">Ctrl+N</span>
+                    </button>
+                    <button
+                      onClick={() => {
                         onOpenExport();
                         setActiveMenu(null);
                       }}
                       className="w-full px-3 py-1.5 text-left hover:bg-neon-cyan/20 hover:text-neon-cyan flex items-center justify-between"
                     >
-                      <span>Export Graphic...</span>
+                      <span>Export Graphic Image...</span>
                       <span className="text-[10px] text-gray-500">Ctrl+E</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportProjectJSON();
+                        setActiveMenu(null);
+                      }}
+                      className="w-full px-3 py-1.5 text-left hover:bg-neon-pink/20 hover:text-neon-pink flex items-center justify-between"
+                    >
+                      <span>Export Editable File (.json)</span>
+                      <span className="text-[10px] text-gray-500">Package</span>
                     </button>
                     <button
                       onClick={() => {

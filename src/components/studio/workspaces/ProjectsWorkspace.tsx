@@ -40,6 +40,7 @@ export function ProjectsWorkspace() {
     folders,
     openProject,
     createProject,
+    openCreateProjectModal,
     deleteProject,
     duplicateProject,
     toggleFavoriteProject,
@@ -226,7 +227,7 @@ export function ProjectsWorkspace() {
 
                   <button
                     type="button"
-                    onClick={() => createProject("Untitled Studio Project", "designer", null, selectedFolderId || undefined)}
+                    onClick={() => openCreateProjectModal("designer")}
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-neon-purple to-neon-pink text-white font-display font-bold text-xs uppercase tracking-wider hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] transition-all flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" /> New Project
@@ -376,10 +377,10 @@ export function ProjectsWorkspace() {
                 {selectedCategory !== "trash" && (
                   <button
                     type="button"
-                    onClick={() => createProject("Untitled Studio Project", "designer")}
+                    onClick={() => openCreateProjectModal("designer")}
                     className="px-4 py-2 rounded-xl bg-neon-purple text-white font-bold text-xs shadow-lg inline-flex items-center gap-2"
                   >
-                    <Plus className="w-4 h-4" /> Create Blank Project
+                    <Plus className="w-4 h-4" /> Create Project
                   </button>
                 )}
               </div>

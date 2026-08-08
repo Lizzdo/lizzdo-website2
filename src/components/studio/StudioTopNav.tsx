@@ -81,6 +81,7 @@ export function StudioTopNav() {
     projects,
     currentProjectId,
     createProject,
+    openCreateProjectModal,
     setIsSearchOpen,
     setIsQuickActionOpen,
     setIsNotificationOpen,
@@ -280,6 +281,17 @@ export function StudioTopNav() {
 
       {/* RIGHT SECTION: ACTIONS, NOTIFICATIONS, SETTINGS */}
       <div className="flex items-center gap-2 shrink-0">
+        {/* NEW PROJECT MODAL LAUNCHER */}
+        <button
+          type="button"
+          onClick={() => openCreateProjectModal("designer")}
+          className="px-3 py-1.5 rounded-xl bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-display font-bold text-xs tracking-wider uppercase hover:bg-neon-cyan/30 transition-all flex items-center gap-1.5 shrink-0"
+          title="Create New Custom Project or Preset"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">New Project</span>
+        </button>
+
         {/* QUICK CREATION LAUNCHER */}
         <button
           type="button"
