@@ -575,12 +575,14 @@ export function VideoEditorWorkspace() {
 
         <VideoInspectorPanel
           clip={selectedClip}
+          project={project}
           currentTime={currentTime}
           onUpdateClip={handleUpdateClip}
           onDeleteClip={handleDeleteClip}
           onDuplicateClip={handleDuplicateClip}
           onFreezeFrame={handleFreezeFrame}
           onDetachAudio={handleDetachAudio}
+          onUpdateProject={updateProjectWithHistory}
         />
       </div>
 
@@ -621,6 +623,20 @@ export function VideoEditorWorkspace() {
           onSeek={(t) => setCurrentTime(t)}
           onSplitClip={handleSplitClip}
           onDetachAudio={handleDetachAudio}
+          onAddMarker={(time) => {
+            const newMarker = {
+              id: `m-${Date.now()}`,
+              time,
+              label: `Marker ${(project.markers?.length || 0) + 1}`,
+              color: "#fbbf24",
+            };
+            updateProjectWithHistory({ markers: [...(project.markers || []), newMarker] });
+          }}
+          onDeleteMarker={(id) =>
+            updateProjectWithHistory({
+              markers: (project.markers || []).filter((m) => m.id !== id),
+            })
+          }
         />
       </div>
 

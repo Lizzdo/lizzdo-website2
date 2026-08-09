@@ -158,6 +158,13 @@ export interface ExportSettings {
   audioQualityKbps: 128 | 192 | 320;
 }
 
+export interface VideoMarker {
+  id: string;
+  time: number;
+  label: string;
+  color: string;
+}
+
 export interface VideoProjectData {
   id: string;
   title: string;
@@ -171,5 +178,8 @@ export interface VideoProjectData {
   clips: VideoClip[];
   aspectRatioPreset: string;
   bgColor: string;
+  bgType?: "solid" | "gradient" | "wireframe" | "image";
+  bgImage?: string;
+  markers?: VideoMarker[];
   updatedAt: string;
 }

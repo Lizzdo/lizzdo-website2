@@ -99,6 +99,8 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
     }
   };
 
+  const [previewingMedia, setPreviewingMedia] = useState<MediaItem | null>(null);
+
   const filteredMedia = mediaItems.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFolder = selectedFolder === "f-all" || item.folderId === selectedFolder;
@@ -106,7 +108,58 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
   });
 
   return (
-    <div className="w-full md:w-80 bg-neutral-950 border-r border-white/10 flex flex-col shrink-0 font-mono text-xs overflow-hidden select-none">
+    <div className="w-full md:w-80 bg-neutral-950 border-r border-white/10 flex flex-col shrink-0 font-mono text-xs overflow-hidden select-none relative">
+      {/* MEDIA ITEM PREVIEW MODAL */}
+      {previewingMedia && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-neutral-950 border border-white/15 rounded-2xl p-5 space-y-4 shadow-2xl relative text-gray-200">
+            <button
+              onClick={() => setPreviewingMedia(null)}
+              className="absolute top-3 right-3 p-1 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+
+            <h4 className="font-bold text-white uppercase text-xs truncate pr-6">
+              Preview: {previewingMedia.name}
+            </h4>
+
+            {/* PREVIEW CONTAINER */}
+            <div className="w-full h-40 rounded-xl bg-black border border-white/10 flex items-center justify-center overflow-hidden">
+              {previewingMedia.type === "video" && (
+                <video src={previewingMedia.url} controls className="w-full h-full object-contain" />
+              )}
+              {previewingMedia.type === "audio" && (
+                <audio src={previewingMedia.url} controls className="w-full px-4" />
+              )}
+              {(previewingMedia.type === "image" || previewingMedia.type === "logo") && (
+                <img src={previewingMedia.url} alt={previewingMedia.name} className="max-h-full object-contain" />
+              )}
+            </div>
+
+            <div className="space-y-1 text-[11px] text-gray-400 bg-neutral-900 p-2.5 rounded-xl">
+              <p><span className="text-gray-500 font-bold">Type:</span> {previewingMedia.type.toUpperCase()}</p>
+              <p><span className="text-gray-500 font-bold">Format:</span> {previewingMedia.fileType.toUpperCase()}</p>
+              <p><span className="text-gray-500 font-bold">Size:</span> {previewingMedia.fileSize}</p>
+              {previewingMedia.duration && (
+                <p><span className="text-gray-500 font-bold">Duration:</span> {previewingMedia.duration}s</p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  onAddMediaToTimeline(previewingMedia);
+                  setPreviewingMedia(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-neon-cyan text-black font-bold uppercase text-xs flex items-center justify-center gap-1.5 hover:bg-neon-cyan/90 transition-all shadow-[0_0_10px_rgba(0,245,255,0.3)]"
+              >
+                <Plus className="w-4 h-4" /> Add To Timeline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* TABS HEADER */}
       <div className="flex border-b border-white/10 text-[11px] bg-black/40">
         {[
@@ -221,7 +274,8 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
               {filteredMedia.map((media) => (
                 <div
                   key={media.id}
-                  className="p-2 rounded-xl bg-neutral-900 border border-white/5 hover:border-white/20 flex items-center justify-between group transition-all"
+                  onClick={() => setPreviewingMedia(media)}
+                  className="p-2 rounded-xl bg-neutral-900 border border-white/5 hover:border-neon-cyan/40 cursor-pointer flex items-center justify-between group transition-all"
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     {media.type === "video" && <FileVideo className="w-4 h-4 text-neon-cyan shrink-0" />}
@@ -241,14 +295,20 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
 
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => onAddMediaToTimeline(media)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddMediaToTimeline(media);
+                      }}
                       className="p-1.5 rounded-lg bg-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan hover:text-black transition-colors"
                       title="Add to Timeline"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => onDeleteMedia(media.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteMedia(media.id);
+                      }}
                       className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-red-400 transition-colors"
                       title="Delete"
                     >

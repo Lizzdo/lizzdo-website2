@@ -41,10 +41,46 @@ export function renderFrameToCanvas(
   canvasWidth: number,
   canvasHeight: number
 ) {
-  // Clear Canvas
+  // Clear Canvas & Render Selected Background
   ctx.save();
-  ctx.fillStyle = project.bgColor || "#05050a";
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  if (project.bgType === "gradient") {
+    const grad = ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
+    grad.addColorStop(0, "#0f172a");
+    grad.addColorStop(0.5, "#1e1b4b");
+    grad.addColorStop(1, "#311042");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  } else if (project.bgType === "wireframe") {
+    ctx.fillStyle = "#09090b";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.strokeStyle = "rgba(0, 245, 255, 0.08)";
+    ctx.lineWidth = 1;
+    const gridSize = 40;
+    for (let x = 0; x < canvasWidth; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvasHeight);
+      ctx.stroke();
+    }
+    for (let y = 0; y < canvasHeight; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvasWidth, y);
+      ctx.stroke();
+    }
+  } else if (project.bgType === "image" && project.bgImage) {
+    const bgImg = getLoadedImage(project.bgImage);
+    if (bgImg) {
+      ctx.drawImage(bgImg, 0, 0, canvasWidth, canvasHeight);
+    } else {
+      ctx.fillStyle = project.bgColor || "#05050a";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    }
+  } else {
+    ctx.fillStyle = project.bgColor || "#05050a";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  }
 
   const scaleX = canvasWidth / project.width;
   const scaleY = canvasHeight / project.height;
@@ -59,7 +95,7 @@ export function renderFrameToCanvas(
     return time >= clip.startTime && time <= clip.startTime + clip.duration;
   });
 
-  // Sort clips by track order (effects/logos on top, background/video on bottom)
+  // Sort clips by track order
   const trackTypePriority: Record<string, number> = {
     background: 1,
     video: 2,
@@ -93,8 +129,13 @@ function renderClipOnCanvas(
   scaleX: number,
   scaleY: number
 ) {
-  const relTime = time - clip.startTime;
+  let relTime = time - clip.startTime;
   if (relTime < 0 || relTime > clip.duration) return;
+
+  // Handle Reverse processing
+  if (clip.isReversed) {
+    relTime = clip.duration - relTime;
+  }
 
   // 1. Calculate Opacity with Fade In / Fade Out
   let clipOpacity = clip.opacity;
@@ -104,8 +145,19 @@ function renderClipOnCanvas(
   if (clip.fadeOut > 0 && relTime > clip.duration - clip.fadeOut) {
     clipOpacity *= (clip.duration - relTime) / clip.fadeOut;
   }
-  clipOpacity = Math.max(0, Math.min(1, clipOpacity));
 
+  // Handle Clip Transitions
+  if (clip.transition && clip.transition.type !== "none" && clip.transition.duration > 0) {
+    const transDur = clip.transition.duration;
+    if (relTime < transDur) {
+      const progress = relTime / transDur;
+      if (clip.transition.type === "dipToBlack" || clip.transition.type === "fade") {
+        clipOpacity *= progress;
+      }
+    }
+  }
+
+  clipOpacity = Math.max(0, Math.min(1, clipOpacity));
   if (clipOpacity <= 0) return;
 
   ctx.save();
@@ -121,7 +173,7 @@ function renderClipOnCanvas(
     ctx.rotate((clip.rotation * Math.PI) / 180);
   }
 
-  // 3. Logo Animation Calculations
+  // 3. Logo & Element Animation Calculations
   let animScale = clip.scale;
   let animOffsetX = 0;
   let animOffsetY = 0;
@@ -132,7 +184,6 @@ function renderClipOnCanvas(
 
     switch (clip.logoAnim.preset) {
       case "fadeIn":
-        // handled in opacity
         break;
       case "scaleIn":
         animScale *= animProgress;
@@ -167,7 +218,7 @@ function renderClipOnCanvas(
   ctx.translate(animOffsetX * scaleX, animOffsetY * scaleY);
   ctx.scale(clip.flipX ? -animScale : animScale, clip.flipY ? -animScale : animScale);
 
-  // 4. Filters & Effects
+  // 4. Filters & Color Effects
   const fx = clip.effectProps;
   if (fx) {
     const filterParts: string[] = [];
@@ -186,9 +237,24 @@ function renderClipOnCanvas(
   if (clip.type === "video" || clip.type === "overlay" || clip.type === "logo" || clip.type === "background") {
     const img = getLoadedImage(clip.src);
     if (img) {
-      const w = img.naturalWidth * scaleX;
-      const h = img.naturalHeight * scaleY;
-      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      const rawW = img.naturalWidth;
+      const rawH = img.naturalHeight;
+
+      // Crop coordinates calculation
+      const cropL = (clip.crop?.left || 0) * 0.01 * rawW;
+      const cropR = (clip.crop?.right || 0) * 0.01 * rawW;
+      const cropT = (clip.crop?.top || 0) * 0.01 * rawH;
+      const cropB = (clip.crop?.bottom || 0) * 0.01 * rawH;
+
+      const srcX = cropL;
+      const srcY = cropT;
+      const srcW = Math.max(1, rawW - cropL - cropR);
+      const srcH = Math.max(1, rawH - cropT - cropB);
+
+      const destW = srcW * scaleX;
+      const destH = srcH * scaleY;
+
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
     } else {
       // Fallback animated procedural video frame representation
       const boxW = 400 * scaleX;
@@ -212,11 +278,25 @@ function renderClipOnCanvas(
   } else if (clip.type === "text") {
     const tp = clip.textProps;
     if (tp && tp.content) {
+      let displayText = tp.content;
+
+      // Text Animation Logic
+      if (tp.animationType === "typewriter") {
+        const charRatio = Math.min(1, relTime / 3);
+        const count = Math.ceil(tp.content.length * charRatio);
+        displayText = tp.content.substring(0, count);
+      } else if (tp.animationType === "slideUp" && relTime < 1) {
+        ctx.translate(0, (1 - relTime) * 30 * scaleY);
+      } else if (tp.animationType === "pop" && relTime < 0.5) {
+        const popScale = 1 + Math.sin((relTime / 0.5) * Math.PI) * 0.4;
+        ctx.scale(popScale, popScale);
+      }
+
       ctx.font = `${tp.fontWeight || 700} ${Math.round(tp.fontSize * scaleX)}px ${tp.fontFamily || "Orbitron"}, sans-serif`;
       ctx.textAlign = tp.alignment || "center";
       ctx.textBaseline = "middle";
 
-      const metrics = ctx.measureText(tp.content);
+      const metrics = ctx.measureText(displayText);
       const textW = metrics.width;
       const textH = tp.fontSize * scaleX;
 
@@ -244,12 +324,12 @@ function renderClipOnCanvas(
       if (tp.outlineWidth > 0) {
         ctx.strokeStyle = tp.outlineColor || "#000000";
         ctx.lineWidth = tp.outlineWidth * scaleX;
-        ctx.strokeText(tp.content, 0, 0);
+        ctx.strokeText(displayText, 0, 0);
       }
 
       // Fill Text
       ctx.fillStyle = tp.color || "#00f5ff";
-      ctx.fillText(tp.content, 0, 0);
+      ctx.fillText(displayText, 0, 0);
     }
   }
 

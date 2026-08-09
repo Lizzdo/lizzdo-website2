@@ -21,29 +21,72 @@ import {
 
 interface Props {
   clip: VideoClip | null;
+  project?: VideoProjectData;
   currentTime: number;
   onUpdateClip: (clipId: string, updated: Partial<VideoClip>) => void;
   onDeleteClip: (clipId: string) => void;
   onDuplicateClip: (clipId: string) => void;
   onFreezeFrame: (clipId: string) => void;
   onDetachAudio: (clipId: string) => void;
+  onUpdateProject?: (updated: Partial<VideoProjectData>) => void;
 }
 
 export const VideoInspectorPanel: React.FC<Props> = ({
   clip,
+  project,
   currentTime,
   onUpdateClip,
   onDeleteClip,
   onDuplicateClip,
   onFreezeFrame,
   onDetachAudio,
+  onUpdateProject,
 }) => {
   if (!clip) {
     return (
-      <div className="w-full md:w-72 bg-neutral-950 border-l border-white/10 p-4 font-mono text-xs text-gray-500 flex flex-col items-center justify-center text-center shrink-0 select-none">
-        <Sliders className="w-8 h-8 text-gray-700 mb-2" />
-        <p className="font-bold text-gray-400">No Clip Selected</p>
-        <p className="text-[10px] mt-1">Select any clip on the timeline to inspect and edit properties.</p>
+      <div className="w-full md:w-72 bg-neutral-950 border-l border-white/10 p-4 font-mono text-xs text-gray-400 flex flex-col shrink-0 select-none overflow-y-auto custom-scrollbar space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-white/10 text-white font-bold uppercase">
+          <Sliders className="w-4 h-4 text-neon-cyan" />
+          <span>Canvas & Project</span>
+        </div>
+
+        {project && onUpdateProject && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase font-bold">Canvas Background</label>
+              <div className="grid grid-cols-2 gap-1.5 mt-1">
+                {(["solid", "gradient", "wireframe", "image"] as const).map((bg) => (
+                  <button
+                    key={bg}
+                    onClick={() => onUpdateProject({ bgType: bg })}
+                    className={`py-1.5 rounded-lg border text-[10px] font-bold uppercase transition-all ${
+                      (project.bgType || "solid") === bg
+                        ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                        : "border-white/10 bg-black text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {bg}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">Background Color</span>
+              <input
+                type="color"
+                value={project.bgColor || "#05050a"}
+                onChange={(e) => onUpdateProject({ bgColor: e.target.value })}
+                className="w-6 h-6 rounded cursor-pointer border border-white/10 bg-transparent"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="pt-4 text-center text-gray-500 border-t border-white/5 space-y-1">
+          <p className="font-bold text-gray-400">No Clip Selected</p>
+          <p className="text-[10px]">Select any clip on the timeline to inspect and edit properties.</p>
+        </div>
       </div>
     );
   }
@@ -71,6 +114,24 @@ export const VideoInspectorPanel: React.FC<Props> = ({
       logoAnim: {
         ...clip.logoAnim,
         ...updatedProps,
+      },
+    });
+  };
+
+  const updateCrop = (updatedCrop: any) => {
+    onUpdateClip(clip.id, {
+      crop: {
+        ...clip.crop,
+        ...updatedCrop,
+      },
+    });
+  };
+
+  const updateTransition = (updatedTrans: any) => {
+    onUpdateClip(clip.id, {
+      transition: {
+        ...clip.transition,
+        ...updatedTrans,
       },
     });
   };
@@ -160,9 +221,18 @@ export const VideoInspectorPanel: React.FC<Props> = ({
             className="w-full h-1 accent-neon-cyan cursor-pointer"
           />
         </div>
+
+        <button
+          onClick={() => onUpdateClip(clip.id, { isReversed: !clip.isReversed })}
+          className={`w-full py-1.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1.5 ${
+            clip.isReversed ? "border-purple-400 bg-purple-500/20 text-purple-300" : "border-white/10 bg-black text-gray-400"
+          }`}
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> Reverse Clip Playback
+        </button>
       </div>
 
-      {/* TRANSFORM & OPACITY */}
+      {/* TRANSFORM & LAYOUT */}
       {(clip.type === "video" || clip.type === "overlay" || clip.type === "logo" || clip.type === "text") && (
         <div className="space-y-2 pt-2 border-t border-white/5">
           <span className="text-[10px] text-gray-500 uppercase font-bold">Transform & Layout</span>
@@ -199,6 +269,34 @@ export const VideoInspectorPanel: React.FC<Props> = ({
             />
           </div>
 
+          {/* QUICK ALIGNMENT BUTTONS */}
+          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+            <button
+              onClick={() => onUpdateClip(clip.id, { posX: 0 })}
+              className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300"
+            >
+              Center Horizontal
+            </button>
+            <button
+              onClick={() => onUpdateClip(clip.id, { posY: 0 })}
+              className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300"
+            >
+              Center Vertical
+            </button>
+            <button
+              onClick={() => onUpdateClip(clip.id, { scale: 1, posX: 0, posY: 0 })}
+              className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300"
+            >
+              Fit Canvas
+            </button>
+            <button
+              onClick={() => onUpdateClip(clip.id, { scale: 1.25, posX: 0, posY: 0 })}
+              className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300"
+            >
+              Fill Canvas
+            </button>
+          </div>
+
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => onUpdateClip(clip.id, { flipX: !clip.flipX })}
@@ -217,6 +315,95 @@ export const VideoInspectorPanel: React.FC<Props> = ({
               <FlipVertical className="w-3.5 h-3.5" /> Flip V
             </button>
           </div>
+        </div>
+      )}
+
+      {/* CROP TOOL */}
+      {(clip.type === "video" || clip.type === "overlay" || clip.type === "logo") && (
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <span className="text-[10px] text-gray-500 uppercase font-bold">Crop Tool</span>
+
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div>
+              <label className="text-gray-400">Crop Top %</label>
+              <input
+                type="number"
+                min={0}
+                max={45}
+                value={clip.crop?.top || 0}
+                onChange={(e) => updateCrop({ top: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400">Crop Bottom %</label>
+              <input
+                type="number"
+                min={0}
+                max={45}
+                value={clip.crop?.bottom || 0}
+                onChange={(e) => updateCrop({ bottom: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400">Crop Left %</label>
+              <input
+                type="number"
+                min={0}
+                max={45}
+                value={clip.crop?.left || 0}
+                onChange={(e) => updateCrop({ left: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400">Crop Right %</label>
+              <input
+                type="number"
+                min={0}
+                max={45}
+                value={clip.crop?.right || 0}
+                onChange={(e) => updateCrop({ right: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRANSITIONS */}
+      {(clip.type === "video" || clip.type === "overlay" || clip.type === "logo") && (
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <span className="text-[10px] text-purple-400 uppercase font-bold">Transition Effect</span>
+
+          <select
+            value={clip.transition?.type || "none"}
+            onChange={(e) => updateTransition({ type: e.target.value as TransitionType })}
+            className="w-full bg-black border border-white/10 rounded-lg px-2 py-1.5 text-xs text-purple-300 font-bold"
+          >
+            <option value="none">None</option>
+            <option value="fade">Fade In</option>
+            <option value="dipToBlack">Dip to Black</option>
+            <option value="zoom">Zoom Transition</option>
+            <option value="slide">Slide Transition</option>
+            <option value="crossfade">Crossfade</option>
+          </select>
+
+          {clip.transition?.type !== "none" && (
+            <div>
+              <label className="text-[10px] text-gray-400">Transition Duration (s)</label>
+              <input
+                type="number"
+                step={0.2}
+                min={0.2}
+                max={3}
+                value={clip.transition?.duration || 1}
+                onChange={(e) => updateTransition({ duration: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -331,6 +518,22 @@ export const VideoInspectorPanel: React.FC<Props> = ({
                 className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-xs text-white font-bold"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-gray-400">Text Animation</label>
+            <select
+              value={clip.textProps.animationType || "none"}
+              onChange={(e) => updateText({ animationType: e.target.value as any })}
+              className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-xs text-amber-300 font-bold"
+            >
+              <option value="none">Static Text</option>
+              <option value="typewriter">Typewriter Reveal</option>
+              <option value="slideUp">Slide Up Smooth</option>
+              <option value="pop">Pop Elastic</option>
+              <option value="bounce">Bounce In</option>
+              <option value="fadeIn">Fade In</option>
+            </select>
           </div>
 
           <div className="flex items-center justify-between pt-1">

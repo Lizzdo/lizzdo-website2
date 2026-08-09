@@ -4,6 +4,7 @@ import {
   VideoClip,
   VideoProjectData,
   VideoTrackType,
+  VideoMarker,
 } from "../../../types/video";
 import {
   Lock,
@@ -21,6 +22,9 @@ import {
   ZoomOut,
   Maximize2,
   Music,
+  Magnet,
+  Bookmark,
+  Flag,
 } from "lucide-react";
 import { generateWaveformPoints } from "../../../utils/videoRenderer";
 
@@ -40,6 +44,8 @@ interface Props {
   onSeek: (time: number) => void;
   onSplitClip: (clipId: string) => void;
   onDetachAudio: (clipId: string) => void;
+  onAddMarker?: (time: number) => void;
+  onDeleteMarker?: (markerId: string) => void;
 }
 
 export const VideoTimelinePanel: React.FC<Props> = ({
@@ -58,13 +64,35 @@ export const VideoTimelinePanel: React.FC<Props> = ({
   onSeek,
   onSplitClip,
   onDetachAudio,
+  onAddMarker,
+  onDeleteMarker,
 }) => {
-  const [zoomScale, setZoomScale] = useState<number>(60); // View total seconds scale (10 to 300)
-  const [draggingClipId, setDraggingClipId] = useState<string | null>(null);
-  const [resizingClipId, setResizingClipId] = useState<{ id: string; edge: "left" | "right" } | null>(null);
-
+  const [zoomScale, setZoomScale] = useState<number>(60);
+  const [isSnappingEnabled, setIsSnappingEnabled] = useState<boolean>(true);
   const timelineRef = useRef<HTMLDivElement>(null);
   const duration = project.duration || 60;
+
+  // Snapping logic calculation
+  const getSnappedTime = (rawTime: number) => {
+    if (!isSnappingEnabled) return rawTime;
+    const snapThreshold = 0.8; // 0.8 seconds snap window
+
+    const pointsToSnap = [0, currentTime, duration];
+    if (project.markers) {
+      project.markers.forEach((m) => pointsToSnap.push(m.time));
+    }
+    project.clips.forEach((c) => {
+      pointsToSnap.push(c.startTime);
+      pointsToSnap.push(c.startTime + c.duration);
+    });
+
+    for (const pt of pointsToSnap) {
+      if (Math.abs(pt - rawTime) <= snapThreshold) {
+        return pt;
+      }
+    }
+    return rawTime;
+  };
 
   // Handle timeline ruler click seeking
   const handleRulerClick = (e: React.MouseEvent) => {
@@ -89,7 +117,8 @@ export const VideoTimelinePanel: React.FC<Props> = ({
       const deltaX = moveEvent.clientX - startMouseX;
       const deltaSecs = (deltaX / rect.width) * duration;
 
-      const newStartTime = Math.max(0, Math.min(duration - clip.duration, initialStartTime + deltaSecs));
+      let newStartTime = Math.max(0, Math.min(duration - clip.duration, initialStartTime + deltaSecs));
+      newStartTime = getSnappedTime(newStartTime);
       onUpdateClip(clip.id, { startTime: newStartTime });
     };
 
@@ -102,7 +131,7 @@ export const VideoTimelinePanel: React.FC<Props> = ({
     window.addEventListener("mouseup", handleMouseUp);
   };
 
-  // Clip trim resize handler (left or right handle)
+  // Clip trim resize handler
   const handleTrimMouseDown = (e: React.MouseEvent, clip: VideoClip, edge: "left" | "right") => {
     e.stopPropagation();
     onSelectClip(clip.id);
@@ -119,7 +148,8 @@ export const VideoTimelinePanel: React.FC<Props> = ({
       const deltaSecs = (deltaX / rect.width) * duration;
 
       if (edge === "left") {
-        const newStartTime = Math.max(0, Math.min(initialStartTime + initialDuration - 0.5, initialStartTime + deltaSecs));
+        let newStartTime = Math.max(0, Math.min(initialStartTime + initialDuration - 0.5, initialStartTime + deltaSecs));
+        newStartTime = getSnappedTime(newStartTime);
         const diff = newStartTime - initialStartTime;
         const newDuration = Math.max(0.5, initialDuration - diff);
         const newOffset = Math.max(0, initialOffset + diff);
@@ -130,7 +160,9 @@ export const VideoTimelinePanel: React.FC<Props> = ({
           mediaOffset: newOffset,
         });
       } else {
-        const newDuration = Math.max(0.5, Math.min(duration - initialStartTime, initialDuration + deltaSecs));
+        let newDuration = Math.max(0.5, Math.min(duration - initialStartTime, initialDuration + deltaSecs));
+        const endPt = getSnappedTime(initialStartTime + newDuration);
+        newDuration = Math.max(0.5, endPt - initialStartTime);
         onUpdateClip(clip.id, { duration: newDuration });
       }
     };
@@ -148,7 +180,7 @@ export const VideoTimelinePanel: React.FC<Props> = ({
     <div className="h-64 bg-neutral-950 border-t border-white/10 flex flex-col shrink-0 font-mono text-xs select-none">
       {/* TIMELINE TOOLBAR */}
       <div className="h-9 bg-black/60 border-b border-white/10 px-4 flex items-center justify-between text-gray-400 shrink-0">
-        {/* ADD TRACK BUTTONS */}
+        {/* ADD TRACK BUTTONS & SNAPPING */}
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-gray-500 uppercase font-bold mr-1">Add Track:</span>
           <button
@@ -175,6 +207,32 @@ export const VideoTimelinePanel: React.FC<Props> = ({
           >
             + Logo
           </button>
+
+          {/* SNAPPING TOGGLE */}
+          <button
+            onClick={() => setIsSnappingEnabled(!isSnappingEnabled)}
+            className={`ml-2 px-2 py-0.5 rounded border text-[10px] font-bold flex items-center gap-1 transition-colors ${
+              isSnappingEnabled
+                ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                : "border-white/10 bg-black text-gray-500"
+            }`}
+            title={isSnappingEnabled ? "Snapping Enabled" : "Snapping Disabled"}
+          >
+            <Magnet className="w-3 h-3" />
+            <span>Snap</span>
+          </button>
+
+          {/* ADD MARKER BUTTON */}
+          {onAddMarker && (
+            <button
+              onClick={() => onAddMarker(currentTime)}
+              className="px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center gap-1"
+              title="Add Marker at Playhead"
+            >
+              <Bookmark className="w-3 h-3" />
+              <span>Marker</span>
+            </button>
+          )}
         </div>
 
         {/* SELECTED CLIP TOOLBAR ACTIONS */}
@@ -231,12 +289,10 @@ export const VideoTimelinePanel: React.FC<Props> = ({
       <div className="flex-1 overflow-y-auto custom-scrollbar flex">
         {/* TRACK HEADERS SIDEBAR */}
         <div className="w-48 bg-neutral-950 border-r border-white/10 shrink-0 flex flex-col divide-y divide-white/5">
-          {/* RULER CORNER */}
           <div className="h-6 bg-black border-b border-white/10 px-3 flex items-center text-[10px] text-gray-500 font-bold uppercase">
             Tracks
           </div>
 
-          {/* TRACK HEADERS LIST */}
           {project.tracks.map((track) => (
             <div
               key={track.id}
@@ -297,6 +353,26 @@ export const VideoTimelinePanel: React.FC<Props> = ({
               );
             })}
 
+            {/* TIMELINE MARKERS */}
+            {project.markers &&
+              project.markers.map((marker) => (
+                <div
+                  key={marker.id}
+                  style={{ left: `${(marker.time / duration) * 100}%` }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSeek(marker.time);
+                  }}
+                  className="absolute top-0 bottom-0 z-20 group flex flex-col items-center cursor-pointer"
+                  title={`Marker: ${marker.label} (${marker.time.toFixed(1)}s)`}
+                >
+                  <Flag className="w-3 h-3 text-amber-400 fill-amber-400 -mt-0.5" />
+                  <span className="text-[8px] font-bold text-amber-300 opacity-0 group-hover:opacity-100 bg-black px-1 rounded border border-amber-500/30">
+                    {marker.label}
+                  </span>
+                </div>
+              ))}
+
             {/* SEEKHEAD LINE IN RULER */}
             <div
               style={{ left: `${(currentTime / duration) * 100}%` }}
@@ -320,7 +396,7 @@ export const VideoTimelinePanel: React.FC<Props> = ({
                 >
                   {trackClips.map((clip) => {
                     const leftPct = (clip.startTime / duration) * 100;
-                    const widthPct = ((clip.duration) / duration) * 100;
+                    const widthPct = (clip.duration / duration) * 100;
                     const isSelected = selectedClipId === clip.id;
 
                     return (
