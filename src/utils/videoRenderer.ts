@@ -3,8 +3,29 @@ import { renderProjectAudioMix } from "./audioEngine";
 
 // Cache for loaded HTMLImageElements
 const imageCache: Map<string, HTMLImageElement> = new Map();
+// Cache for loaded HTMLVideoElements
+const videoCache: Map<string, HTMLVideoElement> = new Map();
 // Cache for Chroma Keyed offscreen canvases
 const keyedCanvasCache: Map<string, HTMLCanvasElement> = new Map();
+
+export interface VideoState {
+  loaded: boolean;
+  error: boolean;
+  errorMessage?: string;
+}
+const videoStateCache: Map<string, VideoState> = new Map();
+
+// Helper to determine if a clip source is a video file or video track clip
+export function isVideoSource(clip: VideoClip): boolean {
+  if (clip.type === "video") return true;
+  const ft = (clip.fileType || "").toLowerCase();
+  if (["mp4", "webm", "mov", "mkv", "avi", "m4v", "ogv", "video"].includes(ft)) return true;
+  const src = (clip.src || "").toLowerCase();
+  if (src.startsWith("data:video")) return true;
+  if (src.endsWith(".mp4") || src.endsWith(".webm") || src.endsWith(".mov") || src.endsWith(".mkv") || src.endsWith(".m4v")) return true;
+  if (src.includes("gtv-videos") || (src.includes("/sample/") && src.includes(".mp4"))) return true;
+  return false;
+}
 
 // Helper to safely load or retrieve image from cache
 export function getLoadedImage(url: string): HTMLImageElement | null {
@@ -19,6 +40,51 @@ export function getLoadedImage(url: string): HTMLImageElement | null {
   img.src = url;
   imageCache.set(url, img);
   return null;
+}
+
+// Helper to safely load or retrieve video element from cache
+export function getLoadedVideo(url: string): { video: HTMLVideoElement | null; state: VideoState } {
+  if (!url) return { video: null, state: { loaded: false, error: true, errorMessage: "No video URL" } };
+
+  if (videoCache.has(url)) {
+    const video = videoCache.get(url)!;
+    const state = videoStateCache.get(url) || { loaded: false, error: false };
+    if (video.readyState >= 1) {
+      state.loaded = true;
+    }
+    return { video, state };
+  }
+
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.playsInline = true;
+  video.muted = true; // Mute preview element so browser allows unrestricted playback & seeking
+  video.preload = "auto";
+
+  const state: VideoState = { loaded: false, error: false };
+  videoStateCache.set(url, state);
+
+  video.onloadedmetadata = () => {
+    state.loaded = true;
+    state.error = false;
+  };
+
+  video.oncanplay = () => {
+    state.loaded = true;
+    state.error = false;
+  };
+
+  video.onerror = () => {
+    state.loaded = false;
+    state.error = true;
+    state.errorMessage = video.error?.message || "Failed to load video file";
+  };
+
+  video.src = url;
+  video.load();
+  videoCache.set(url, video);
+
+  return { video, state };
 }
 
 // Generate procedural waveform amplitude array for audio clips
@@ -36,17 +102,21 @@ export function generateWaveformPoints(seedStr: string, count: number = 80): num
   return points;
 }
 
-// Chroma Key Offscreen Image Keying Engine
-export function getChromaKeyedCanvas(img: HTMLImageElement, chromaKey: ChromaKeyProps): HTMLCanvasElement | null {
-  if (!img.complete || img.naturalWidth <= 0) return null;
+// Chroma Key Offscreen Image/Video Keying Engine
+export function getChromaKeyedCanvas(
+  source: HTMLImageElement | HTMLVideoElement,
+  chromaKey: ChromaKeyProps
+): HTMLCanvasElement | null {
+  const isVideo = source instanceof HTMLVideoElement;
+  const w = isVideo ? source.videoWidth : source.naturalWidth;
+  const h = isVideo ? source.videoHeight : source.naturalHeight;
+  if (!w || !h) return null;
 
-  const cacheKey = `${img.src}_${chromaKey.keyColor}_${chromaKey.similarity}_${chromaKey.tolerance}_${chromaKey.spillReduction}`;
+  const timeKey = isVideo ? `_${source.currentTime.toFixed(2)}` : "";
+  const cacheKey = `${source.src}_${chromaKey.keyColor}_${chromaKey.similarity}_${chromaKey.tolerance}_${chromaKey.spillReduction}${timeKey}`;
   if (keyedCanvasCache.has(cacheKey)) {
     return keyedCanvasCache.get(cacheKey)!;
   }
-
-  const w = img.naturalWidth;
-  const h = img.naturalHeight;
 
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -54,7 +124,7 @@ export function getChromaKeyedCanvas(img: HTMLImageElement, chromaKey: ChromaKey
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(source, 0, 0);
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
 
@@ -73,7 +143,6 @@ export function getChromaKeyedCanvas(img: HTMLImageElement, chromaKey: ChromaKey
     const g = data[i + 1];
     const b = data[i + 2];
 
-    // Normalized Euclidean RGB distance
     const dist = Math.sqrt((r - targetR) ** 2 + (g - targetG) ** 2 + (b - targetB) ** 2) / 441.673;
 
     if (dist < similarity) {
@@ -83,16 +152,13 @@ export function getChromaKeyedCanvas(img: HTMLImageElement, chromaKey: ChromaKey
       data[i + 3] = Math.round(data[i + 3] * alphaFactor);
     }
 
-    // Spill reduction: suppress key color overflow
     if (data[i + 3] > 0 && spill > 0) {
       if (targetG > targetR && targetG > targetB) {
-        // Green spill
         const maxRB = Math.max(r, b);
         if (g > maxRB) {
           data[i + 1] = Math.round(g * (1 - spill) + maxRB * spill);
         }
       } else if (targetB > targetR && targetB > targetG) {
-        // Blue spill
         const maxRG = Math.max(r, g);
         if (b > maxRG) {
           data[i + 2] = Math.round(b * (1 - spill) + maxRG * spill);
@@ -574,88 +640,50 @@ function renderClipOnCanvas(
 
   // 5. Draw Content depending on Clip Type
   if (clip.type === "video" || clip.type === "overlay" || clip.type === "logo" || clip.type === "background") {
-    const img = getLoadedImage(clip.src);
-    if (img) {
-      const rawW = img.naturalWidth;
-      const rawH = img.naturalHeight;
+    const isVid = isVideoSource(clip);
 
-      // Crop coordinates calculation (Keyframed)
-      const cropL = currentCropLeft * 0.01 * rawW;
-      const cropR = currentCropRight * 0.01 * rawW;
-      const cropT = currentCropTop * 0.01 * rawH;
-      const cropB = currentCropBottom * 0.01 * rawH;
+    if (isVid) {
+      const { video, state } = getLoadedVideo(clip.src);
 
-      const srcX = cropL;
-      const srcY = cropT;
-      const srcW = Math.max(1, rawW - cropL - cropR);
-      const srcH = Math.max(1, rawH - cropT - cropB);
+      if (video && (video.readyState >= 1 || state.loaded)) {
+        const rawW = video.videoWidth || 1920;
+        const rawH = video.videoHeight || 1080;
 
-      const destW = srcW * scaleX;
-      const destH = srcH * scaleY;
+        // Calculate target media time
+        const targetMediaTime = Math.max(0, (relTime * clip.speed) + (clip.mediaOffset || 0));
+        const dur = video.duration || clip.mediaDuration || clip.duration;
+        const clampedMediaTime = Math.min(dur, Math.max(0, targetMediaTime));
 
-      // Frame Shape & Clipping Path (Circle, Rounded Corners)
-      ctx.save();
-      ctx.beginPath();
-      if (clip.frameShape === "circle") {
-        const radius = Math.min(destW, destH) / 2;
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.clip();
-      } else if (clip.frameShape === "rounded" || clip.cornerRadius) {
-        const cr = clip.cornerRadius || { topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16, isLinked: true };
-        const tl = (cr.topLeft || 0) * scaleX;
-        const tr = (cr.topRight || 0) * scaleX;
-        const br = (cr.bottomRight || 0) * scaleX;
-        const bl = (cr.bottomLeft || 0) * scaleX;
-        ctx.roundRect(-destW / 2, -destH / 2, destW, destH, [tl, tr, br, bl]);
-        ctx.clip();
-      }
-
-      // Mask Path Clipping
-      if (clip.mask && clip.mask.type !== "none" && !clip.isBypassedEffects) {
-        const mk = clip.mask;
-        const mw = (mk.width || destW) * (mk.scale || 1) * scaleX;
-        const mh = (mk.height || destH) * (mk.scale || 1) * scaleY;
-        const mx = (mk.posX || 0) * scaleX;
-        const my = (mk.posY || 0) * scaleY;
-
-        ctx.beginPath();
-        if (mk.type === "circle") {
-          ctx.arc(mx, my, Math.min(mw, mh) / 2, 0, Math.PI * 2);
-        } else if (mk.type === "ellipse") {
-          ctx.ellipse(mx, my, mw / 2, mh / 2, 0, 0, Math.PI * 2);
-        } else if (mk.type === "rounded") {
-          ctx.roundRect(mx - mw / 2, my - mh / 2, mw, mh, 16 * scaleX);
-        } else {
-          ctx.rect(mx - mw / 2, my - mh / 2, mw, mh);
+        // Sync video current time
+        if (Math.abs(video.currentTime - clampedMediaTime) > 0.03) {
+          try {
+            video.currentTime = clampedMediaTime;
+          } catch (e) {
+            // Ignore rapid scrub DOMException
+          }
         }
-        ctx.clip();
-      }
 
-      // Render Image or Chroma Keyed Canvas
-      if (clip.chromaKey?.enabled && !clip.isBypassedEffects) {
-        const keyedCanvas = getChromaKeyedCanvas(img, clip.chromaKey);
-        if (keyedCanvas) {
-          ctx.drawImage(keyedCanvas, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
-        } else {
-          ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
-        }
-      } else {
-        ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
-      }
+        // Crop coordinates calculation (Keyframed)
+        const cropL = currentCropLeft * 0.01 * rawW;
+        const cropR = currentCropRight * 0.01 * rawW;
+        const cropT = currentCropTop * 0.01 * rawH;
+        const cropB = currentCropBottom * 0.01 * rawH;
 
-      ctx.restore();
+        const srcX = cropL;
+        const srcY = cropT;
+        const srcW = Math.max(1, rawW - cropL - cropR);
+        const srcH = Math.max(1, rawH - cropT - cropB);
 
-      // Render Border / Stroke around content
-      if (clip.border && clip.border.width > 0) {
+        const destW = srcW * scaleX;
+        const destH = srcH * scaleY;
+
+        // Frame Shape & Clipping Path (Circle, Rounded Corners)
         ctx.save();
-        ctx.strokeStyle = clip.border.color || "#00f5ff";
-        ctx.lineWidth = clip.border.width * scaleX;
-        ctx.globalAlpha = clipOpacity * (clip.border.opacity ?? 1);
-
         ctx.beginPath();
         if (clip.frameShape === "circle") {
           const radius = Math.min(destW, destH) / 2;
           ctx.arc(0, 0, radius, 0, Math.PI * 2);
+          ctx.clip();
         } else if (clip.frameShape === "rounded" || clip.cornerRadius) {
           const cr = clip.cornerRadius || { topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16, isLinked: true };
           const tl = (cr.topLeft || 0) * scaleX;
@@ -663,31 +691,216 @@ function renderClipOnCanvas(
           const br = (cr.bottomRight || 0) * scaleX;
           const bl = (cr.bottomLeft || 0) * scaleX;
           ctx.roundRect(-destW / 2, -destH / 2, destW, destH, [tl, tr, br, bl]);
-        } else {
-          ctx.rect(-destW / 2, -destH / 2, destW, destH);
+          ctx.clip();
         }
-        ctx.stroke();
+
+        // Mask Path Clipping
+        if (clip.mask && clip.mask.type !== "none" && !clip.isBypassedEffects) {
+          const mk = clip.mask;
+          const mw = (mk.width || destW) * (mk.scale || 1) * scaleX;
+          const mh = (mk.height || destH) * (mk.scale || 1) * scaleY;
+          const mx = (mk.posX || 0) * scaleX;
+          const my = (mk.posY || 0) * scaleY;
+
+          ctx.beginPath();
+          if (mk.type === "circle") {
+            ctx.arc(mx, my, Math.min(mw, mh) / 2, 0, Math.PI * 2);
+          } else if (mk.type === "ellipse") {
+            ctx.ellipse(mx, my, mw / 2, mh / 2, 0, 0, Math.PI * 2);
+          } else if (mk.type === "rounded") {
+            ctx.roundRect(mx - mw / 2, my - mh / 2, mw, mh, 16 * scaleX);
+          } else {
+            ctx.rect(mx - mw / 2, my - mh / 2, mw, mh);
+          }
+          ctx.clip();
+        }
+
+        // Render Video or Chroma Keyed Canvas
+        if (clip.chromaKey?.enabled && !clip.isBypassedEffects) {
+          const keyedCanvas = getChromaKeyedCanvas(video, clip.chromaKey);
+          if (keyedCanvas) {
+            ctx.drawImage(keyedCanvas, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+          } else {
+            ctx.drawImage(video, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+          }
+        } else {
+          ctx.drawImage(video, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+        }
+
         ctx.restore();
+
+        // Render Border / Stroke around content
+        if (clip.border && clip.border.width > 0) {
+          ctx.save();
+          ctx.strokeStyle = clip.border.color || "#00f5ff";
+          ctx.lineWidth = clip.border.width * scaleX;
+          ctx.globalAlpha = clipOpacity * (clip.border.opacity ?? 1);
+
+          ctx.beginPath();
+          if (clip.frameShape === "circle") {
+            const radius = Math.min(destW, destH) / 2;
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+          } else if (clip.frameShape === "rounded" || clip.cornerRadius) {
+            const cr = clip.cornerRadius || { topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16, isLinked: true };
+            const tl = (cr.topLeft || 0) * scaleX;
+            const tr = (cr.topRight || 0) * scaleX;
+            const br = (cr.bottomRight || 0) * scaleX;
+            const bl = (cr.bottomLeft || 0) * scaleX;
+            ctx.roundRect(-destW / 2, -destH / 2, destW, destH, [tl, tr, br, bl]);
+          } else {
+            ctx.rect(-destW / 2, -destH / 2, destW, destH);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else if (state.error) {
+        // Video Error State Badge
+        const boxW = 320 * scaleX;
+        const boxH = 180 * scaleY;
+        ctx.fillStyle = "rgba(239, 68, 68, 0.15)";
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.6)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#ef4444";
+        ctx.font = `bold ${Math.round(13 * scaleX)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Unable to load video", 0, -10);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.font = `${Math.round(10 * scaleX)}px sans-serif`;
+        ctx.fillText(state.errorMessage || "Media file unreadable", 0, 12);
+      } else {
+        // Video Loading State Badge
+        const boxW = 320 * scaleX;
+        const boxH = 180 * scaleY;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
+        ctx.strokeStyle = "rgba(0, 245, 255, 0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#00f5ff";
+        ctx.font = `bold ${Math.round(12 * scaleX)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Loading video...", 0, 0);
       }
     } else {
-      // Fallback animated procedural video frame representation
-      const boxW = 400 * scaleX;
-      const boxH = 225 * scaleY;
-      const grad = ctx.createLinearGradient(-boxW / 2, -boxH / 2, boxW / 2, boxH / 2);
-      grad.addColorStop(0, clip.type === "logo" ? "#a855f7" : "#00f5ff");
-      grad.addColorStop(1, "#3b82f6");
+      // Image Source Handling
+      const img = getLoadedImage(clip.src);
+      if (img && img.complete && img.naturalWidth > 0) {
+        const rawW = img.naturalWidth;
+        const rawH = img.naturalHeight;
 
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 16);
-      ctx.fill();
+        const cropL = currentCropLeft * 0.01 * rawW;
+        const cropR = currentCropRight * 0.01 * rawW;
+        const cropT = currentCropTop * 0.01 * rawH;
+        const cropB = currentCropBottom * 0.01 * rawH;
 
-      // Label inside fallback
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `bold ${Math.round(18 * scaleX)}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(clip.name, 0, 0);
+        const srcX = cropL;
+        const srcY = cropT;
+        const srcW = Math.max(1, rawW - cropL - cropR);
+        const srcH = Math.max(1, rawH - cropT - cropB);
+
+        const destW = srcW * scaleX;
+        const destH = srcH * scaleY;
+
+        ctx.save();
+        ctx.beginPath();
+        if (clip.frameShape === "circle") {
+          const radius = Math.min(destW, destH) / 2;
+          ctx.arc(0, 0, radius, 0, Math.PI * 2);
+          ctx.clip();
+        } else if (clip.frameShape === "rounded" || clip.cornerRadius) {
+          const cr = clip.cornerRadius || { topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16, isLinked: true };
+          const tl = (cr.topLeft || 0) * scaleX;
+          const tr = (cr.topRight || 0) * scaleX;
+          const br = (cr.bottomRight || 0) * scaleX;
+          const bl = (cr.bottomLeft || 0) * scaleX;
+          ctx.roundRect(-destW / 2, -destH / 2, destW, destH, [tl, tr, br, bl]);
+          ctx.clip();
+        }
+
+        if (clip.mask && clip.mask.type !== "none" && !clip.isBypassedEffects) {
+          const mk = clip.mask;
+          const mw = (mk.width || destW) * (mk.scale || 1) * scaleX;
+          const mh = (mk.height || destH) * (mk.scale || 1) * scaleY;
+          const mx = (mk.posX || 0) * scaleX;
+          const my = (mk.posY || 0) * scaleY;
+
+          ctx.beginPath();
+          if (mk.type === "circle") {
+            ctx.arc(mx, my, Math.min(mw, mh) / 2, 0, Math.PI * 2);
+          } else if (mk.type === "ellipse") {
+            ctx.ellipse(mx, my, mw / 2, mh / 2, 0, 0, Math.PI * 2);
+          } else if (mk.type === "rounded") {
+            ctx.roundRect(mx - mw / 2, my - mh / 2, mw, mh, 16 * scaleX);
+          } else {
+            ctx.rect(mx - mw / 2, my - mh / 2, mw, mh);
+          }
+          ctx.clip();
+        }
+
+        if (clip.chromaKey?.enabled && !clip.isBypassedEffects) {
+          const keyedCanvas = getChromaKeyedCanvas(img, clip.chromaKey);
+          if (keyedCanvas) {
+            ctx.drawImage(keyedCanvas, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+          } else {
+            ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+          }
+        } else {
+          ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+        }
+
+        ctx.restore();
+
+        if (clip.border && clip.border.width > 0) {
+          ctx.save();
+          ctx.strokeStyle = clip.border.color || "#00f5ff";
+          ctx.lineWidth = clip.border.width * scaleX;
+          ctx.globalAlpha = clipOpacity * (clip.border.opacity ?? 1);
+
+          ctx.beginPath();
+          if (clip.frameShape === "circle") {
+            const radius = Math.min(destW, destH) / 2;
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+          } else if (clip.frameShape === "rounded" || clip.cornerRadius) {
+            const cr = clip.cornerRadius || { topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16, isLinked: true };
+            const tl = (cr.topLeft || 0) * scaleX;
+            const tr = (cr.topRight || 0) * scaleX;
+            const br = (cr.bottomRight || 0) * scaleX;
+            const bl = (cr.bottomLeft || 0) * scaleX;
+            ctx.roundRect(-destW / 2, -destH / 2, destW, destH, [tl, tr, br, bl]);
+          } else {
+            ctx.rect(-destW / 2, -destH / 2, destW, destH);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        // Image Loading State Badge
+        const boxW = 320 * scaleX;
+        const boxH = 180 * scaleY;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
+        ctx.strokeStyle = "rgba(0, 245, 255, 0.2)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.font = `${Math.round(12 * scaleX)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Loading image...", 0, 0);
+      }
     }
   } else if (clip.type === "text") {
     const tp = clip.textProps;
@@ -760,6 +973,54 @@ function renderClipOnCanvas(
   }
 
   ctx.restore();
+}
+
+// Helper to sync and seek video elements before exporting or rendering frames
+export async function syncAndSeekVideosForProject(project: VideoProjectData, time: number): Promise<void> {
+  const activeClips = project.clips.filter((c) => {
+    const track = project.tracks.find((t) => t.id === c.trackId);
+    if (!track || track.isHidden) return false;
+    return time >= c.startTime && time <= c.startTime + c.duration;
+  });
+
+  const seekPromises: Promise<void>[] = [];
+
+  for (const clip of activeClips) {
+    if (isVideoSource(clip)) {
+      const { video, state } = getLoadedVideo(clip.src);
+      if (video && state.loaded) {
+        const relTime = time - clip.startTime;
+        const targetMediaTime = Math.max(0, (relTime * clip.speed) + (clip.mediaOffset || 0));
+        const dur = video.duration || clip.mediaDuration || clip.duration;
+        const clampedTime = Math.min(dur, Math.max(0, targetMediaTime));
+
+        if (Math.abs(video.currentTime - clampedTime) > 0.01) {
+          const promise = new Promise<void>((res) => {
+            let done = false;
+            const finish = () => {
+              if (!done) {
+                done = true;
+                video.removeEventListener("seeked", finish);
+                res();
+              }
+            };
+            video.addEventListener("seeked", finish);
+            try {
+              video.currentTime = clampedTime;
+            } catch (e) {
+              finish();
+            }
+            setTimeout(finish, 80);
+          });
+          seekPromises.push(promise);
+        }
+      }
+    }
+  }
+
+  if (seekPromises.length > 0) {
+    await Promise.all(seekPromises);
+  }
 }
 
 // Full Frame Export Engine (supports entire project or scene/range export)
@@ -837,13 +1098,14 @@ export async function exportVideoProject(
       let currentFrame = 0;
       const startTimeMs = Date.now();
 
-      function processFrame() {
+      async function processFrame() {
         if (currentFrame >= totalFrames) {
           recorder.stop();
           return;
         }
 
         const currentTime = rangeStart + currentFrame / fps;
+        await syncAndSeekVideosForProject(project, currentTime);
         renderFrameToCanvas(ctx, project, currentTime, exportWidth, exportHeight);
 
         currentFrame++;

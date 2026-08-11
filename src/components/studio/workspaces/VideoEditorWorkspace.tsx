@@ -133,26 +133,65 @@ export function VideoEditorWorkspace() {
 
   // Upload file handler
   const handleUploadFile = (file: File) => {
-    const isVideo = file.type.startsWith("video/");
-    const isAudio = file.type.startsWith("audio/");
-    const isImage = file.type.startsWith("image/");
+    const fileNameLower = file.name.toLowerCase();
+    const isVideo = file.type.startsWith("video/") || 
+      ["mp4", "webm", "mov", "mkv", "avi", "m4v"].some((ext) => fileNameLower.endsWith(`.${ext}`));
+    const isAudio = file.type.startsWith("audio/") || 
+      ["mp3", "wav", "ogg", "aac", "m4a", "flac"].some((ext) => fileNameLower.endsWith(`.${ext}`));
+    const isImage = file.type.startsWith("image/") || 
+      ["png", "jpg", "jpeg", "webp", "gif", "svg"].some((ext) => fileNameLower.endsWith(`.${ext}`));
 
     const type = isVideo ? "video" : isAudio ? "audio" : "image";
     const url = URL.createObjectURL(file);
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || (isVideo ? "mp4" : isAudio ? "mp3" : "png");
 
-    const newItem: MediaItem = {
-      id: `media-up-${Date.now()}`,
-      name: file.name,
-      type,
-      fileType: file.name.split(".").pop() || "file",
-      url,
-      duration: isVideo || isAudio ? 15 : undefined,
-      fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      folderId: "f-uploads",
-      createdAt: new Date().toISOString(),
-    };
-
-    setMediaItems((prev) => [newItem, ...prev]);
+    if (isVideo) {
+      const tempVid = document.createElement("video");
+      tempVid.preload = "metadata";
+      tempVid.onloadedmetadata = () => {
+        const probedDur = Math.round(tempVid.duration);
+        const newItem: MediaItem = {
+          id: `media-up-${Date.now()}`,
+          name: file.name,
+          type: "video",
+          fileType: fileExt,
+          url,
+          duration: probedDur && probedDur > 0 ? probedDur : 15,
+          fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          folderId: "f-uploads",
+          createdAt: new Date().toISOString(),
+        };
+        setMediaItems((prev) => [newItem, ...prev]);
+      };
+      tempVid.onerror = () => {
+        const newItem: MediaItem = {
+          id: `media-up-${Date.now()}`,
+          name: file.name,
+          type: "video",
+          fileType: fileExt,
+          url,
+          duration: 15,
+          fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          folderId: "f-uploads",
+          createdAt: new Date().toISOString(),
+        };
+        setMediaItems((prev) => [newItem, ...prev]);
+      };
+      tempVid.src = url;
+    } else {
+      const newItem: MediaItem = {
+        id: `media-up-${Date.now()}`,
+        name: file.name,
+        type,
+        fileType: fileExt,
+        url,
+        duration: isAudio ? 15 : undefined,
+        fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        folderId: "f-uploads",
+        createdAt: new Date().toISOString(),
+      };
+      setMediaItems((prev) => [newItem, ...prev]);
+    }
   };
 
   // Add media to timeline
