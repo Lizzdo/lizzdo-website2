@@ -242,6 +242,8 @@ export interface LogoAnimProps {
   positionPreset: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center" | "custom";
 }
 
+export type FitMode = "fit" | "fill" | "stretch" | "original";
+
 export interface VideoClip {
   id: string;
   trackId: string;
@@ -263,6 +265,16 @@ export interface VideoClip {
   isReversed: boolean;
   opacity: number; // 0 to 1
   scale: number; // 0.1 to 3
+  scaleX?: number;
+  scaleY?: number;
+  fitMode?: FitMode;
+  width?: number;
+  height?: number;
+  keepAspectRatio?: boolean;
+  enableSnapping?: boolean;
+  rawWidth?: number;
+  rawHeight?: number;
+  aspectRatio?: number;
   rotation: number; // degrees 0-360
   flipX: boolean;
   flipY: boolean;

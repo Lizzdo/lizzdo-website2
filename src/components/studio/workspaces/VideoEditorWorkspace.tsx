@@ -238,6 +238,11 @@ export function VideoEditorWorkspace() {
       isReversed: false,
       opacity: 1,
       scale: 1,
+      scaleX: 1,
+      scaleY: 1,
+      fitMode: "fit",
+      keepAspectRatio: true,
+      enableSnapping: true,
       rotation: 0,
       flipX: false,
       flipY: false,
@@ -692,6 +697,8 @@ export function VideoEditorWorkspace() {
           isPlaying={isPlaying}
           selectedClipId={selectedClipId}
           onTogglePlay={() => setIsPlaying(!isPlaying)}
+          onSelectClip={setSelectedClipId}
+          onUpdateClip={handleUpdateClip}
         />
 
         <VideoInspectorPanel

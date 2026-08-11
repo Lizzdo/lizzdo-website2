@@ -37,7 +37,12 @@ export function getLoadedImage(url: string): HTMLImageElement | null {
   }
 
   const img = new Image();
-  img.crossOrigin = "anonymous";
+  if (!url.startsWith("blob:") && !url.startsWith("data:")) {
+    img.crossOrigin = "anonymous";
+  }
+  img.onload = () => {
+    window.dispatchEvent(new CustomEvent("video-frame-ready", { detail: { src: url } }));
+  };
   img.src = url;
   imageCache.set(url, img);
   return null;
@@ -50,14 +55,16 @@ export function getLoadedVideo(url: string): { video: HTMLVideoElement | null; s
   if (videoCache.has(url)) {
     const video = videoCache.get(url)!;
     const state = videoStateCache.get(url) || { loaded: false, error: false };
-    if (video.readyState >= 1) {
+    if (video.readyState >= 1 || video.videoWidth > 0) {
       state.loaded = true;
     }
     return { video, state };
   }
 
   const video = document.createElement("video");
-  video.crossOrigin = "anonymous";
+  if (!url.startsWith("blob:") && !url.startsWith("data:")) {
+    video.crossOrigin = "anonymous";
+  }
   video.playsInline = true;
   video.muted = true; // Mute preview element so browser allows unrestricted playback & seeking
   video.preload = "auto";
@@ -65,15 +72,16 @@ export function getLoadedVideo(url: string): { video: HTMLVideoElement | null; s
   const state: VideoState = { loaded: false, error: false };
   videoStateCache.set(url, state);
 
-  video.onloadedmetadata = () => {
+  const notifyFrameReady = () => {
     state.loaded = true;
     state.error = false;
+    window.dispatchEvent(new CustomEvent("video-frame-ready", { detail: { src: url } }));
   };
 
-  video.oncanplay = () => {
-    state.loaded = true;
-    state.error = false;
-  };
+  video.onloadedmetadata = notifyFrameReady;
+  video.oncanplay = notifyFrameReady;
+  video.onloadeddata = notifyFrameReady;
+  video.onseeked = notifyFrameReady;
 
   video.onerror = () => {
     state.loaded = false;
@@ -495,6 +503,66 @@ export function getInterpolatedValue(
   return k1.value + (k2.value - k1.value) * eased;
 }
 
+// Calculate exact project-space clip bounding box for canvas handles & rendering
+export function getClipProjectBounds(
+  clip: VideoClip,
+  projW: number,
+  projH: number,
+  rawW: number = 1920,
+  rawH: number = 1080
+) {
+  let baseW = clip.width;
+  let baseH = clip.height;
+
+  if (!baseW || !baseH) {
+    const mode = clip.fitMode || "fit";
+    if (mode === "fill") {
+      const sf = Math.max(projW / rawW, projH / rawH);
+      baseW = rawW * sf;
+      baseH = rawH * sf;
+    } else if (mode === "stretch") {
+      baseW = projW;
+      baseH = projH;
+    } else if (mode === "original") {
+      baseW = rawW;
+      baseH = rawH;
+    } else {
+      // fit
+      const sf = Math.min(projW / rawW, projH / rawH);
+      baseW = rawW * sf;
+      baseH = rawH * sf;
+    }
+  }
+
+  const sx = (clip.scaleX ?? 1) * (clip.scale ?? 1);
+  const sy = (clip.scaleY ?? 1) * (clip.scale ?? 1);
+
+  const cropL = ((clip.crop?.left || 0) / 100) * rawW;
+  const cropR = ((clip.crop?.right || 0) / 100) * rawW;
+  const cropT = ((clip.crop?.top || 0) / 100) * rawH;
+  const cropB = ((clip.crop?.bottom || 0) / 100) * rawH;
+
+  const uncroppedRatioX = Math.max(1, rawW - cropL - cropR) / rawW;
+  const uncroppedRatioY = Math.max(1, rawH - cropT - cropB) / rawH;
+
+  const width = baseW * sx * uncroppedRatioX;
+  const height = baseH * sy * uncroppedRatioY;
+
+  return {
+    x: clip.posX,
+    y: clip.posY,
+    width,
+    height,
+    baseWidth: baseW,
+    baseHeight: baseH,
+    scaleX: sx,
+    scaleY: sy,
+    rotation: clip.rotation || 0,
+    rawWidth: rawW,
+    rawHeight: rawH,
+  };
+}
+
 function renderClipOnCanvas(
   ctx: CanvasRenderingContext2D,
   clip: VideoClip,
@@ -648,8 +716,11 @@ function renderClipOnCanvas(
       const { video, state } = getLoadedVideo(clip.src);
 
       if (video && (video.readyState >= 1 || state.loaded)) {
-        const rawW = video.videoWidth || 1920;
-        const rawH = video.videoHeight || 1080;
+        const rawW = video.videoWidth || clip.rawWidth || 1920;
+        const rawH = video.videoHeight || clip.rawHeight || 1080;
+        clip.rawWidth = rawW;
+        clip.rawHeight = rawH;
+        clip.aspectRatio = rawW / rawH;
 
         // Calculate target media time
         const targetMediaTime = Math.max(0, (relTime * clip.speed) + (clip.mediaOffset || 0));
@@ -665,6 +736,8 @@ function renderClipOnCanvas(
           }
         }
 
+        const bounds = getClipProjectBounds(clip, cw / scaleX, ch / scaleY, rawW, rawH);
+
         // Crop coordinates calculation (Keyframed)
         const cropL = currentCropLeft * 0.01 * rawW;
         const cropR = currentCropRight * 0.01 * rawW;
@@ -676,8 +749,8 @@ function renderClipOnCanvas(
         const srcW = Math.max(1, rawW - cropL - cropR);
         const srcH = Math.max(1, rawH - cropT - cropB);
 
-        const destW = srcW * scaleX;
-        const destH = srcH * scaleY;
+        const destW = bounds.width * scaleX;
+        const destH = bounds.height * scaleY;
 
         // Frame Shape & Clipping Path (Circle, Rounded Corners)
         ctx.save();
@@ -797,8 +870,13 @@ function renderClipOnCanvas(
       // Image Source Handling
       const img = getLoadedImage(clip.src);
       if (img && img.complete && img.naturalWidth > 0) {
-        const rawW = img.naturalWidth;
-        const rawH = img.naturalHeight;
+        const rawW = img.naturalWidth || clip.rawWidth || 1920;
+        const rawH = img.naturalHeight || clip.rawHeight || 1080;
+        clip.rawWidth = rawW;
+        clip.rawHeight = rawH;
+        clip.aspectRatio = rawW / rawH;
+
+        const bounds = getClipProjectBounds(clip, cw / scaleX, ch / scaleY, rawW, rawH);
 
         const cropL = currentCropLeft * 0.01 * rawW;
         const cropR = currentCropRight * 0.01 * rawW;
@@ -810,8 +888,8 @@ function renderClipOnCanvas(
         const srcW = Math.max(1, rawW - cropL - cropR);
         const srcH = Math.max(1, rawH - cropT - cropB);
 
-        const destW = srcW * scaleX;
-        const destH = srcH * scaleY;
+        const destW = bounds.width * scaleX;
+        const destH = bounds.height * scaleY;
 
         ctx.save();
         ctx.beginPath();

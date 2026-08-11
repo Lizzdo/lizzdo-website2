@@ -1368,17 +1368,206 @@ export const VideoInspectorPanel: React.FC<Props> = ({
           </div>
 
           {/* TRANSFORM & KEYFRAMES */}
-          <div className="space-y-2 pt-2 border-t border-white/5">
-            <span className="text-[10px] text-gray-500 uppercase font-bold">Transform & Keyframes</span>
+          <div className="space-y-3 pt-2 border-t border-white/5">
+            {/* CANVAS FIT & ASPECT RATIO CONTROL */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-neon-cyan uppercase font-bold tracking-wider">
+                  Canvas Fit & Sizing
+                </span>
+                <span className="text-[9px] font-mono text-gray-400">
+                  {clip.rawWidth && clip.rawHeight ? `${clip.rawWidth}x${clip.rawHeight}px` : "Auto"}
+                </span>
+              </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
-                  <span>Pos X ({clip.posX})</span>
+              {/* Fit Presets */}
+              <div className="grid grid-cols-4 gap-1 text-[9px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { fitMode: "fit", width: undefined, height: undefined, scale: 1, scaleX: 1, scaleY: 1 })}
+                  className={`py-1.5 rounded border transition-all ${
+                    (clip.fitMode || "fit") === "fit" && !clip.width
+                      ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.3)]"
+                      : "border-white/10 bg-black text-gray-400 hover:text-white"
+                  }`}
+                  title="Scale to fit entire video inside canvas preserving aspect ratio"
+                >
+                  Fit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { fitMode: "fill", width: undefined, height: undefined, scale: 1, scaleX: 1, scaleY: 1 })}
+                  className={`py-1.5 rounded border transition-all ${
+                    clip.fitMode === "fill" && !clip.width
+                      ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.3)]"
+                      : "border-white/10 bg-black text-gray-400 hover:text-white"
+                  }`}
+                  title="Scale to fill canvas completely without black bars"
+                >
+                  Fill
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { fitMode: "stretch", width: undefined, height: undefined, scale: 1, scaleX: 1, scaleY: 1 })}
+                  className={`py-1.5 rounded border transition-all ${
+                    clip.fitMode === "stretch" && !clip.width
+                      ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.3)]"
+                      : "border-white/10 bg-black text-gray-400 hover:text-white"
+                  }`}
+                  title="Stretch video to match canvas width and height"
+                >
+                  Stretch
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { fitMode: "original", width: undefined, height: undefined, scale: 1, scaleX: 1, scaleY: 1 })}
+                  className={`py-1.5 rounded border transition-all ${
+                    clip.fitMode === "original" && !clip.width
+                      ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan shadow-[0_0_8px_rgba(0,245,255,0.3)]"
+                      : "border-white/10 bg-black text-gray-400 hover:text-white"
+                  }`}
+                  title="Use 100% original native asset dimensions"
+                >
+                  100%
+                </button>
+              </div>
+
+              {/* Custom Width & Height Inputs with Lock Aspect Ratio */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <div className="flex-1">
+                  <span className="text-[9px] text-gray-400">Width (px)</span>
+                  <input
+                    type="number"
+                    value={Math.round(clip.width || (clip.rawWidth ? (clip.fitMode === "fill" ? Math.max((project?.width || 1920), (project?.height || 1080) * (clip.aspectRatio || 1)) : Math.min((project?.width || 1920), (project?.height || 1080) * (clip.aspectRatio || 1))) : (project?.width || 1920)))}
+                    onChange={(e) => {
+                      const newW = Math.max(10, Number(e.target.value));
+                      const keepAspect = clip.keepAspectRatio ?? true;
+                      const ar = clip.aspectRatio || ((clip.rawWidth && clip.rawHeight) ? clip.rawWidth / clip.rawHeight : 16 / 9);
+                      const newH = keepAspect ? Math.round(newW / ar) : (clip.height || (project?.height || 1080));
+                      onUpdateClip(clip.id, { width: newW, height: newH });
+                    }}
+                    className="w-full bg-black border border-white/10 rounded px-2 py-1 text-xs text-white font-mono font-bold"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { keepAspectRatio: !(clip.keepAspectRatio ?? true) })}
+                  className={`mt-4 p-1.5 rounded border transition-all ${
+                    (clip.keepAspectRatio ?? true)
+                      ? "text-neon-cyan bg-neon-cyan/10 border-neon-cyan/40"
+                      : "text-gray-500 bg-black border-white/10 hover:text-white"
+                  }`}
+                  title={(clip.keepAspectRatio ?? true) ? "Lock Aspect Ratio (Proportional Resizing)" : "Unlock Aspect Ratio (Free Resizing)"}
+                >
+                  {(clip.keepAspectRatio ?? true) ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                </button>
+
+                <div className="flex-1">
+                  <span className="text-[9px] text-gray-400">Height (px)</span>
+                  <input
+                    type="number"
+                    value={Math.round(clip.height || (clip.rawHeight ? (clip.fitMode === "fill" ? Math.max((project?.height || 1080), (project?.width || 1920) / (clip.aspectRatio || 1)) : Math.min((project?.height || 1080), (project?.width || 1920) / (clip.aspectRatio || 1))) : (project?.height || 1080)))}
+                    onChange={(e) => {
+                      const newH = Math.max(10, Number(e.target.value));
+                      const keepAspect = clip.keepAspectRatio ?? true;
+                      const ar = clip.aspectRatio || ((clip.rawWidth && clip.rawHeight) ? clip.rawWidth / clip.rawHeight : 16 / 9);
+                      const newW = keepAspect ? Math.round(newH * ar) : (clip.width || (project?.width || 1920));
+                      onUpdateClip(clip.id, { width: newW, height: newH });
+                    }}
+                    className="w-full bg-black border border-white/10 rounded px-2 py-1 text-xs text-white font-mono font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* POSITION & ALIGNMENT */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <span className="text-[10px] text-gray-500 uppercase font-bold">Position & Center Alignment</span>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                    <span>Pos X ({clip.posX}px)</span>
+                    <button
+                      onClick={() => toggleKeyframeAtCurrentTime("posX", clip.posX)}
+                      className={`p-0.5 rounded transition-all ${
+                        hasKeyframeAtCurrentTime("posX")
+                          ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                          : "text-gray-500 hover:text-white"
+                      }`}
+                    >
+                      <Diamond className="w-3 h-3 fill-current" />
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    value={clip.posX}
+                    onChange={(e) => onUpdateClip(clip.id, { posX: Number(e.target.value) })}
+                    className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                    <span>Pos Y ({clip.posY}px)</span>
+                    <button
+                      onClick={() => toggleKeyframeAtCurrentTime("posY", clip.posY)}
+                      className={`p-0.5 rounded transition-all ${
+                        hasKeyframeAtCurrentTime("posY")
+                          ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                          : "text-gray-500 hover:text-white"
+                      }`}
+                    >
+                      <Diamond className="w-3 h-3 fill-current" />
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    value={clip.posY}
+                    onChange={(e) => onUpdateClip(clip.id, { posY: Number(e.target.value) })}
+                    className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Canvas Center Buttons */}
+              <div className="grid grid-cols-3 gap-1 text-[9px] font-bold pt-1">
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { posX: 0 })}
+                  className="py-1.5 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300"
+                >
+                  Center X
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { posY: 0 })}
+                  className="py-1.5 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300"
+                >
+                  Center Y
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateClip(clip.id, { posX: 0, posY: 0 })}
+                  className="py-1.5 rounded bg-black border border-white/10 hover:border-neon-cyan text-neon-cyan"
+                >
+                  Center Both
+                </button>
+              </div>
+            </div>
+
+            {/* SCALE, ROTATION, OPACITY */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <span className="text-[10px] text-gray-500 uppercase font-bold">Scale & Rotation</span>
+
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[10px] text-gray-400">
+                  <span>Scale ({Math.round(clip.scale * 100)}%)</span>
                   <button
-                    onClick={() => toggleKeyframeAtCurrentTime("posX", clip.posX)}
+                    onClick={() => toggleKeyframeAtCurrentTime("scale", clip.scale)}
                     className={`p-0.5 rounded transition-all ${
-                      hasKeyframeAtCurrentTime("posX")
+                      hasKeyframeAtCurrentTime("scale")
                         ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
                         : "text-gray-500 hover:text-white"
                     }`}
@@ -1386,21 +1575,34 @@ export const VideoInspectorPanel: React.FC<Props> = ({
                     <Diamond className="w-3 h-3 fill-current" />
                   </button>
                 </div>
-                <input
-                  type="number"
-                  value={clip.posX}
-                  onChange={(e) => onUpdateClip(clip.id, { posX: Number(e.target.value) })}
-                  className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={3}
+                    step={0.05}
+                    value={clip.scale}
+                    onChange={(e) => onUpdateClip(clip.id, { scale: Number(e.target.value) })}
+                    className="flex-1 h-1 accent-neon-cyan cursor-pointer"
+                  />
+                  <input
+                    type="number"
+                    min={10}
+                    max={500}
+                    value={Math.round(clip.scale * 100)}
+                    onChange={(e) => onUpdateClip(clip.id, { scale: Math.max(0.1, Number(e.target.value) / 100) })}
+                    className="w-14 bg-black border border-white/10 rounded px-1.5 py-0.5 text-xs text-right font-mono text-neon-cyan font-bold"
+                  />
+                </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
-                  <span>Pos Y ({clip.posY})</span>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[10px] text-gray-400">
+                  <span>Rotation ({clip.rotation}°)</span>
                   <button
-                    onClick={() => toggleKeyframeAtCurrentTime("posY", clip.posY)}
+                    onClick={() => toggleKeyframeAtCurrentTime("rotation", clip.rotation)}
                     className={`p-0.5 rounded transition-all ${
-                      hasKeyframeAtCurrentTime("posY")
+                      hasKeyframeAtCurrentTime("rotation")
                         ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
                         : "text-gray-500 hover:text-white"
                     }`}
@@ -1408,96 +1610,144 @@ export const VideoInspectorPanel: React.FC<Props> = ({
                     <Diamond className="w-3 h-3 fill-current" />
                   </button>
                 </div>
-                <input
-                  type="number"
-                  value={clip.posY}
-                  onChange={(e) => onUpdateClip(clip.id, { posY: Number(e.target.value) })}
-                  className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={360}
+                    step={1}
+                    value={clip.rotation}
+                    onChange={(e) => onUpdateClip(clip.id, { rotation: Number(e.target.value) })}
+                    className="flex-1 h-1 accent-neon-cyan cursor-pointer"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={360}
+                    value={clip.rotation}
+                    onChange={(e) => onUpdateClip(clip.id, { rotation: (Number(e.target.value) + 360) % 360 })}
+                    className="w-14 bg-black border border-white/10 rounded px-1.5 py-0.5 text-xs text-right font-mono text-neon-cyan font-bold"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-gray-400">
-                <span>Scale ({Math.round(clip.scale * 100)}%)</span>
-                <button
-                  onClick={() => toggleKeyframeAtCurrentTime("scale", clip.scale)}
-                  className={`p-0.5 rounded transition-all ${
-                    hasKeyframeAtCurrentTime("scale")
-                      ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
-                      : "text-gray-500 hover:text-white"
-                  }`}
-                >
-                  <Diamond className="w-3 h-3 fill-current" />
-                </button>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[10px] text-gray-400">
+                  <span>Opacity ({Math.round(clip.opacity * 100)}%)</span>
+                  <button
+                    onClick={() => toggleKeyframeAtCurrentTime("opacity", clip.opacity)}
+                    className={`p-0.5 rounded transition-all ${
+                      hasKeyframeAtCurrentTime("opacity")
+                        ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                        : "text-gray-500 hover:text-white"
+                    }`}
+                  >
+                    <Diamond className="w-3 h-3 fill-current" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={clip.opacity}
+                    onChange={(e) => onUpdateClip(clip.id, { opacity: Number(e.target.value) })}
+                    className="flex-1 h-1 accent-neon-cyan cursor-pointer"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={Math.round(clip.opacity * 100)}
+                    onChange={(e) => onUpdateClip(clip.id, { opacity: Math.max(0, Math.min(1, Number(e.target.value) / 100)) })}
+                    className="w-14 bg-black border border-white/10 rounded px-1.5 py-0.5 text-xs text-right font-mono text-neon-cyan font-bold"
+                  />
+                </div>
               </div>
-              <input
-                type="range"
-                min={0.1}
-                max={3}
-                step={0.05}
-                value={clip.scale}
-                onChange={(e) => onUpdateClip(clip.id, { scale: Number(e.target.value) })}
-                className="w-full h-1 accent-neon-cyan cursor-pointer"
-              />
-            </div>
 
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-gray-400">
-                <span>Rotation ({clip.rotation}°)</span>
-                <button
-                  onClick={() => toggleKeyframeAtCurrentTime("rotation", clip.rotation)}
-                  className={`p-0.5 rounded transition-all ${
-                    hasKeyframeAtCurrentTime("rotation")
-                      ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
-                      : "text-gray-500 hover:text-white"
-                  }`}
-                >
-                  <Diamond className="w-3 h-3 fill-current" />
-                </button>
+              {/* CROP HANDLES CONTROL */}
+              <div className="space-y-2 pt-2 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-400 uppercase font-bold">Crop Edges</span>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateClip(clip.id, { crop: { top: 0, right: 0, bottom: 0, left: 0 } })}
+                    className="text-[9px] text-neon-cyan hover:underline"
+                  >
+                    Reset Crop
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[9px]">
+                  <div>
+                    <span className="text-gray-400">Left ({clip.crop?.left || 0}%)</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={49}
+                      value={clip.crop?.left || 0}
+                      onChange={(e) => onUpdateClip(clip.id, { crop: { ...(clip.crop || { top: 0, right: 0, bottom: 0, left: 0 }), left: Number(e.target.value) } })}
+                      className="w-full h-1 accent-neon-cyan cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Right ({clip.crop?.right || 0}%)</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={49}
+                      value={clip.crop?.right || 0}
+                      onChange={(e) => onUpdateClip(clip.id, { crop: { ...(clip.crop || { top: 0, right: 0, bottom: 0, left: 0 }), right: Number(e.target.value) } })}
+                      className="w-full h-1 accent-neon-cyan cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Top ({clip.crop?.top || 0}%)</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={49}
+                      value={clip.crop?.top || 0}
+                      onChange={(e) => onUpdateClip(clip.id, { crop: { ...(clip.crop || { top: 0, right: 0, bottom: 0, left: 0 }), top: Number(e.target.value) } })}
+                      className="w-full h-1 accent-neon-cyan cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Bottom ({clip.crop?.bottom || 0}%)</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={49}
+                      value={clip.crop?.bottom || 0}
+                      onChange={(e) => onUpdateClip(clip.id, { crop: { ...(clip.crop || { top: 0, right: 0, bottom: 0, left: 0 }), bottom: Number(e.target.value) } })}
+                      className="w-full h-1 accent-neon-cyan cursor-pointer"
+                    />
+                  </div>
+                </div>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={360}
-                step={5}
-                value={clip.rotation}
-                onChange={(e) => onUpdateClip(clip.id, { rotation: Number(e.target.value) })}
-                className="w-full h-1 accent-neon-cyan cursor-pointer"
-              />
-            </div>
 
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-gray-400">
-                <span>Opacity ({Math.round(clip.opacity * 100)}%)</span>
-                <button
-                  onClick={() => toggleKeyframeAtCurrentTime("opacity", clip.opacity)}
-                  className={`p-0.5 rounded transition-all ${
-                    hasKeyframeAtCurrentTime("opacity")
-                      ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
-                      : "text-gray-500 hover:text-white"
-                  }`}
-                >
-                  <Diamond className="w-3 h-3 fill-current" />
-                </button>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={clip.opacity}
-                onChange={(e) => onUpdateClip(clip.id, { opacity: Number(e.target.value) })}
-                className="w-full h-1 accent-neon-cyan cursor-pointer"
-              />
+              <button
+                type="button"
+                onClick={() => onUpdateClip(clip.id, {
+                  fitMode: "fit",
+                  width: undefined,
+                  height: undefined,
+                  posX: 0,
+                  posY: 0,
+                  scale: 1,
+                  scaleX: 1,
+                  scaleY: 1,
+                  rotation: 0,
+                  opacity: 1,
+                  keepAspectRatio: true,
+                  crop: { top: 0, right: 0, bottom: 0, left: 0 }
+                })}
+                className="w-full py-1.5 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 font-bold text-[10px] flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-3 h-3 text-neon-cyan" /> Reset Transform
+              </button>
             </div>
-
-            <button
-              onClick={() => onUpdateClip(clip.id, { posX: 0, posY: 0, scale: 1, rotation: 0, opacity: 1 })}
-              className="w-full py-1.5 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 font-bold text-[10px]"
-            >
-              Reset Transform
-            </button>
           </div>
         </div>
       )}
