@@ -120,6 +120,53 @@ export function renderFrameToCanvas(
   ctx.restore();
 }
 
+// Calculate keyframe interpolated value for any clip property
+export function getInterpolatedValue(
+  clip: VideoClip,
+  property: string,
+  relTime: number,
+  defaultValue: number
+): number {
+  if (!clip.keyframes || clip.keyframes.length === 0) return defaultValue;
+
+  const kfs = clip.keyframes
+    .filter((k) => k.property === property)
+    .sort((a, b) => a.time - b.time);
+
+  if (kfs.length === 0) return defaultValue;
+  if (relTime <= kfs[0].time) return kfs[0].value;
+  if (relTime >= kfs[kfs.length - 1].time) return kfs[kfs.length - 1].value;
+
+  let k1 = kfs[0];
+  let k2 = kfs[kfs.length - 1];
+  for (let i = 0; i < kfs.length - 1; i++) {
+    if (relTime >= kfs[i].time && relTime <= kfs[i + 1].time) {
+      k1 = kfs[i];
+      k2 = kfs[i + 1];
+      break;
+    }
+  }
+
+  const duration = k2.time - k1.time;
+  if (duration <= 0) return k1.value;
+
+  let progress = (relTime - k1.time) / duration;
+
+  const mode = k2.easing || "linear";
+  let eased = progress;
+  if (mode === "easeIn") {
+    eased = progress * progress;
+  } else if (mode === "easeOut") {
+    eased = progress * (2 - progress);
+  } else if (mode === "easeInOut") {
+    eased = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+  } else if (mode === "hold") {
+    eased = 0;
+  }
+
+  return k1.value + (k2.value - k1.value) * eased;
+}
+
 function renderClipOnCanvas(
   ctx: CanvasRenderingContext2D,
   clip: VideoClip,
@@ -137,8 +184,25 @@ function renderClipOnCanvas(
     relTime = clip.duration - relTime;
   }
 
+  // Evaluate keyframe interpolated values
+  const currentOpacity = getInterpolatedValue(clip, "opacity", relTime, clip.opacity);
+  const currentPosX = getInterpolatedValue(clip, "posX", relTime, clip.posX);
+  const currentPosY = getInterpolatedValue(clip, "posY", relTime, clip.posY);
+  const currentScale = getInterpolatedValue(clip, "scale", relTime, clip.scale);
+  const currentRotation = getInterpolatedValue(clip, "rotation", relTime, clip.rotation);
+
+  const currentBlur = getInterpolatedValue(clip, "blur", relTime, clip.effectProps?.blur || 0);
+  const currentBrightness = getInterpolatedValue(clip, "brightness", relTime, clip.effectProps?.brightness || 0);
+  const currentContrast = getInterpolatedValue(clip, "contrast", relTime, clip.effectProps?.contrast || 0);
+  const currentSaturation = getInterpolatedValue(clip, "saturation", relTime, clip.effectProps?.saturation || 100);
+
+  const currentCropTop = getInterpolatedValue(clip, "cropTop", relTime, clip.crop?.top || 0);
+  const currentCropBottom = getInterpolatedValue(clip, "cropBottom", relTime, clip.crop?.bottom || 0);
+  const currentCropLeft = getInterpolatedValue(clip, "cropLeft", relTime, clip.crop?.left || 0);
+  const currentCropRight = getInterpolatedValue(clip, "cropRight", relTime, clip.crop?.right || 0);
+
   // 1. Calculate Opacity with Fade In / Fade Out
-  let clipOpacity = clip.opacity;
+  let clipOpacity = currentOpacity;
   if (clip.fadeIn > 0 && relTime < clip.fadeIn) {
     clipOpacity *= relTime / clip.fadeIn;
   }
@@ -164,17 +228,17 @@ function renderClipOnCanvas(
   ctx.globalAlpha = clipOpacity;
 
   // 2. Center Origin & Transforms
-  const centerX = cw / 2 + clip.posX * scaleX;
-  const centerY = ch / 2 + clip.posY * scaleY;
+  const centerX = cw / 2 + currentPosX * scaleX;
+  const centerY = ch / 2 + currentPosY * scaleY;
 
   ctx.translate(centerX, centerY);
 
-  if (clip.rotation !== 0) {
-    ctx.rotate((clip.rotation * Math.PI) / 180);
+  if (currentRotation !== 0) {
+    ctx.rotate((currentRotation * Math.PI) / 180);
   }
 
   // 3. Logo & Element Animation Calculations
-  let animScale = clip.scale;
+  let animScale = currentScale;
   let animOffsetX = 0;
   let animOffsetY = 0;
 
@@ -218,19 +282,18 @@ function renderClipOnCanvas(
   ctx.translate(animOffsetX * scaleX, animOffsetY * scaleY);
   ctx.scale(clip.flipX ? -animScale : animScale, clip.flipY ? -animScale : animScale);
 
-  // 4. Filters & Color Effects
-  const fx = clip.effectProps;
-  if (fx) {
-    const filterParts: string[] = [];
-    if (fx.blur > 0) filterParts.push(`blur(${fx.blur}px)`);
-    if (fx.brightness !== 0) filterParts.push(`brightness(${100 + fx.brightness}%)`);
-    if (fx.contrast !== 0) filterParts.push(`contrast(${100 + fx.contrast}%)`);
-    if (fx.saturation !== 100) filterParts.push(`saturate(${fx.saturation}%)`);
-    if (fx.hueRotate !== 0) filterParts.push(`hue-rotate(${fx.hueRotate}deg)`);
+  // 4. Filters & Color Effects (Keyframed)
+  const filterParts: string[] = [];
+  if (currentBlur > 0) filterParts.push(`blur(${currentBlur}px)`);
+  if (currentBrightness !== 0) filterParts.push(`brightness(${100 + currentBrightness}%)`);
+  if (currentContrast !== 0) filterParts.push(`contrast(${100 + currentContrast}%)`);
+  if (currentSaturation !== 100) filterParts.push(`saturate(${currentSaturation}%)`);
 
-    if (filterParts.length > 0) {
-      ctx.filter = filterParts.join(" ");
-    }
+  const fx = clip.effectProps;
+  if (fx && fx.hueRotate !== 0) filterParts.push(`hue-rotate(${fx.hueRotate}deg)`);
+
+  if (filterParts.length > 0) {
+    ctx.filter = filterParts.join(" ");
   }
 
   // 5. Draw Content depending on Clip Type
@@ -240,11 +303,11 @@ function renderClipOnCanvas(
       const rawW = img.naturalWidth;
       const rawH = img.naturalHeight;
 
-      // Crop coordinates calculation
-      const cropL = (clip.crop?.left || 0) * 0.01 * rawW;
-      const cropR = (clip.crop?.right || 0) * 0.01 * rawW;
-      const cropT = (clip.crop?.top || 0) * 0.01 * rawH;
-      const cropB = (clip.crop?.bottom || 0) * 0.01 * rawH;
+      // Crop coordinates calculation (Keyframed)
+      const cropL = currentCropLeft * 0.01 * rawW;
+      const cropR = currentCropRight * 0.01 * rawW;
+      const cropT = currentCropTop * 0.01 * rawH;
+      const cropB = currentCropBottom * 0.01 * rawH;
 
       const srcX = cropL;
       const srcY = cropT;

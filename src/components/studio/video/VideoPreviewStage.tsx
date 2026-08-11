@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { VideoClip, VideoProjectData } from "../../../types/video";
-import { renderFrameToCanvas } from "../../../utils/videoRenderer";
+import { renderFrameToCanvas, getInterpolatedValue } from "../../../utils/videoRenderer";
 import { Maximize2, ZoomIn, ZoomOut, Play, Pause } from "lucide-react";
 
 interface Props {
@@ -34,7 +34,60 @@ export const VideoPreviewStage: React.FC<Props> = ({
     canvas.height = project.height;
 
     renderFrameToCanvas(ctx, project, currentTime, project.width, project.height);
-  }, [project, currentTime]);
+
+    // Draw Motion Path overlay for selected clip with keyframes
+    if (selectedClipId) {
+      const selectedClip = project.clips.find((c) => c.id === selectedClipId);
+      if (selectedClip && selectedClip.keyframes && selectedClip.keyframes.length > 0) {
+        const posKfs = selectedClip.keyframes.filter((k) => k.property === "posX" || k.property === "posY");
+        if (posKfs.length > 0) {
+          ctx.save();
+          ctx.strokeStyle = "#00f5ff";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+
+          const samples = 30;
+          const points: { x: number; y: number }[] = [];
+          for (let i = 0; i <= samples; i++) {
+            const sampleRelTime = (i / samples) * selectedClip.duration;
+            const posX = getInterpolatedValue(selectedClip, "posX", sampleRelTime, selectedClip.posX);
+            const posY = getInterpolatedValue(selectedClip, "posY", sampleRelTime, selectedClip.posY);
+            points.push({
+              x: project.width / 2 + posX,
+              y: project.height / 2 + posY,
+            });
+          }
+
+          ctx.beginPath();
+          points.forEach((pt, idx) => {
+            if (idx === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          });
+          ctx.stroke();
+
+          // Draw Keyframe diamond dots along path
+          ctx.setLineDash([]);
+          const timeSet = Array.from(new Set(posKfs.map((k) => k.time))).sort((a, b) => a - b);
+          timeSet.forEach((t) => {
+            const posX = getInterpolatedValue(selectedClip, "posX", t, selectedClip.posX);
+            const posY = getInterpolatedValue(selectedClip, "posY", t, selectedClip.posY);
+            const kx = project.width / 2 + posX;
+            const ky = project.height / 2 + posY;
+
+            ctx.fillStyle = "#00f5ff";
+            ctx.strokeStyle = "#000000";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(kx, ky, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          });
+
+          ctx.restore();
+        }
+      }
+    }
+  }, [project, currentTime, selectedClipId]);
 
   return (
     <div

@@ -418,7 +418,26 @@ export const VideoTimelinePanel: React.FC<Props> = ({
                           className="absolute left-0 top-0 bottom-0 w-2 bg-white/30 hover:bg-neon-cyan rounded-l cursor-ew-resize opacity-0 group-hover:opacity-100 transition-opacity"
                         />
 
-                        <span className="truncate pr-1">{clip.name}</span>
+                        <span className="truncate pr-1 z-10">{clip.name}</span>
+
+                        {/* KEYFRAME MARKERS ON TIMELINE CLIP ITEM */}
+                        {clip.keyframes && clip.keyframes.length > 0 && (
+                          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                            {clip.keyframes.map((kf) => {
+                              const kfLeftPct = Math.max(0, Math.min(100, (kf.time / clip.duration) * 100));
+                              return (
+                                <div
+                                  key={kf.id}
+                                  style={{ left: `${kfLeftPct}%` }}
+                                  className="absolute top-0 bottom-0 w-2 flex items-center justify-center -ml-1"
+                                  title={`Keyframe: ${kf.property} (${kf.time.toFixed(2)}s)`}
+                                >
+                                  <div className="w-1.5 h-1.5 rotate-45 bg-neon-cyan shadow-[0_0_6px_rgba(0,245,255,1)] border border-black" />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
 
                         {/* AUDIO WAVEFORM PREVIEW DRAWING */}
                         {clip.type === "audio" && (

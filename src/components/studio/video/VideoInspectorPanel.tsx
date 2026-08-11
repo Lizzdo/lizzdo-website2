@@ -1,5 +1,5 @@
-import React from "react";
-import { VideoClip, VideoProjectData, LogoAnimationPreset, TransitionType } from "../../../types/video";
+import React, { useState } from "react";
+import { VideoClip, VideoProjectData, LogoAnimationPreset, TransitionType, Keyframe, InterpolationMode } from "../../../types/video";
 import {
   Sliders,
   Maximize2,
@@ -17,6 +17,10 @@ import {
   Snowflake,
   FlipHorizontal,
   FlipVertical,
+  Diamond,
+  Zap,
+  Play,
+  ClipboardCheck,
 } from "lucide-react";
 
 interface Props {
@@ -31,6 +35,9 @@ interface Props {
   onUpdateProject?: (updated: Partial<VideoProjectData>) => void;
 }
 
+// Module clipboard memory for Keyframe Animation Copy/Paste
+let clipboardKeyframes: Keyframe[] | null = null;
+
 export const VideoInspectorPanel: React.FC<Props> = ({
   clip,
   project,
@@ -42,6 +49,9 @@ export const VideoInspectorPanel: React.FC<Props> = ({
   onDetachAudio,
   onUpdateProject,
 }) => {
+  const [presetDuration, setPresetDuration] = useState<number>(1);
+  const [hasCopiedAnim, setHasCopiedAnim] = useState<boolean>(false);
+
   if (!clip) {
     return (
       <div className="w-full md:w-72 bg-neutral-950 border-l border-white/10 p-4 font-mono text-xs text-gray-400 flex flex-col shrink-0 select-none overflow-y-auto custom-scrollbar space-y-4">
@@ -90,6 +100,127 @@ export const VideoInspectorPanel: React.FC<Props> = ({
       </div>
     );
   }
+
+  const relTime = Math.max(0, Math.min(clip.duration, currentTime - clip.startTime));
+
+  const hasKeyframeAtCurrentTime = (property: string) => {
+    if (!clip.keyframes) return false;
+    return clip.keyframes.some((k) => k.property === property && Math.abs(k.time - relTime) < 0.1);
+  };
+
+  const toggleKeyframeAtCurrentTime = (property: any, currentValue: number) => {
+    const existingKeyframes = clip.keyframes || [];
+    const index = existingKeyframes.findIndex(
+      (k) => k.property === property && Math.abs(k.time - relTime) < 0.1
+    );
+
+    if (index >= 0) {
+      const updated = existingKeyframes.filter((_, i) => i !== index);
+      onUpdateClip(clip.id, { keyframes: updated });
+    } else {
+      const newKf: Keyframe = {
+        id: `kf-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        time: Number(relTime.toFixed(2)),
+        property,
+        value: currentValue,
+        easing: "easeInOut",
+      };
+      onUpdateClip(clip.id, { keyframes: [...existingKeyframes, newKf] });
+    }
+  };
+
+  const updateKeyframe = (kfId: string, updated: Partial<Keyframe>) => {
+    if (!clip.keyframes) return;
+    const updatedKfs = clip.keyframes.map((k) => (k.id === kfId ? { ...k, ...updated } : k));
+    onUpdateClip(clip.id, { keyframes: updatedKfs });
+  };
+
+  const deleteKeyframe = (kfId: string) => {
+    if (!clip.keyframes) return;
+    const updatedKfs = clip.keyframes.filter((k) => k.id !== kfId);
+    onUpdateClip(clip.id, { keyframes: updatedKfs });
+  };
+
+  const applyMotionPreset = (preset: string) => {
+    const dur = presetDuration;
+    const existingKfs = clip.keyframes || [];
+    let newKfs: Keyframe[] = [...existingKfs];
+
+    const addKf = (time: number, property: any, value: number, easing: InterpolationMode = "easeInOut") => {
+      newKfs = newKfs.filter((k) => !(k.property === property && Math.abs(k.time - time) < 0.05));
+      newKfs.push({
+        id: `kf-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        time: Number(time.toFixed(2)),
+        property,
+        value,
+        easing,
+      });
+    };
+
+    switch (preset) {
+      case "fadeIn":
+        addKf(0, "opacity", 0);
+        addKf(dur, "opacity", 1);
+        break;
+      case "fadeOut":
+        addKf(Math.max(0, clip.duration - dur), "opacity", 1);
+        addKf(clip.duration, "opacity", 0);
+        break;
+      case "slideLeft":
+        addKf(0, "posX", -500);
+        addKf(dur, "posX", 0);
+        break;
+      case "slideRight":
+        addKf(0, "posX", 500);
+        addKf(dur, "posX", 0);
+        break;
+      case "slideUp":
+        addKf(0, "posY", 300);
+        addKf(dur, "posY", 0);
+        break;
+      case "slideDown":
+        addKf(0, "posY", -300);
+        addKf(dur, "posY", 0);
+        break;
+      case "zoomIn":
+        addKf(0, "scale", 0.2);
+        addKf(dur, "scale", 1);
+        break;
+      case "popIn":
+        addKf(0, "scale", 0);
+        addKf(dur * 0.6, "scale", 1.25);
+        addKf(dur, "scale", 1);
+        break;
+      case "kenBurns":
+        addKf(0, "scale", 1.0);
+        addKf(clip.duration, "scale", 1.25);
+        addKf(0, "posX", -50);
+        addKf(clip.duration, "posX", 50);
+        break;
+      case "pulse":
+        addKf(0, "scale", 1);
+        addKf(clip.duration * 0.5, "scale", 1.15);
+        addKf(clip.duration, "scale", 1);
+        break;
+      case "rotateSpin":
+        addKf(0, "rotation", 0);
+        addKf(clip.duration, "rotation", 360);
+        break;
+    }
+
+    onUpdateClip(clip.id, { keyframes: newKfs });
+  };
+
+  const handleCopyAnimation = () => {
+    clipboardKeyframes = clip.keyframes ? [...clip.keyframes] : [];
+    setHasCopiedAnim(true);
+    setTimeout(() => setHasCopiedAnim(false), 2000);
+  };
+
+  const handlePasteAnimation = () => {
+    if (!clipboardKeyframes) return;
+    onUpdateClip(clip.id, { keyframes: [...clipboardKeyframes] });
+  };
 
   const updateText = (updatedProps: any) => {
     onUpdateClip(clip.id, {
@@ -148,99 +279,198 @@ export const VideoInspectorPanel: React.FC<Props> = ({
           <button
             onClick={() => onDuplicateClip(clip.id)}
             className="p-1 hover:text-white text-gray-400"
-            title="Duplicate"
+            title="Duplicate Clip"
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onDeleteClip(clip.id)}
             className="p-1 hover:text-red-400 text-gray-400"
-            title="Delete"
+            title="Delete Clip"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* QUICK CLIP ACTIONS */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => onFreezeFrame(clip.id)}
-          className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 text-cyan-300 font-bold text-[10px] flex items-center justify-center gap-1"
-        >
-          <Snowflake className="w-3.5 h-3.5" /> Freeze Frame
-        </button>
-        {clip.type === "video" && (
+      {/* QUICK CLIP ACTIONS & ANIMATION COPY/PASTE */}
+      <div className="space-y-1.5">
+        <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => onDetachAudio(clip.id)}
-            className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-300 font-bold text-[10px] flex items-center justify-center gap-1"
+            onClick={() => onFreezeFrame(clip.id)}
+            className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 text-cyan-300 font-bold text-[10px] flex items-center justify-center gap-1"
           >
-            <Music className="w-3.5 h-3.5" /> Detach Audio
+            <Snowflake className="w-3.5 h-3.5" /> Freeze Frame
           </button>
-        )}
-      </div>
-
-      {/* TIMING & SPEED */}
-      <div className="space-y-2 pt-2 border-t border-white/5">
-        <span className="text-[10px] text-gray-500 uppercase font-bold">Timing & Speed</span>
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
-          <div>
-            <label className="text-[10px] text-gray-400">Start (s)</label>
-            <input
-              type="number"
-              step={0.1}
-              value={clip.startTime}
-              onChange={(e) => onUpdateClip(clip.id, { startTime: Number(e.target.value) })}
-              className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white font-bold"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] text-gray-400">Duration (s)</label>
-            <input
-              type="number"
-              step={0.1}
-              value={clip.duration}
-              onChange={(e) => onUpdateClip(clip.id, { duration: Number(e.target.value) })}
-              className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white font-bold"
-            />
-          </div>
+          {clip.type === "video" && (
+            <button
+              onClick={() => onDetachAudio(clip.id)}
+              className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-300 font-bold text-[10px] flex items-center justify-center gap-1"
+            >
+              <Music className="w-3.5 h-3.5" /> Detach Audio
+            </button>
+          )}
         </div>
 
-        <div>
-          <div className="flex justify-between text-[10px] text-gray-400">
-            <span>Speed Multiplier</span>
-            <span className="text-neon-cyan font-bold">{clip.speed}x</span>
-          </div>
-          <input
-            type="range"
-            min={0.25}
-            max={4}
-            step={0.25}
-            value={clip.speed}
-            onChange={(e) => onUpdateClip(clip.id, { speed: Number(e.target.value) })}
-            className="w-full h-1 accent-neon-cyan cursor-pointer"
-          />
-        </div>
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <button
+            onClick={handleCopyAnimation}
+            className="py-1.5 px-2 rounded-lg bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 text-purple-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all"
+          >
+            {hasCopiedAnim ? <ClipboardCheck className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+            <span>{hasCopiedAnim ? "Copied!" : "Copy Anim"}</span>
+          </button>
 
-        <button
-          onClick={() => onUpdateClip(clip.id, { isReversed: !clip.isReversed })}
-          className={`w-full py-1.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1.5 ${
-            clip.isReversed ? "border-purple-400 bg-purple-500/20 text-purple-300" : "border-white/10 bg-black text-gray-400"
-          }`}
-        >
-          <RotateCcw className="w-3.5 h-3.5" /> Reverse Clip Playback
-        </button>
+          <button
+            onClick={handlePasteAnimation}
+            className="py-1.5 px-2 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-all"
+            title="Paste Keyframe Animation to selected clip"
+          >
+            <Zap className="w-3 h-3" />
+            <span>Paste Anim</span>
+          </button>
+        </div>
       </div>
 
-      {/* TRANSFORM & LAYOUT */}
+      {/* MOTION PRESETS SECTION */}
+      <div className="space-y-2 pt-2 border-t border-white/5 bg-neutral-900/50 p-2.5 rounded-xl border border-white/5">
+        <div className="flex items-center justify-between text-neon-cyan">
+          <span className="text-[10px] uppercase font-bold flex items-center gap-1">
+            <Zap className="w-3.5 h-3.5" /> Keyframe Motion Presets
+          </span>
+          <select
+            value={presetDuration}
+            onChange={(e) => setPresetDuration(Number(e.target.value))}
+            className="bg-black border border-white/10 rounded text-[9px] text-white px-1 py-0.5"
+          >
+            <option value={0.5}>0.5s</option>
+            <option value={1}>1.0s</option>
+            <option value={1.5}>1.5s</option>
+            <option value={2}>2.0s</option>
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-1.5 text-[9px]">
+          <button
+            onClick={() => applyMotionPreset("fadeIn")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Fade In
+          </button>
+          <button
+            onClick={() => applyMotionPreset("fadeOut")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Fade Out
+          </button>
+          <button
+            onClick={() => applyMotionPreset("slideLeft")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Slide Left
+          </button>
+          <button
+            onClick={() => applyMotionPreset("slideRight")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Slide Right
+          </button>
+          <button
+            onClick={() => applyMotionPreset("slideUp")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Slide Up
+          </button>
+          <button
+            onClick={() => applyMotionPreset("zoomIn")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Zoom In
+          </button>
+          <button
+            onClick={() => applyMotionPreset("popIn")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Pop Elastic
+          </button>
+          <button
+            onClick={() => applyMotionPreset("kenBurns")}
+            className="py-1 rounded bg-black border border-white/10 hover:border-neon-cyan text-gray-300 text-left px-2 truncate"
+          >
+            ⚡ Ken Burns
+          </button>
+        </div>
+      </div>
+
+      {/* TRANSFORM & LAYOUT WITH KEYFRAME TOGGLES */}
       {(clip.type === "video" || clip.type === "overlay" || clip.type === "logo" || clip.type === "text") && (
         <div className="space-y-2 pt-2 border-t border-white/5">
-          <span className="text-[10px] text-gray-500 uppercase font-bold">Transform & Layout</span>
+          <span className="text-[10px] text-gray-500 uppercase font-bold">Transform & Keyframes</span>
 
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] text-gray-400">
-              <span>Scale</span>
-              <span className="text-white font-bold">{Math.round(clip.scale * 100)}%</span>
+          {/* POS X & POS Y KEYFRAME TOGGLES */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                <span>Pos X ({clip.posX})</span>
+                <button
+                  onClick={() => toggleKeyframeAtCurrentTime("posX", clip.posX)}
+                  className={`p-0.5 rounded transition-all ${
+                    hasKeyframeAtCurrentTime("posX")
+                      ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                      : "text-gray-500 hover:text-white"
+                  }`}
+                  title="Toggle Keyframe at Playhead"
+                >
+                  <Diamond className="w-3 h-3 fill-current" />
+                </button>
+              </div>
+              <input
+                type="number"
+                value={clip.posX}
+                onChange={(e) => onUpdateClip(clip.id, { posX: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                <span>Pos Y ({clip.posY})</span>
+                <button
+                  onClick={() => toggleKeyframeAtCurrentTime("posY", clip.posY)}
+                  className={`p-0.5 rounded transition-all ${
+                    hasKeyframeAtCurrentTime("posY")
+                      ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                      : "text-gray-500 hover:text-white"
+                  }`}
+                  title="Toggle Keyframe at Playhead"
+                >
+                  <Diamond className="w-3 h-3 fill-current" />
+                </button>
+              </div>
+              <input
+                type="number"
+                value={clip.posY}
+                onChange={(e) => onUpdateClip(clip.id, { posY: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded px-2 py-1 text-white font-bold"
+              />
+            </div>
+          </div>
+
+          {/* SCALE KEYFRAME TOGGLE */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center text-[10px] text-gray-400">
+              <span>Scale ({Math.round(clip.scale * 100)}%)</span>
+              <button
+                onClick={() => toggleKeyframeAtCurrentTime("scale", clip.scale)}
+                className={`p-0.5 rounded transition-all ${
+                  hasKeyframeAtCurrentTime("scale")
+                    ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                    : "text-gray-500 hover:text-white"
+                }`}
+                title="Toggle Keyframe at Playhead"
+              >
+                <Diamond className="w-3 h-3 fill-current" />
+              </button>
             </div>
             <input
               type="range"
@@ -253,10 +483,48 @@ export const VideoInspectorPanel: React.FC<Props> = ({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] text-gray-400">
-              <span>Opacity</span>
-              <span className="text-white font-bold">{Math.round(clip.opacity * 100)}%</span>
+          {/* ROTATION KEYFRAME TOGGLE */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center text-[10px] text-gray-400">
+              <span>Rotation ({clip.rotation}°)</span>
+              <button
+                onClick={() => toggleKeyframeAtCurrentTime("rotation", clip.rotation)}
+                className={`p-0.5 rounded transition-all ${
+                  hasKeyframeAtCurrentTime("rotation")
+                    ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                    : "text-gray-500 hover:text-white"
+                }`}
+                title="Toggle Keyframe at Playhead"
+              >
+                <Diamond className="w-3 h-3 fill-current" />
+              </button>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={360}
+              step={5}
+              value={clip.rotation}
+              onChange={(e) => onUpdateClip(clip.id, { rotation: Number(e.target.value) })}
+              className="w-full h-1 accent-neon-cyan cursor-pointer"
+            />
+          </div>
+
+          {/* OPACITY KEYFRAME TOGGLE */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center text-[10px] text-gray-400">
+              <span>Opacity ({Math.round(clip.opacity * 100)}%)</span>
+              <button
+                onClick={() => toggleKeyframeAtCurrentTime("opacity", clip.opacity)}
+                className={`p-0.5 rounded transition-all ${
+                  hasKeyframeAtCurrentTime("opacity")
+                    ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                    : "text-gray-500 hover:text-white"
+                }`}
+                title="Toggle Keyframe at Playhead"
+              >
+                <Diamond className="w-3 h-3 fill-current" />
+              </button>
             </div>
             <input
               type="range"
@@ -296,24 +564,116 @@ export const VideoInspectorPanel: React.FC<Props> = ({
               Fill Canvas
             </button>
           </div>
+        </div>
+      )}
 
-          <div className="flex gap-2 pt-1">
+      {/* KEYFRAME LIST & EDITING TABLE */}
+      {clip.keyframes && clip.keyframes.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <span className="text-[10px] text-neon-cyan font-bold uppercase flex items-center justify-between">
+            <span>Keyframes ({clip.keyframes.length})</span>
             <button
-              onClick={() => onUpdateClip(clip.id, { flipX: !clip.flipX })}
-              className={`flex-1 py-1.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 ${
-                clip.flipX ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan" : "border-white/10 bg-black text-gray-400"
-              }`}
+              onClick={() => onUpdateClip(clip.id, { keyframes: [] })}
+              className="text-[9px] text-gray-500 hover:text-red-400"
             >
-              <FlipHorizontal className="w-3.5 h-3.5" /> Flip H
+              Clear All
             </button>
-            <button
-              onClick={() => onUpdateClip(clip.id, { flipY: !clip.flipY })}
-              className={`flex-1 py-1.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 ${
-                clip.flipY ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan" : "border-white/10 bg-black text-gray-400"
-              }`}
-            >
-              <FlipVertical className="w-3.5 h-3.5" /> Flip V
-            </button>
+          </span>
+
+          <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+            {clip.keyframes.map((kf) => (
+              <div
+                key={kf.id}
+                className="p-1.5 rounded-lg bg-black border border-white/10 flex items-center justify-between text-[10px]"
+              >
+                <div className="space-y-0.5 truncate">
+                  <span className="text-neon-cyan font-bold uppercase block text-[9px]">{kf.property}</span>
+                  <span className="text-gray-400 text-[9px]">{kf.time.toFixed(2)}s | Val: {kf.value}</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <select
+                    value={kf.easing}
+                    onChange={(e) => updateKeyframe(kf.id, { easing: e.target.value as InterpolationMode })}
+                    className="bg-neutral-900 text-gray-300 border border-white/10 rounded px-1 py-0.5 text-[9px]"
+                  >
+                    <option value="linear">Linear</option>
+                    <option value="easeIn">Ease In</option>
+                    <option value="easeOut">Ease Out</option>
+                    <option value="easeInOut">Ease In Out</option>
+                    <option value="hold">Hold</option>
+                  </select>
+
+                  <button
+                    onClick={() => deleteKeyframe(kf.id)}
+                    className="p-1 text-gray-500 hover:text-red-400"
+                    title="Delete Keyframe"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* AUDIO CONTROLS WITH KEYFRAME TOGGLE */}
+      {(clip.type === "audio" || clip.type === "video") && (
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <span className="text-[10px] text-emerald-400 uppercase font-bold">Audio Controls</span>
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-[10px] text-gray-400">
+              <span>Volume ({Math.round(clip.volume * 100)}%)</span>
+              <button
+                onClick={() => toggleKeyframeAtCurrentTime("volume", clip.volume)}
+                className={`p-0.5 rounded transition-all ${
+                  hasKeyframeAtCurrentTime("volume")
+                    ? "text-emerald-400 bg-emerald-500/20 border border-emerald-400"
+                    : "text-gray-500 hover:text-white"
+                }`}
+                title="Toggle Volume Keyframe"
+              >
+                <Diamond className="w-3 h-3 fill-current" />
+              </button>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={2}
+              step={0.05}
+              value={clip.volume}
+              onChange={(e) => onUpdateClip(clip.id, { volume: Number(e.target.value) })}
+              className="w-full h-1 accent-emerald-400 cursor-pointer"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-gray-400">Fade In (s)</label>
+              <input
+                type="number"
+                min={0}
+                max={5}
+                step={0.5}
+                value={clip.fadeIn}
+                onChange={(e) => onUpdateClip(clip.id, { fadeIn: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white font-bold"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400">Fade Out (s)</label>
+              <input
+                type="number"
+                min={0}
+                max={5}
+                step={0.5}
+                value={clip.fadeOut}
+                onChange={(e) => onUpdateClip(clip.id, { fadeOut: Number(e.target.value) })}
+                className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white font-bold"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -407,78 +767,6 @@ export const VideoInspectorPanel: React.FC<Props> = ({
         </div>
       )}
 
-      {/* AUDIO CONTROLS */}
-      {(clip.type === "audio" || clip.type === "video") && (
-        <div className="space-y-2 pt-2 border-t border-white/5">
-          <span className="text-[10px] text-emerald-400 uppercase font-bold">Audio Controls</span>
-
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] text-gray-400">
-              <span>Volume</span>
-              <span className="text-emerald-400 font-bold">{Math.round(clip.volume * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={2}
-              step={0.05}
-              value={clip.volume}
-              onChange={(e) => onUpdateClip(clip.id, { volume: Number(e.target.value) })}
-              className="w-full h-1 accent-emerald-400 cursor-pointer"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] text-gray-400">Fade In (s)</label>
-              <input
-                type="number"
-                min={0}
-                max={5}
-                step={0.5}
-                value={clip.fadeIn}
-                onChange={(e) => onUpdateClip(clip.id, { fadeIn: Number(e.target.value) })}
-                className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white font-bold"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] text-gray-400">Fade Out (s)</label>
-              <input
-                type="number"
-                min={0}
-                max={5}
-                step={0.5}
-                value={clip.fadeOut}
-                onChange={(e) => onUpdateClip(clip.id, { fadeOut: Number(e.target.value) })}
-                className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white font-bold"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* LOGO & WATERMARK ANIMATION PRESETS */}
-      {clip.type === "logo" && (
-        <div className="space-y-2 pt-2 border-t border-white/5">
-          <span className="text-[10px] text-purple-400 uppercase font-bold">Logo Animation Preset</span>
-
-          <select
-            value={clip.logoAnim?.preset || "none"}
-            onChange={(e) => updateLogoAnim({ preset: e.target.value as LogoAnimationPreset })}
-            className="w-full bg-black border border-white/10 rounded-lg px-2 py-1.5 text-xs text-purple-300 font-bold"
-          >
-            <option value="none">None (Static Watermark)</option>
-            <option value="fadeIn">Fade In Smooth</option>
-            <option value="scaleIn">Scale In Pop</option>
-            <option value="slideLeft">Slide In From Right</option>
-            <option value="slideRight">Slide In From Left</option>
-            <option value="slideUp">Slide Up From Bottom</option>
-            <option value="bounce">Continuous Bounce</option>
-            <option value="rotate">Continuous Spin</option>
-          </select>
-        </div>
-      )}
-
       {/* TEXT PROPERTIES */}
       {clip.type === "text" && clip.textProps && (
         <div className="space-y-2 pt-2 border-t border-white/5">
@@ -553,9 +841,19 @@ export const VideoInspectorPanel: React.FC<Props> = ({
         <span className="text-[10px] text-neon-cyan uppercase font-bold">Effects & Color Filter</span>
 
         <div className="space-y-1">
-          <div className="flex justify-between text-[10px] text-gray-400">
+          <div className="flex justify-between items-center text-[10px] text-gray-400">
             <span>Blur</span>
-            <span>{clip.effectProps?.blur || 0}px</span>
+            <button
+              onClick={() => toggleKeyframeAtCurrentTime("blur", clip.effectProps?.blur || 0)}
+              className={`p-0.5 rounded transition-all ${
+                hasKeyframeAtCurrentTime("blur")
+                  ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                  : "text-gray-500 hover:text-white"
+              }`}
+              title="Toggle Blur Keyframe"
+            >
+              <Diamond className="w-3 h-3 fill-current" />
+            </button>
           </div>
           <input
             type="range"
@@ -568,9 +866,19 @@ export const VideoInspectorPanel: React.FC<Props> = ({
         </div>
 
         <div className="space-y-1">
-          <div className="flex justify-between text-[10px] text-gray-400">
+          <div className="flex justify-between items-center text-[10px] text-gray-400">
             <span>Brightness</span>
-            <span>{clip.effectProps?.brightness || 0}</span>
+            <button
+              onClick={() => toggleKeyframeAtCurrentTime("brightness", clip.effectProps?.brightness || 0)}
+              className={`p-0.5 rounded transition-all ${
+                hasKeyframeAtCurrentTime("brightness")
+                  ? "text-neon-cyan bg-neon-cyan/20 border border-neon-cyan"
+                  : "text-gray-500 hover:text-white"
+              }`}
+              title="Toggle Brightness Keyframe"
+            >
+              <Diamond className="w-3 h-3 fill-current" />
+            </button>
           </div>
           <input
             type="range"

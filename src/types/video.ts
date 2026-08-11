@@ -35,6 +35,30 @@ export type TransitionType =
   | "flash"
   | "dipToBlack";
 
+export type InterpolationMode = "linear" | "easeIn" | "easeOut" | "easeInOut" | "hold";
+
+export interface Keyframe {
+  id: string;
+  time: number; // in seconds relative to clip start (0 to clip.duration)
+  property:
+    | "posX"
+    | "posY"
+    | "scale"
+    | "rotation"
+    | "opacity"
+    | "volume"
+    | "blur"
+    | "brightness"
+    | "contrast"
+    | "saturation"
+    | "cropTop"
+    | "cropBottom"
+    | "cropLeft"
+    | "cropRight";
+  value: number;
+  easing: InterpolationMode;
+}
+
 export interface TextClipProps {
   content: string;
   fontFamily: string;
@@ -108,6 +132,9 @@ export interface VideoClip {
     type: TransitionType;
     duration: number;
   };
+  keyframes?: Keyframe[];
+  anchorX?: number; // 0 to 1 relative to width (0.5 = center)
+  anchorY?: number; // 0 to 1 relative to height (0.5 = center)
 }
 
 export interface VideoTrack {
