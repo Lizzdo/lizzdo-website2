@@ -27,6 +27,7 @@ import {
   Flag,
 } from "lucide-react";
 import { generateWaveformPoints } from "../../../utils/videoRenderer";
+import { AudioWaveform } from "./AudioWaveform";
 
 interface Props {
   project: VideoProjectData;
@@ -41,6 +42,8 @@ interface Props {
   onToggleLockTrack: (trackId: string) => void;
   onToggleHideTrack: (trackId: string) => void;
   onToggleMuteTrack: (trackId: string) => void;
+  onToggleSoloTrack?: (trackId: string) => void;
+  onUpdateTrack?: (trackId: string, updated: Partial<VideoTrack>) => void;
   onSeek: (time: number) => void;
   onSplitClip: (clipId: string) => void;
   onDetachAudio: (clipId: string) => void;
@@ -61,6 +64,8 @@ export const VideoTimelinePanel: React.FC<Props> = ({
   onToggleLockTrack,
   onToggleHideTrack,
   onToggleMuteTrack,
+  onToggleSoloTrack,
+  onUpdateTrack,
   onSeek,
   onSplitClip,
   onDetachAudio,
@@ -296,32 +301,50 @@ export const VideoTimelinePanel: React.FC<Props> = ({
           {project.tracks.map((track) => (
             <div
               key={track.id}
-              className="h-10 px-2.5 flex items-center justify-between text-[11px] font-bold bg-neutral-900/40 hover:bg-neutral-900"
+              className="h-10 px-2 flex items-center justify-between text-[11px] font-bold bg-neutral-900/40 hover:bg-neutral-900 border-b border-white/5 group"
             >
-              <span className="truncate text-gray-300 w-24">{track.name}</span>
+              <input
+                type="text"
+                value={track.name}
+                onChange={(e) => onUpdateTrack && onUpdateTrack(track.id, { name: e.target.value })}
+                className="bg-transparent text-gray-200 hover:text-white border-none focus:outline-none focus:bg-black/60 rounded px-1 truncate w-20 text-[10px]"
+                title="Click to rename track"
+              />
 
-              <div className="flex items-center gap-1 text-gray-500">
+              <div className="flex items-center gap-0.5 text-gray-500">
+                {/* SOLO BUTTON */}
                 <button
-                  onClick={() => onToggleLockTrack(track.id)}
-                  className={`p-1 hover:text-white ${track.isLocked ? "text-amber-400" : ""}`}
+                  onClick={() => onToggleSoloTrack && onToggleSoloTrack(track.id)}
+                  className={`w-4 h-4 rounded text-[9px] font-extrabold flex items-center justify-center transition-colors ${
+                    track.isSolo
+                      ? "bg-amber-400 text-black shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                      : "bg-white/5 text-gray-500 hover:text-white"
+                  }`}
+                  title="Solo Track"
                 >
-                  {track.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                  S
                 </button>
-                <button
-                  onClick={() => onToggleHideTrack(track.id)}
-                  className={`p-1 hover:text-white ${track.isHidden ? "text-red-400" : ""}`}
-                >
-                  {track.isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                </button>
+
+                {/* MUTE BUTTON */}
                 <button
                   onClick={() => onToggleMuteTrack(track.id)}
-                  className={`p-1 hover:text-white ${track.isMuted ? "text-red-400" : ""}`}
+                  className={`p-0.5 rounded transition-colors ${track.isMuted ? "text-red-400 bg-red-500/20" : "hover:text-white"}`}
+                  title="Mute Track"
                 >
                   {track.isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
                 </button>
+
+                <button
+                  onClick={() => onToggleLockTrack(track.id)}
+                  className={`p-0.5 hover:text-white ${track.isLocked ? "text-amber-400" : ""}`}
+                  title="Lock Track"
+                >
+                  {track.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                </button>
+
                 <button
                   onClick={() => onDeleteTrack(track.id)}
-                  className="p-1 hover:text-red-400"
+                  className="p-0.5 hover:text-red-400"
                   title="Delete Track"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -441,14 +464,13 @@ export const VideoTimelinePanel: React.FC<Props> = ({
 
                         {/* AUDIO WAVEFORM PREVIEW DRAWING */}
                         {clip.type === "audio" && (
-                          <div className="flex items-center gap-0.5 h-3 opacity-60 overflow-hidden">
-                            {generateWaveformPoints(clip.id, 20).map((pt, pIdx) => (
-                              <div
-                                key={pIdx}
-                                style={{ height: `${pt * 100}%` }}
-                                className="w-0.5 bg-emerald-400 rounded-full"
-                              />
-                            ))}
+                          <div className="absolute inset-x-2 bottom-1 top-5 overflow-hidden">
+                            <AudioWaveform
+                              src={clip.src}
+                              duration={clip.duration}
+                              fadeIn={clip.fadeIn}
+                              fadeOut={clip.fadeOut}
+                            />
                           </div>
                         )}
 

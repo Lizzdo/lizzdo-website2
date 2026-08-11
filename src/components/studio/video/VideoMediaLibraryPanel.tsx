@@ -58,6 +58,28 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
   const recorderRef = useRef<VoiceRecorderEngine | null>(null);
   const timerRef = useRef<any>(null);
 
+  // Audio preview player
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePreviewAudio = (id: string, url: string) => {
+    if (playingAudioId === id) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
+      setPlayingAudioId(null);
+    } else {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
+      const audio = new Audio(url);
+      previewAudioRef.current = audio;
+      audio.play().catch(() => {});
+      setPlayingAudioId(id);
+      audio.onended = () => setPlayingAudioId(null);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       onUploadFile(e.target.files[0]);
@@ -349,42 +371,136 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
 
         {/* AUDIO TAB */}
         {activeTab === "audio" && (
-          <div className="space-y-3">
-            <span className="text-[10px] text-gray-500 uppercase font-bold">Stock Audio Loops</span>
-            {[
-              { id: "a1", name: "Cyber Synthwave - 120 BPM", duration: "60s", url: "https://actions.google.com/sounds/v1/science_fiction/alien_spaceship_ambient.ogg" },
-              { id: "a2", name: "Future Bass Drop Loop", duration: "45s", url: "https://actions.google.com/sounds/v1/science_fiction/deep_space_hum.ogg" },
-              { id: "a3", name: "Glitch Sound FX Pulse", duration: "12s", url: "https://actions.google.com/sounds/v1/science_fiction/hi_tech_device.ogg" },
-            ].map((aud) => (
-              <div
-                key={aud.id}
-                className="p-2.5 rounded-xl bg-neutral-900 border border-white/5 hover:border-emerald-400 flex items-center justify-between group"
+          <div className="space-y-4">
+            {/* RECORD VOICEOVER & UPLOAD AUDIO */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleToggleVoiceRecorder}
+                className={`flex-1 py-2.5 rounded-xl border font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${
+                  isRecording
+                    ? "border-red-500 bg-red-500/20 text-red-400 animate-pulse"
+                    : "border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400"
+                }`}
               >
-                <div className="truncate">
-                  <p className="font-bold text-xs text-gray-200 group-hover:text-emerald-400 truncate">
-                    {aud.name}
-                  </p>
-                  <p className="text-[10px] text-gray-500">{aud.duration}</p>
-                </div>
-                <button
-                  onClick={() =>
-                    onAddMediaToTimeline({
-                      id: `stock-aud-${Date.now()}`,
-                      name: aud.name,
-                      type: "audio",
-                      fileType: "mp3",
-                      url: aud.url,
-                      duration: 60,
-                      fileSize: "3.2 MB",
-                      createdAt: new Date().toISOString(),
-                    })
-                  }
-                  className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+                {isRecording ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                <span>{isRecording ? `Recording (${recordTime}s)...` : "Record Voiceover"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-2.5 rounded-xl border border-white/10 bg-black hover:border-emerald-400 text-gray-300 hover:text-white font-bold flex items-center gap-1 text-xs"
+                title="Upload MP3 / WAV / M4A"
+              >
+                <Upload className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* USER UPLOADED AUDIO */}
+            {mediaItems.filter((m) => m.type === "audio").length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] text-gray-500 uppercase font-bold">
+                  My Audio Clips ({mediaItems.filter((m) => m.type === "audio").length})
+                </span>
+                {mediaItems
+                  .filter((m) => m.type === "audio")
+                  .map((aud) => (
+                    <div
+                      key={aud.id}
+                      className="p-2.5 rounded-xl bg-neutral-900 border border-white/5 hover:border-emerald-400/50 flex items-center justify-between group transition-all"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <button
+                          onClick={() => togglePreviewAudio(aud.id, aud.url)}
+                          className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black flex items-center justify-center shrink-0 font-bold text-xs transition-colors"
+                          title="Preview Audio"
+                        >
+                          {playingAudioId === aud.id ? "⏸" : "▶"}
+                        </button>
+                        <div className="truncate">
+                          <p className="font-bold text-xs text-gray-200 group-hover:text-emerald-400 truncate">
+                            {aud.name}
+                          </p>
+                          <p className="text-[10px] text-gray-500">
+                            {aud.fileType?.toUpperCase()} • {aud.duration || 0}s
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onAddMediaToTimeline(aud)}
+                          className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black transition-colors"
+                          title="Add to Timeline"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteMedia(aud.id)}
+                          className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-red-400 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
               </div>
-            ))}
+            )}
+
+            {/* STOCK AUDIO LIBRARY */}
+            <div className="space-y-2">
+              <span className="text-[10px] text-gray-500 uppercase font-bold">Stock Audio Loops & SFX</span>
+              {[
+                { id: "a1", name: "Cyber Synthwave - 120 BPM", duration: 60, fileType: "MP3", url: "https://actions.google.com/sounds/v1/science_fiction/alien_spaceship_ambient.ogg" },
+                { id: "a2", name: "Future Bass Drop Loop", duration: 45, fileType: "OGG", url: "https://actions.google.com/sounds/v1/science_fiction/deep_space_hum.ogg" },
+                { id: "a3", name: "Glitch Sound FX Pulse", duration: 12, fileType: "WAV", url: "https://actions.google.com/sounds/v1/science_fiction/hi_tech_device.ogg" },
+                { id: "a4", name: "Cinematic Tension Rise", duration: 30, fileType: "MP3", url: "https://actions.google.com/sounds/v1/science_fiction/low_frequency_pulsing.ogg" },
+              ].map((aud) => (
+                <div
+                  key={aud.id}
+                  className="p-2.5 rounded-xl bg-neutral-900 border border-white/5 hover:border-emerald-400 flex items-center justify-between group transition-all"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <button
+                      onClick={() => togglePreviewAudio(aud.id, aud.url)}
+                      className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black flex items-center justify-center shrink-0 font-bold text-xs transition-colors"
+                      title="Preview Audio"
+                    >
+                      {playingAudioId === aud.id ? "⏸" : "▶"}
+                    </button>
+                    <div className="truncate">
+                      <p className="font-bold text-xs text-gray-200 group-hover:text-emerald-400 truncate">
+                        {aud.name}
+                      </p>
+                      <p className="text-[10px] text-gray-500">
+                        {aud.fileType} • {aud.duration}s
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      onAddMediaToTimeline({
+                        id: `stock-aud-${Date.now()}-${aud.id}`,
+                        name: aud.name,
+                        type: "audio",
+                        fileType: aud.fileType.toLowerCase(),
+                        url: aud.url,
+                        duration: aud.duration,
+                        fileSize: "2.5 MB",
+                        createdAt: new Date().toISOString(),
+                      })
+                    }
+                    className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black transition-colors shrink-0"
+                    title="Add to Timeline"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

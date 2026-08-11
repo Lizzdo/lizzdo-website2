@@ -22,6 +22,7 @@ import { VideoPlaybackBar } from "../video/VideoPlaybackBar";
 import { VideoTimelinePanel } from "../video/VideoTimelinePanel";
 import { VideoInspectorPanel } from "../video/VideoInspectorPanel";
 import { VideoExportModal } from "../video/VideoExportModal";
+import { AudioTimelinePlayer } from "../../../utils/audioEngine";
 
 export function VideoEditorWorkspace() {
   // 1. Initial Project State
@@ -87,9 +88,18 @@ export function VideoEditorWorkspace() {
   // 4. Modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  // Real-time Playback Animation Loop
+  // Real-time Playback Animation Loop & Audio Sync
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const audioPlayerRef = useRef<AudioTimelinePlayer>(new AudioTimelinePlayer());
+
+  useEffect(() => {
+    if (isPlaying) {
+      audioPlayerRef.current.syncAndPlay(project, currentTime, masterVolume, isMuted);
+    } else {
+      audioPlayerRef.current.stop();
+    }
+  }, [isPlaying, isMuted, masterVolume]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -537,6 +547,16 @@ export function VideoEditorWorkspace() {
     updateProjectWithHistory({ tracks: updated });
   };
 
+  const handleToggleSoloTrack = (trackId: string) => {
+    const updated = project.tracks.map((t) => (t.id === trackId ? { ...t, isSolo: !t.isSolo } : t));
+    updateProjectWithHistory({ tracks: updated });
+  };
+
+  const handleUpdateTrack = (trackId: string, updated: Partial<VideoTrack>) => {
+    const newTracks = project.tracks.map((t) => (t.id === trackId ? { ...t, ...updated } : t));
+    updateProjectWithHistory({ tracks: newTracks });
+  };
+
   const selectedClip = project.clips.find((c) => c.id === selectedClipId) || null;
 
   return (
@@ -620,6 +640,8 @@ export function VideoEditorWorkspace() {
           onToggleLockTrack={handleToggleLockTrack}
           onToggleHideTrack={handleToggleHideTrack}
           onToggleMuteTrack={handleToggleMuteTrack}
+          onToggleSoloTrack={handleToggleSoloTrack}
+          onUpdateTrack={handleUpdateTrack}
           onSeek={(t) => setCurrentTime(t)}
           onSplitClip={handleSplitClip}
           onDetachAudio={handleDetachAudio}

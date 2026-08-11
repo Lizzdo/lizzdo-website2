@@ -1,7 +1,10 @@
-import { VideoClip, VideoProjectData, LogoAnimationPreset } from "../types/video";
+import { VideoClip, VideoProjectData, LogoAnimationPreset, ChromaKeyProps } from "../types/video";
+import { renderProjectAudioMix } from "./audioEngine";
 
 // Cache for loaded HTMLImageElements
 const imageCache: Map<string, HTMLImageElement> = new Map();
+// Cache for Chroma Keyed offscreen canvases
+const keyedCanvasCache: Map<string, HTMLCanvasElement> = new Map();
 
 // Helper to safely load or retrieve image from cache
 export function getLoadedImage(url: string): HTMLImageElement | null {
@@ -31,6 +34,125 @@ export function generateWaveformPoints(seedStr: string, count: number = 80): num
     points.push(Math.min(1, Math.max(0.1, val)));
   }
   return points;
+}
+
+// Chroma Key Offscreen Image Keying Engine
+export function getChromaKeyedCanvas(img: HTMLImageElement, chromaKey: ChromaKeyProps): HTMLCanvasElement | null {
+  if (!img.complete || img.naturalWidth <= 0) return null;
+
+  const cacheKey = `${img.src}_${chromaKey.keyColor}_${chromaKey.similarity}_${chromaKey.tolerance}_${chromaKey.spillReduction}`;
+  if (keyedCanvasCache.has(cacheKey)) {
+    return keyedCanvasCache.get(cacheKey)!;
+  }
+
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  ctx.drawImage(img, 0, 0);
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+
+  // Parse key color hex e.g. #00ff00
+  const hex = (chromaKey.keyColor || "#00ff00").replace("#", "");
+  const targetR = parseInt(hex.substring(0, 2), 16) || 0;
+  const targetG = parseInt(hex.substring(2, 4), 16) || 0;
+  const targetB = parseInt(hex.substring(4, 6), 16) || 0;
+
+  const similarity = chromaKey.similarity ?? 0.3;
+  const tolerance = chromaKey.tolerance ?? 0.1;
+  const spill = chromaKey.spillReduction ?? 0.5;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    // Normalized Euclidean RGB distance
+    const dist = Math.sqrt((r - targetR) ** 2 + (g - targetG) ** 2 + (b - targetB) ** 2) / 441.673;
+
+    if (dist < similarity) {
+      data[i + 3] = 0; // Fully transparent
+    } else if (dist < similarity + tolerance) {
+      const alphaFactor = (dist - similarity) / tolerance;
+      data[i + 3] = Math.round(data[i + 3] * alphaFactor);
+    }
+
+    // Spill reduction: suppress key color overflow
+    if (data[i + 3] > 0 && spill > 0) {
+      if (targetG > targetR && targetG > targetB) {
+        // Green spill
+        const maxRB = Math.max(r, b);
+        if (g > maxRB) {
+          data[i + 1] = Math.round(g * (1 - spill) + maxRB * spill);
+        }
+      } else if (targetB > targetR && targetB > targetG) {
+        // Blue spill
+        const maxRG = Math.max(r, g);
+        if (b > maxRG) {
+          data[i + 2] = Math.round(b * (1 - spill) + maxRG * spill);
+        }
+      }
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  keyedCanvasCache.set(cacheKey, canvas);
+  return canvas;
+}
+
+// Render Safe Area Guides Overlay
+export function renderGuidesOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  preset: string,
+  cw: number,
+  ch: number
+) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(0, 245, 255, 0.6)";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+
+  if (preset === "grid") {
+    // Rule of Thirds
+    ctx.beginPath();
+    ctx.moveTo(cw / 3, 0); ctx.lineTo(cw / 3, ch);
+    ctx.moveTo((cw * 2) / 3, 0); ctx.lineTo((cw * 2) / 3, ch);
+    ctx.moveTo(0, ch / 3); ctx.lineTo(cw, ch / 3);
+    ctx.moveTo(0, (ch * 2) / 3); ctx.lineTo(cw, (ch * 2) / 3);
+    ctx.stroke();
+  } else if (preset === "youtube") {
+    // 16:9 Title Safe Area
+    const padX = cw * 0.1;
+    const padY = ch * 0.1;
+    ctx.strokeRect(padX, padY, cw - padX * 2, ch - padY * 2);
+    ctx.fillStyle = "rgba(0, 245, 255, 0.9)";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("YouTube Title Safe Zone", padX + 10, padY + 20);
+  } else if (preset === "tiktok") {
+    // 9:16 Feed Safe Area
+    const padTop = ch * 0.15;
+    const padBottom = ch * 0.25;
+    const padRight = cw * 0.2;
+    ctx.strokeRect(0, padTop, cw - padRight, ch - padTop - padBottom);
+    ctx.fillStyle = "rgba(0, 245, 255, 0.9)";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("TikTok Feed Safe Zone", 12, padTop + 20);
+  } else if (preset === "instagram") {
+    // 4:5 Safe Area
+    const padY = ch * 0.1;
+    ctx.strokeRect(cw * 0.05, padY, cw * 0.9, ch - padY * 2);
+    ctx.fillStyle = "rgba(0, 245, 255, 0.9)";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("Instagram Safe Zone", cw * 0.05 + 10, padY + 20);
+  }
+
+  ctx.restore();
 }
 
 // Main Frame Renderer for Video Canvas
@@ -115,6 +237,11 @@ export function renderFrameToCanvas(
   // Render each clip
   for (const clip of activeClips) {
     renderClipOnCanvas(ctx, clip, time, canvasWidth, canvasHeight, scaleX, scaleY);
+  }
+
+  // Draw Guides Overlay if enabled in preview
+  if (project.showGuides && project.guidePreset && project.guidePreset !== "none") {
+    renderGuidesOnCanvas(ctx, project.guidePreset, canvasWidth, canvasHeight);
   }
 
   ctx.restore();
@@ -227,6 +354,19 @@ function renderClipOnCanvas(
   ctx.save();
   ctx.globalAlpha = clipOpacity;
 
+  // Apply Blend Mode if defined
+  if (clip.blendMode && clip.blendMode !== "normal") {
+    ctx.globalCompositeOperation = clip.blendMode as GlobalCompositeOperation;
+  }
+
+  // Apply Shadow if configured
+  if (clip.shadow && (clip.shadow.blur > 0 || clip.shadow.offsetX !== 0 || clip.shadow.offsetY !== 0)) {
+    ctx.shadowColor = clip.shadow.color || "#000000";
+    ctx.shadowBlur = (clip.shadow.blur || 0) * scaleX;
+    ctx.shadowOffsetX = (clip.shadow.offsetX || 0) * scaleX;
+    ctx.shadowOffsetY = (clip.shadow.offsetY || 0) * scaleY;
+  }
+
   // 2. Center Origin & Transforms
   const centerX = cw / 2 + currentPosX * scaleX;
   const centerY = ch / 2 + currentPosY * scaleY;
@@ -282,18 +422,20 @@ function renderClipOnCanvas(
   ctx.translate(animOffsetX * scaleX, animOffsetY * scaleY);
   ctx.scale(clip.flipX ? -animScale : animScale, clip.flipY ? -animScale : animScale);
 
-  // 4. Filters & Color Effects (Keyframed)
-  const filterParts: string[] = [];
-  if (currentBlur > 0) filterParts.push(`blur(${currentBlur}px)`);
-  if (currentBrightness !== 0) filterParts.push(`brightness(${100 + currentBrightness}%)`);
-  if (currentContrast !== 0) filterParts.push(`contrast(${100 + currentContrast}%)`);
-  if (currentSaturation !== 100) filterParts.push(`saturate(${currentSaturation}%)`);
+  // 4. Filters & Color Effects (Keyframed unless bypassed)
+  if (!clip.isBypassedEffects) {
+    const filterParts: string[] = [];
+    if (currentBlur > 0) filterParts.push(`blur(${currentBlur}px)`);
+    if (currentBrightness !== 0) filterParts.push(`brightness(${100 + currentBrightness}%)`);
+    if (currentContrast !== 0) filterParts.push(`contrast(${100 + currentContrast}%)`);
+    if (currentSaturation !== 100) filterParts.push(`saturate(${currentSaturation}%)`);
 
-  const fx = clip.effectProps;
-  if (fx && fx.hueRotate !== 0) filterParts.push(`hue-rotate(${fx.hueRotate}deg)`);
+    const fx = clip.effectProps;
+    if (fx && fx.hueRotate !== 0) filterParts.push(`hue-rotate(${fx.hueRotate}deg)`);
 
-  if (filterParts.length > 0) {
-    ctx.filter = filterParts.join(" ");
+    if (filterParts.length > 0) {
+      ctx.filter = filterParts.join(" ");
+    }
   }
 
   // 5. Draw Content depending on Clip Type
@@ -317,7 +459,82 @@ function renderClipOnCanvas(
       const destW = srcW * scaleX;
       const destH = srcH * scaleY;
 
-      ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+      // Frame Shape & Clipping Path (Circle, Rounded Corners)
+      ctx.save();
+      ctx.beginPath();
+      if (clip.frameShape === "circle") {
+        const radius = Math.min(destW, destH) / 2;
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.clip();
+      } else if (clip.frameShape === "rounded" || clip.cornerRadius) {
+        const cr = clip.cornerRadius || { topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16, isLinked: true };
+        const tl = (cr.topLeft || 0) * scaleX;
+        const tr = (cr.topRight || 0) * scaleX;
+        const br = (cr.bottomRight || 0) * scaleX;
+        const bl = (cr.bottomLeft || 0) * scaleX;
+        ctx.roundRect(-destW / 2, -destH / 2, destW, destH, [tl, tr, br, bl]);
+        ctx.clip();
+      }
+
+      // Mask Path Clipping
+      if (clip.mask && clip.mask.type !== "none" && !clip.isBypassedEffects) {
+        const mk = clip.mask;
+        const mw = (mk.width || destW) * (mk.scale || 1) * scaleX;
+        const mh = (mk.height || destH) * (mk.scale || 1) * scaleY;
+        const mx = (mk.posX || 0) * scaleX;
+        const my = (mk.posY || 0) * scaleY;
+
+        ctx.beginPath();
+        if (mk.type === "circle") {
+          ctx.arc(mx, my, Math.min(mw, mh) / 2, 0, Math.PI * 2);
+        } else if (mk.type === "ellipse") {
+          ctx.ellipse(mx, my, mw / 2, mh / 2, 0, 0, Math.PI * 2);
+        } else if (mk.type === "rounded") {
+          ctx.roundRect(mx - mw / 2, my - mh / 2, mw, mh, 16 * scaleX);
+        } else {
+          ctx.rect(mx - mw / 2, my - mh / 2, mw, mh);
+        }
+        ctx.clip();
+      }
+
+      // Render Image or Chroma Keyed Canvas
+      if (clip.chromaKey?.enabled && !clip.isBypassedEffects) {
+        const keyedCanvas = getChromaKeyedCanvas(img, clip.chromaKey);
+        if (keyedCanvas) {
+          ctx.drawImage(keyedCanvas, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+        } else {
+          ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+        }
+      } else {
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, -destW / 2, -destH / 2, destW, destH);
+      }
+
+      ctx.restore();
+
+      // Render Border / Stroke around content
+      if (clip.border && clip.border.width > 0) {
+        ctx.save();
+        ctx.strokeStyle = clip.border.color || "#00f5ff";
+        ctx.lineWidth = clip.border.width * scaleX;
+        ctx.globalAlpha = clipOpacity * (clip.border.opacity ?? 1);
+
+        ctx.beginPath();
+        if (clip.frameShape === "circle") {
+          const radius = Math.min(destW, destH) / 2;
+          ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        } else if (clip.frameShape === "rounded" || clip.cornerRadius) {
+          const cr = clip.cornerRadius || { topLeft: 16, topRight: 16, bottomLeft: 16, bottomRight: 16, isLinked: true };
+          const tl = (cr.topLeft || 0) * scaleX;
+          const tr = (cr.topRight || 0) * scaleX;
+          const br = (cr.bottomRight || 0) * scaleX;
+          const bl = (cr.bottomLeft || 0) * scaleX;
+          ctx.roundRect(-destW / 2, -destH / 2, destW, destH, [tl, tr, br, bl]);
+        } else {
+          ctx.rect(-destW / 2, -destH / 2, destW, destH);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
     } else {
       // Fallback animated procedural video frame representation
       const boxW = 400 * scaleX;
@@ -418,6 +635,9 @@ export async function exportVideoProject(
   fps: number,
   onProgress: (percent: number, frame: number, totalFrames: number, estSecsLeft: number) => void
 ): Promise<string> {
+  // Pre-render audio mix if audio or video clips exist
+  const audioBuffer = await renderProjectAudioMix(project, project.duration);
+
   return new Promise((resolve, reject) => {
     try {
       const canvas = document.createElement("canvas");
@@ -431,6 +651,27 @@ export async function exportVideoProject(
       const frameDurationMs = 1000 / fps;
 
       const stream = canvas.captureStream(fps);
+
+      // Attach audio stream track if pre-rendered audio buffer exists
+      if (audioBuffer) {
+        try {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          const audioCtx = new AudioCtx();
+          const dest = audioCtx.createMediaStreamDestination();
+          const source = audioCtx.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(dest);
+
+          dest.stream.getAudioTracks().forEach((track) => {
+            stream.addTrack(track);
+          });
+
+          source.start(0);
+        } catch (audErr) {
+          console.warn("Failed to attach audio stream to export:", audErr);
+        }
+      }
+
       const recorderOptions: MediaRecorderOptions = {
         mimeType: MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
           ? "video/webm;codecs=vp9"

@@ -37,6 +37,70 @@ export type TransitionType =
 
 export type InterpolationMode = "linear" | "easeIn" | "easeOut" | "easeInOut" | "hold";
 
+export type BlendMode =
+  | "normal"
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "darken"
+  | "lighten"
+  | "difference"
+  | "color-dodge"
+  | "color-burn";
+
+export type FrameShape = "rectangle" | "rounded" | "circle";
+
+export interface CornerRadiusProps {
+  topLeft: number;
+  topRight: number;
+  bottomLeft: number;
+  bottomRight: number;
+  isLinked: boolean;
+}
+
+export interface MaskProps {
+  type: "none" | "rectangle" | "rounded" | "circle" | "ellipse";
+  posX: number;
+  posY: number;
+  width: number;
+  height: number;
+  scale: number;
+  rotation: number;
+  feather: number;
+  isInverted: boolean;
+}
+
+export interface ChromaKeyProps {
+  enabled: boolean;
+  keyColor: string; // hex string e.g. #00ff00
+  similarity: number; // 0 to 1
+  tolerance: number; // 0 to 1
+  feather: number; // 0 to 20
+  spillReduction: number; // 0 to 1
+}
+
+export interface BorderProps {
+  width: number;
+  color: string;
+  opacity: number;
+}
+
+export interface ShadowProps {
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  color: string;
+  opacity: number;
+  spread: number;
+}
+
+export interface EffectItem {
+  id: string;
+  name: string;
+  type: "brightness" | "contrast" | "blur" | "chromaKey" | "saturation" | "hueRotate" | "vignette";
+  enabled: boolean;
+}
+
 export interface Keyframe {
   id: string;
   time: number; // in seconds relative to clip start (0 to clip.duration)
@@ -112,7 +176,9 @@ export interface VideoClip {
   mediaOffset: number; // offset into source file
   mediaDuration?: number; // total original media duration
   volume: number; // 0 to 2 (1 = 100%)
+  pan?: number; // -1 to 1 (0 = center)
   isMuted: boolean;
+  isLocked?: boolean;
   fadeIn: number; // fade in duration in seconds
   fadeOut: number; // fade out duration in seconds
   speed: number; // 0.25 to 4
@@ -128,6 +194,17 @@ export interface VideoClip {
   logoAnim: LogoAnimProps;
   textProps: TextClipProps;
   effectProps: EffectProps;
+  blendMode?: BlendMode;
+  frameShape?: FrameShape;
+  cornerRadius?: CornerRadiusProps;
+  mask?: MaskProps;
+  chromaKey?: ChromaKeyProps;
+  border?: BorderProps;
+  shadow?: ShadowProps;
+  groupId?: string;
+  isGroup?: boolean;
+  effectsStack?: EffectItem[];
+  isBypassedEffects?: boolean;
   transition: {
     type: TransitionType;
     duration: number;
@@ -144,6 +221,9 @@ export interface VideoTrack {
   isLocked: boolean;
   isHidden: boolean;
   isMuted: boolean;
+  isSolo?: boolean;
+  volume?: number; // 0 to 2 (1 = 100%)
+  pan?: number; // -1 to 1 (0 = center)
   height: number;
   color: string;
 }
@@ -207,6 +287,9 @@ export interface VideoProjectData {
   bgColor: string;
   bgType?: "solid" | "gradient" | "wireframe" | "image";
   bgImage?: string;
+  showGuides?: boolean;
+  guidePreset?: "none" | "grid" | "youtube" | "tiktok" | "instagram" | "facebook" | "linkedin";
+  snapToGuides?: boolean;
   markers?: VideoMarker[];
   updatedAt: string;
 }
