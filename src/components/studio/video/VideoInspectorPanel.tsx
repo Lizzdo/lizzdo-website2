@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   VideoClip,
   VideoProjectData,
@@ -13,7 +13,10 @@ import {
   ChromaKeyProps,
   BorderProps,
   ShadowProps,
+  TextClipProps,
 } from "../../../types/video";
+import { AVAILABLE_FONTS, loadFontFamily } from "../../../utils/fontLoader";
+import { createDefaultTextProps } from "../../../utils/videoEngine";
 import {
   Sliders,
   Maximize2,
@@ -50,6 +53,15 @@ import {
   Unlock,
   Check,
   ShieldAlert,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Bold,
+  Italic,
+  Underline,
+  Baseline,
+  Save,
+  ArrowDownUp,
 } from "lucide-react";
 
 interface Props {
@@ -84,7 +96,43 @@ export const VideoInspectorPanel: React.FC<Props> = ({
   const [hasCopiedAnim, setHasCopiedAnim] = useState<boolean>(false);
   const [hasCopiedStyle, setHasCopiedStyle] = useState<boolean>(false);
   const [hasCopiedEffects, setHasCopiedEffects] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"transform" | "compositing" | "effects" | "audio">("transform");
+  const [activeTab, setActiveTab] = useState<"text" | "transform" | "compositing" | "effects" | "audio">("transform");
+  const [presetSavedNotice, setPresetSavedNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (clip?.type === "text") {
+      setActiveTab("text");
+    }
+  }, [clip?.id, clip?.type]);
+
+  const updateTextProps = (updated: Partial<TextClipProps>) => {
+    if (!clip) return;
+    const currentTp = clip.textProps || createDefaultTextProps();
+    onUpdateClip(clip.id, { textProps: { ...currentTp, ...updated } });
+  };
+
+  const handleSaveAsCustomTextPreset = () => {
+    if (!clip || !clip.textProps) return;
+    const presetName = prompt("Enter a name for your Custom Text Preset:", clip.textProps.content || "My Text Preset");
+    if (!presetName) return;
+
+    const newPreset = {
+      id: `custom-text-${Date.now()}`,
+      name: presetName,
+      textProps: { ...clip.textProps },
+    };
+
+    try {
+      const stored = localStorage.getItem("lizzdo_custom_text_presets");
+      const list = stored ? JSON.parse(stored) : [];
+      list.push(newPreset);
+      localStorage.setItem("lizzdo_custom_text_presets", JSON.stringify(list));
+      setPresetSavedNotice(`Saved "${presetName}" to Custom Presets!`);
+      setTimeout(() => setPresetSavedNotice(null), 3000);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (!clip) {
     return (
@@ -264,6 +312,7 @@ export const VideoInspectorPanel: React.FC<Props> = ({
       blendMode: clip.blendMode,
       mask: clip.mask ? { ...clip.mask } : undefined,
       opacity: clip.opacity,
+      textProps: clip.textProps ? { ...clip.textProps } : undefined,
     };
     setHasCopiedStyle(true);
     setTimeout(() => setHasCopiedStyle(false), 2000);
@@ -271,7 +320,19 @@ export const VideoInspectorPanel: React.FC<Props> = ({
 
   const handlePasteStyle = () => {
     if (!clipboardStyle) return;
-    onUpdateClip(clip.id, { ...clipboardStyle });
+    if (clip.type === "text" && clipboardStyle.textProps) {
+      const currentContent = clip.textProps?.content || "";
+      const currentSecondary = clip.textProps?.secondaryContent || "";
+      onUpdateClip(clip.id, {
+        textProps: {
+          ...clipboardStyle.textProps,
+          content: currentContent,
+          secondaryContent: currentSecondary,
+        },
+      });
+    } else {
+      onUpdateClip(clip.id, { ...clipboardStyle });
+    }
   };
 
   // Effects Copy / Paste
@@ -445,7 +506,17 @@ export const VideoInspectorPanel: React.FC<Props> = ({
       </div>
 
       {/* INSPECTOR TAB NAVIGATION */}
-      <div className="grid grid-cols-4 gap-1 p-1 bg-black rounded-xl border border-white/10 text-[9px] font-bold uppercase">
+      <div className={`grid ${clip.type === "text" ? "grid-cols-5" : "grid-cols-4"} gap-1 p-1 bg-black rounded-xl border border-white/10 text-[9px] font-bold uppercase`}>
+        {clip.type === "text" && (
+          <button
+            onClick={() => setActiveTab("text")}
+            className={`py-1.5 rounded-lg transition-all ${
+              activeTab === "text" ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Type
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("transform")}
           className={`py-1.5 rounded-lg transition-all ${
@@ -479,6 +550,747 @@ export const VideoInspectorPanel: React.FC<Props> = ({
           Audio
         </button>
       </div>
+
+      {/* TAB 0: ADVANCED TEXT & TYPOGRAPHY STUDIO */}
+      {activeTab === "text" && clip.type === "text" && (
+        <div className="space-y-4">
+          {presetSavedNotice && (
+            <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5" />
+              <span>{presetSavedNotice}</span>
+            </div>
+          )}
+
+          {/* PRESET SAVE & QUICK COPY */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={handleSaveAsCustomTextPreset}
+              className="py-1.5 px-2 rounded-lg bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 text-purple-300 font-bold text-[10px] flex items-center justify-center gap-1"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save Preset</span>
+            </button>
+            <button
+              onClick={handleCopyStyle}
+              className="py-1.5 px-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 text-cyan-300 font-bold text-[10px] flex items-center justify-center gap-1"
+            >
+              {hasCopiedStyle ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{hasCopiedStyle ? "Style Copied" : "Copy Style"}</span>
+            </button>
+          </div>
+
+          {/* 1. CONTENT EDITING */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-bold text-gray-300">
+              <span className="flex items-center gap-1">
+                <Type className="w-3 h-3 text-neon-cyan" />
+                Text Content
+              </span>
+              <span className="text-gray-500">
+                {(clip.textProps?.content || "").length} chars
+              </span>
+            </div>
+            <textarea
+              value={clip.textProps?.content || ""}
+              onChange={(e) => updateTextProps({ content: e.target.value })}
+              placeholder="Enter text..."
+              rows={3}
+              className="w-full bg-black border border-white/10 rounded-lg p-2 text-white font-sans text-xs focus:outline-none focus:border-neon-cyan resize-none"
+            />
+
+            {/* SECONDARY TEXT INPUT FOR LOWER THIRDS & SUBTITLES */}
+            <div className="pt-1 border-t border-white/5 space-y-1">
+              <label className="text-[9px] font-bold text-gray-400">
+                Secondary Line / Job Title (Lower Thirds)
+              </label>
+              <input
+                type="text"
+                value={clip.textProps?.secondaryContent || ""}
+                onChange={(e) => updateTextProps({ secondaryContent: e.target.value })}
+                placeholder="e.g. Senior Motion Designer..."
+                className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white font-sans text-xs focus:outline-none focus:border-neon-cyan"
+              />
+            </div>
+          </div>
+
+          {/* 2. TYPOGRAPHY & FONT STYLING */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <span className="text-[10px] font-bold text-gray-300 flex items-center gap-1">
+              <Baseline className="w-3 h-3 text-neon-cyan" />
+              Font & Typography
+            </span>
+
+            {/* Font Family Dropdown */}
+            <div className="space-y-1">
+              <label className="text-[9px] text-gray-400 font-bold">Font Family</label>
+              <select
+                value={clip.textProps?.fontFamily || "Orbitron"}
+                onChange={(e) => {
+                  loadFontFamily(e.target.value);
+                  updateTextProps({ fontFamily: e.target.value });
+                }}
+                className="w-full bg-black border border-white/10 rounded-lg px-2 py-1.5 text-white font-sans text-xs focus:outline-none focus:border-neon-cyan"
+              >
+                {AVAILABLE_FONTS.map((font) => (
+                  <option key={font.family} value={font.family}>
+                    {font.family} ({font.category})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Font Size & Weight */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] text-gray-400 font-bold">
+                  <span>Size</span>
+                  <span>{clip.textProps?.fontSize || 36}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="8"
+                  max="180"
+                  value={clip.textProps?.fontSize || 36}
+                  onChange={(e) => updateTextProps({ fontSize: Number(e.target.value) })}
+                  className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] text-gray-400 font-bold">Weight</label>
+                <select
+                  value={clip.textProps?.fontWeight || 700}
+                  onChange={(e) => updateTextProps({ fontWeight: Number(e.target.value) })}
+                  className="w-full bg-black border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs focus:outline-none focus:border-neon-cyan"
+                >
+                  <option value={300}>300 - Light</option>
+                  <option value={400}>400 - Normal</option>
+                  <option value={600}>600 - SemiBold</option>
+                  <option value={700}>700 - Bold</option>
+                  <option value={900}>900 - ExtraBold</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Toggle Buttons: Bold, Italic, Underline, Uppercase */}
+            <div className="grid grid-cols-4 gap-1">
+              <button
+                onClick={() => updateTextProps({ fontWeight: clip.textProps?.fontWeight === 700 ? 400 : 700 })}
+                className={`py-1 rounded border text-[10px] font-bold flex items-center justify-center gap-1 ${
+                  (clip.textProps?.fontWeight || 700) >= 700
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400 hover:text-white"
+                }`}
+                title="Bold"
+              >
+                <Bold className="w-3 h-3" />
+                <span>B</span>
+              </button>
+
+              <button
+                onClick={() => updateTextProps({ isItalic: !clip.textProps?.isItalic })}
+                className={`py-1 rounded border text-[10px] font-bold flex items-center justify-center gap-1 ${
+                  clip.textProps?.isItalic
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400 hover:text-white"
+                }`}
+                title="Italic"
+              >
+                <Italic className="w-3 h-3" />
+                <span>I</span>
+              </button>
+
+              <button
+                onClick={() => updateTextProps({ isUnderline: !clip.textProps?.isUnderline })}
+                className={`py-1 rounded border text-[10px] font-bold flex items-center justify-center gap-1 ${
+                  clip.textProps?.isUnderline
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400 hover:text-white"
+                }`}
+                title="Underline"
+              >
+                <Underline className="w-3 h-3" />
+                <span>U</span>
+              </button>
+
+              <button
+                onClick={() => updateTextProps({ isUppercase: !clip.textProps?.isUppercase })}
+                className={`py-1 rounded border text-[10px] font-bold flex items-center justify-center gap-1 ${
+                  clip.textProps?.isUppercase
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400 hover:text-white"
+                }`}
+                title="Uppercase"
+              >
+                <span>TT</span>
+              </button>
+            </div>
+
+            {/* Letter Spacing & Keyframe Button */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold">
+                <span className="flex items-center gap-1">
+                  <span>Letter Spacing</span>
+                  <span>{clip.textProps?.letterSpacing || 0}px</span>
+                </span>
+                <button
+                  onClick={() => toggleKeyframeAtCurrentTime("letterSpacing", clip.textProps?.letterSpacing || 0)}
+                  className={`p-1 rounded ${
+                    hasKeyframeAtCurrentTime("letterSpacing")
+                      ? "text-amber-400 bg-amber-400/20"
+                      : "text-gray-500 hover:text-white"
+                  }`}
+                  title="Toggle Keyframe for Letter Spacing"
+                >
+                  <Diamond className="w-3 h-3 fill-current" />
+                </button>
+              </div>
+              <input
+                type="range"
+                min="-5"
+                max="30"
+                value={clip.textProps?.letterSpacing || 0}
+                onChange={(e) => updateTextProps({ letterSpacing: Number(e.target.value) })}
+                className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+              />
+            </div>
+
+            {/* Line Height */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] text-gray-400 font-bold">
+                <span>Line Height</span>
+                <span>{(clip.textProps?.lineHeight || 1.2).toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.8"
+                max="2.5"
+                step="0.1"
+                value={clip.textProps?.lineHeight || 1.2}
+                onChange={(e) => updateTextProps({ lineHeight: Number(e.target.value) })}
+                className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* 3. ALIGNMENT & BOUNDING BOX */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <span className="text-[10px] font-bold text-gray-300 flex items-center gap-1">
+              <AlignLeft className="w-3 h-3 text-neon-cyan" />
+              Alignment & Box Bounds
+            </span>
+
+            {/* Horizontal Alignment */}
+            <div className="grid grid-cols-3 gap-1">
+              <button
+                onClick={() => updateTextProps({ alignment: "left" })}
+                className={`py-1.5 rounded border text-[10px] font-bold flex items-center justify-center gap-1 ${
+                  clip.textProps?.alignment === "left"
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400 hover:text-white"
+                }`}
+              >
+                <AlignLeft className="w-3 h-3" />
+                <span>Left</span>
+              </button>
+              <button
+                onClick={() => updateTextProps({ alignment: "center" })}
+                className={`py-1.5 rounded border text-[10px] font-bold flex items-center justify-center gap-1 ${
+                  clip.textProps?.alignment === "center" || !clip.textProps?.alignment
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400 hover:text-white"
+                }`}
+              >
+                <AlignCenter className="w-3 h-3" />
+                <span>Center</span>
+              </button>
+              <button
+                onClick={() => updateTextProps({ alignment: "right" })}
+                className={`py-1.5 rounded border text-[10px] font-bold flex items-center justify-center gap-1 ${
+                  clip.textProps?.alignment === "right"
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400 hover:text-white"
+                }`}
+              >
+                <AlignRight className="w-3 h-3" />
+                <span>Right</span>
+              </button>
+            </div>
+
+            {/* Box Mode */}
+            <div className="space-y-2 pt-1 border-t border-white/5">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-gray-400 font-bold">Box Sizing Mode</span>
+                <div className="flex bg-black rounded-lg p-0.5 border border-white/10">
+                  <button
+                    onClick={() => updateTextProps({ boxMode: "auto" })}
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                      clip.textProps?.boxMode !== "fixed"
+                        ? "bg-neon-cyan/20 text-neon-cyan"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    Auto
+                  </button>
+                  <button
+                    onClick={() => updateTextProps({ boxMode: "fixed" })}
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                      clip.textProps?.boxMode === "fixed"
+                        ? "bg-neon-cyan/20 text-neon-cyan"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    Fixed
+                  </button>
+                </div>
+              </div>
+
+              {clip.textProps?.boxMode === "fixed" && (
+                <div className="space-y-2 pt-1">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[9px] text-gray-400 font-bold">
+                      <span>Box Width</span>
+                      <span>{clip.textProps?.boxWidth || 400}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="100"
+                      max="1200"
+                      value={clip.textProps?.boxWidth || 400}
+                      onChange={(e) => updateTextProps({ boxWidth: Number(e.target.value) })}
+                      className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 4. FILL COLOR & GRADIENTS */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-gray-300 flex items-center gap-1">
+                <Palette className="w-3 h-3 text-neon-cyan" />
+                Fill & Gradients
+              </span>
+              <button
+                onClick={() => updateTextProps({ gradientEnabled: !clip.textProps?.gradientEnabled })}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                  clip.textProps?.gradientEnabled
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400"
+                }`}
+              >
+                {clip.textProps?.gradientEnabled ? "Gradient" : "Solid"}
+              </button>
+            </div>
+
+            {!clip.textProps?.gradientEnabled ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={clip.textProps?.color || "#00f5ff"}
+                  onChange={(e) => updateTextProps({ color: e.target.value })}
+                  className="w-7 h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={clip.textProps?.color || "#00f5ff"}
+                  onChange={(e) => updateTextProps({ color: e.target.value })}
+                  className="flex-1 bg-black border border-white/10 rounded px-2 py-1 text-xs text-white uppercase font-mono"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Start Color</label>
+                    <input
+                      type="color"
+                      value={clip.textProps?.gradientStart || "#00f5ff"}
+                      onChange={(e) => updateTextProps({ gradientStart: e.target.value })}
+                      className="w-full h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">End Color</label>
+                    <input
+                      type="color"
+                      value={clip.textProps?.gradientEnd || "#ff007f"}
+                      onChange={(e) => updateTextProps({ gradientEnd: e.target.value })}
+                      className="w-full h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] text-gray-400 font-bold">
+                    <span>Angle</span>
+                    <span>{clip.textProps?.gradientAngle || 90}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="360"
+                    value={clip.textProps?.gradientAngle || 90}
+                    onChange={(e) => updateTextProps({ gradientAngle: Number(e.target.value) })}
+                    className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 5. BACKGROUND BOX & INDEPENDENT CORNERS */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-gray-300 flex items-center gap-1">
+                <Box className="w-3 h-3 text-neon-cyan" />
+                Background Pill
+              </span>
+              <button
+                onClick={() => updateTextProps({ backgroundEnabled: !clip.textProps?.backgroundEnabled })}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                  clip.textProps?.backgroundEnabled !== false
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400"
+                }`}
+              >
+                {clip.textProps?.backgroundEnabled !== false ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            {clip.textProps?.backgroundEnabled !== false && (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Bg Color</label>
+                    <input
+                      type="color"
+                      value={clip.textProps?.backgroundColor || "#000000"}
+                      onChange={(e) => updateTextProps({ backgroundColor: e.target.value })}
+                      className="w-full h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Padding</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="40"
+                      value={clip.textProps?.backgroundPadding ?? 12}
+                      onChange={(e) => updateTextProps({ backgroundPadding: Number(e.target.value) })}
+                      className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Corner Radius & Independent Corners */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[9px] font-bold text-gray-400">
+                    <span>Corner Radius</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updateTextProps({ backgroundCornerRadius: 0, backgroundIndependentCorners: false })}
+                        className="px-1.5 py-0.5 rounded bg-black border border-white/10 text-gray-400 hover:text-white"
+                        title="0° Sharp Corners"
+                      >
+                        0° Sharp
+                      </button>
+                      <button
+                        onClick={() =>
+                          updateTextProps({
+                            backgroundIndependentCorners: !clip.textProps?.backgroundIndependentCorners,
+                          })
+                        }
+                        className={`px-1.5 py-0.5 rounded border ${
+                          clip.textProps?.backgroundIndependentCorners
+                            ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                            : "border-white/10 bg-black text-gray-400"
+                        }`}
+                      >
+                        Individual
+                      </button>
+                    </div>
+                  </div>
+
+                  {!clip.textProps?.backgroundIndependentCorners ? (
+                    <input
+                      type="range"
+                      min="0"
+                      max="32"
+                      value={clip.textProps?.backgroundCornerRadius ?? 8}
+                      onChange={(e) => updateTextProps({ backgroundCornerRadius: Number(e.target.value) })}
+                      className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                    />
+                  ) : (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div>
+                        <span className="text-[8px] text-gray-500">Top-Left</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="40"
+                          value={clip.textProps?.backgroundCorners?.topLeft ?? 8}
+                          onChange={(e) =>
+                            updateTextProps({
+                              backgroundCorners: {
+                                ...(clip.textProps?.backgroundCorners || { topLeft: 8, topRight: 8, bottomLeft: 8, bottomRight: 8 }),
+                                topLeft: Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="w-full bg-black border border-white/10 rounded px-1.5 py-0.5 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-gray-500">Top-Right</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="40"
+                          value={clip.textProps?.backgroundCorners?.topRight ?? 8}
+                          onChange={(e) =>
+                            updateTextProps({
+                              backgroundCorners: {
+                                ...(clip.textProps?.backgroundCorners || { topLeft: 8, topRight: 8, bottomLeft: 8, bottomRight: 8 }),
+                                topRight: Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="w-full bg-black border border-white/10 rounded px-1.5 py-0.5 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-gray-500">Bottom-Left</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="40"
+                          value={clip.textProps?.backgroundCorners?.bottomLeft ?? 8}
+                          onChange={(e) =>
+                            updateTextProps({
+                              backgroundCorners: {
+                                ...(clip.textProps?.backgroundCorners || { topLeft: 8, topRight: 8, bottomLeft: 8, bottomRight: 8 }),
+                                bottomLeft: Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="w-full bg-black border border-white/10 rounded px-1.5 py-0.5 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-gray-500">Bottom-Right</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="40"
+                          value={clip.textProps?.backgroundCorners?.bottomRight ?? 8}
+                          onChange={(e) =>
+                            updateTextProps({
+                              backgroundCorners: {
+                                ...(clip.textProps?.backgroundCorners || { topLeft: 8, topRight: 8, bottomLeft: 8, bottomRight: 8 }),
+                                bottomRight: Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="w-full bg-black border border-white/10 rounded px-1.5 py-0.5 text-xs text-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Border Options */}
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Border Width</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="10"
+                      value={clip.textProps?.backgroundBorderWidth || 0}
+                      onChange={(e) => updateTextProps({ backgroundBorderWidth: Number(e.target.value) })}
+                      className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Border Color</label>
+                    <input
+                      type="color"
+                      value={clip.textProps?.backgroundBorderColor || "#00f5ff"}
+                      onChange={(e) => updateTextProps({ backgroundBorderColor: e.target.value })}
+                      className="w-full h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 6. OUTLINE / STROKE */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-gray-300 flex items-center gap-1">
+                <Square className="w-3 h-3 text-neon-cyan" />
+                Text Outline / Stroke
+              </span>
+              <button
+                onClick={() => updateTextProps({ outlineEnabled: !clip.textProps?.outlineEnabled })}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                  clip.textProps?.outlineEnabled
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400"
+                }`}
+              >
+                {clip.textProps?.outlineEnabled ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            {clip.textProps?.outlineEnabled && (
+              <div className="space-y-2 pt-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Stroke Color</label>
+                    <input
+                      type="color"
+                      value={clip.textProps?.outlineColor || "#000000"}
+                      onChange={(e) => updateTextProps({ outlineColor: e.target.value })}
+                      className="w-full h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Width ({clip.textProps?.outlineWidth || 2}px)</label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      value={clip.textProps?.outlineWidth || 2}
+                      onChange={(e) => updateTextProps({ outlineWidth: Number(e.target.value) })}
+                      className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 7. SHADOW & GLOW */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-gray-300 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-neon-cyan" />
+                Text Shadow & Glow
+              </span>
+              <button
+                onClick={() => updateTextProps({ shadowEnabled: !clip.textProps?.shadowEnabled })}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                  clip.textProps?.shadowEnabled !== false
+                    ? "border-neon-cyan bg-neon-cyan/20 text-neon-cyan"
+                    : "border-white/10 bg-black text-gray-400"
+                }`}
+              >
+                {clip.textProps?.shadowEnabled !== false ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            {clip.textProps?.shadowEnabled !== false && (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Shadow Color</label>
+                    <input
+                      type="color"
+                      value={clip.textProps?.shadowColor || "#000000"}
+                      onChange={(e) => updateTextProps({ shadowColor: e.target.value })}
+                      className="w-full h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Blur</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="30"
+                      value={clip.textProps?.shadowBlur ?? 10}
+                      onChange={(e) => updateTextProps({ shadowBlur: Number(e.target.value) })}
+                      className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Glow Color</label>
+                    <input
+                      type="color"
+                      value={clip.textProps?.glowColor || "#00f5ff"}
+                      onChange={(e) => updateTextProps({ glowColor: e.target.value })}
+                      className="w-full h-7 rounded border border-white/20 bg-transparent cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400 font-bold block mb-1">Glow Blur</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="40"
+                      value={clip.textProps?.glowBlur || 0}
+                      onChange={(e) => updateTextProps({ glowBlur: Number(e.target.value) })}
+                      className="w-full accent-neon-cyan h-1.5 bg-black rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 8. ANIMATIONS & PRESETS */}
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+            <span className="text-[10px] font-bold text-gray-300 flex items-center gap-1">
+              <Zap className="w-3 h-3 text-neon-cyan" />
+              Motion & Entrance Animations
+            </span>
+
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <label className="text-[9px] text-gray-400 font-bold">Entrance Effect</label>
+                <select
+                  value={clip.textProps?.animationIn || clip.textProps?.animationType || "fadeIn"}
+                  onChange={(e) => updateTextProps({ animationIn: e.target.value as any, animationType: e.target.value as any })}
+                  className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-neon-cyan"
+                >
+                  <option value="none">None (Static)</option>
+                  <option value="fadeIn">Fade In</option>
+                  <option value="slideUp">Slide Up</option>
+                  <option value="slideDown">Slide Down</option>
+                  <option value="slideLeft">Slide Left</option>
+                  <option value="slideRight">Slide Right</option>
+                  <option value="scaleIn">Scale / Pop In</option>
+                  <option value="typewriter">Typewriter (Char by Char)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] text-gray-400 font-bold">Exit Effect</label>
+                <select
+                  value={clip.textProps?.animationOut || "fadeOut"}
+                  onChange={(e) => updateTextProps({ animationOut: e.target.value as any })}
+                  className="w-full bg-black border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-neon-cyan"
+                >
+                  <option value="none">None</option>
+                  <option value="fadeOut">Fade Out</option>
+                  <option value="slideUp">Slide Up</option>
+                  <option value="slideDown">Slide Down</option>
+                  <option value="slideLeft">Slide Left</option>
+                  <option value="slideRight">Slide Right</option>
+                  <option value="scaleOut">Scale Out</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QUICK STYLE & EFFECTS COPY / PASTE BAR */}
       <div className="grid grid-cols-2 gap-1.5 text-[9px] font-bold">

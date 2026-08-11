@@ -275,17 +275,79 @@ export function VideoEditorWorkspace() {
       project.tracks.push(textTrack);
     }
 
-    const defaultProps = createDefaultTextProps();
-    if (presetType === "subtitle") {
+    let defaultProps = createDefaultTextProps();
+    let posY = 0;
+
+    if (presetType.startsWith("custom:")) {
+      try {
+        const jsonStr = presetType.replace("custom:", "");
+        const customProps = JSON.parse(jsonStr);
+        defaultProps = { ...defaultProps, ...customProps };
+      } catch (e) {
+        console.error(e);
+      }
+    } else if (presetType === "subtitle") {
       defaultProps.content = "Add Subtitle Text Here";
-      defaultProps.fontSize = 24;
-      defaultProps.backgroundColor = "rgba(0,0,0,0.8)";
+      defaultProps.fontFamily = "Inter";
+      defaultProps.fontSize = 26;
+      defaultProps.backgroundColor = "rgba(0, 0, 0, 0.8)";
       defaultProps.color = "#ffffff";
+      defaultProps.alignment = "center";
+      posY = 220;
     } else if (presetType === "lower-third") {
-      defaultProps.content = "SPEAKER NAME | TITLE";
-      defaultProps.fontSize = 20;
-      defaultProps.backgroundColor = "#00f5ff";
-      defaultProps.color = "#000000";
+      defaultProps.content = "ALEXANDER RIVERS";
+      defaultProps.secondaryContent = "LEAD CREATIVE DIRECTOR";
+      defaultProps.fontFamily = "Montserrat";
+      defaultProps.fontSize = 28;
+      defaultProps.secondaryFontSize = 16;
+      defaultProps.secondaryFontFamily = "Inter";
+      defaultProps.backgroundColor = "rgba(10, 10, 20, 0.85)";
+      defaultProps.backgroundBorderColor = "#00f5ff";
+      defaultProps.backgroundBorderWidth = 2;
+      defaultProps.color = "#ffffff";
+      defaultProps.secondaryColor = "#00f5ff";
+      defaultProps.alignment = "left" as any;
+      posY = 180;
+    } else if (presetType === "title") {
+      defaultProps.content = "CYBERPUNK NEXT GEN";
+      defaultProps.fontFamily = "Orbitron";
+      defaultProps.fontSize = 48;
+      defaultProps.color = "#00f5ff";
+      defaultProps.glowColor = "#00f5ff";
+      defaultProps.glowBlur = 15;
+      defaultProps.animationIn = "typewriter" as any;
+      defaultProps.animationType = "typewriter" as any;
+      posY = -100;
+    } else if (presetType === "callout") {
+      defaultProps.content = "🔥 LIMITED TIME OFFER";
+      defaultProps.fontFamily = "Poppins";
+      defaultProps.fontSize = 32;
+      defaultProps.fontWeight = 900;
+      defaultProps.color = "#ffffff";
+      defaultProps.backgroundColor = "#ff007f";
+      defaultProps.backgroundCornerRadius = 16;
+      posY = 0;
+    } else if (presetType === "end-screen") {
+      defaultProps.content = "SUBSCRIBE FOR MORE";
+      defaultProps.secondaryContent = "NEW VIDEOS EVERY TUESDAY";
+      defaultProps.fontFamily = "Bebas Neue";
+      defaultProps.fontSize = 54;
+      defaultProps.secondaryFontSize = 20;
+      defaultProps.color = "#00f5ff";
+      defaultProps.backgroundColor = "rgba(0,0,0,0.9)";
+      defaultProps.backgroundBorderColor = "#ff007f";
+      defaultProps.backgroundBorderWidth = 2;
+      defaultProps.isUppercase = true;
+      posY = 0;
+    } else if (presetType === "quote") {
+      defaultProps.content = '"Design is intelligence made visible."';
+      defaultProps.secondaryContent = "— LINA SOTO";
+      defaultProps.fontFamily = "Playfair Display";
+      defaultProps.isItalic = true;
+      defaultProps.fontSize = 32;
+      defaultProps.color = "#fbbf24";
+      defaultProps.backgroundColor = "rgba(0,0,0,0.7)";
+      posY = 0;
     }
 
     const newClip: VideoClip = {
@@ -310,7 +372,7 @@ export function VideoEditorWorkspace() {
       flipX: false,
       flipY: false,
       posX: 0,
-      posY: presetType === "subtitle" ? 220 : presetType === "lower-third" ? 180 : 0,
+      posY,
       crop: { top: 0, right: 0, bottom: 0, left: 0 },
       logoAnim: { preset: "none", duration: 0, delay: 0, loop: false, positionPreset: "custom" },
       textProps: defaultProps,

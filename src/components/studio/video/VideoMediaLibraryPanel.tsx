@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Film,
   Type,
@@ -62,6 +62,19 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
   // Audio preview player
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [customPresets, setCustomPresets] = useState<Array<{ id: string; name: string; props: any }>>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lizzdo_custom_text_presets");
+      if (saved) {
+        setCustomPresets(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [activeTab]);
 
   const togglePreviewAudio = (id: string, url: string) => {
     if (playingAudioId === id) {
@@ -346,27 +359,63 @@ export const VideoMediaLibraryPanel: React.FC<Props> = ({
 
         {/* TEXT TAB */}
         {activeTab === "text" && (
-          <div className="space-y-3">
-            <span className="text-[10px] text-gray-500 uppercase font-bold">Text Presets</span>
-            {[
-              { id: "title", label: "Animated Neon Title", desc: "Glowing cyberpunk header text" },
-              { id: "subtitle", label: "Subtitles Caption", desc: "Clean bottom caption bar" },
-              { id: "lower-third", label: "Lower Third Badge", desc: "Modern speaker tag" },
-              { id: "callout", label: "Callout Box", desc: "Highlighted callout pill" },
-              { id: "end-screen", label: "End Screen Card", desc: "Outro subscribe banner" },
-            ].map((txt) => (
-              <div
-                key={txt.id}
-                onClick={() => onAddTextToTimeline(txt.id)}
-                className="p-3 rounded-xl bg-neutral-900 border border-white/5 hover:border-neon-cyan cursor-pointer transition-all flex items-center justify-between group"
-              >
-                <div>
-                  <p className="font-bold text-white text-xs group-hover:text-neon-cyan">{txt.label}</p>
-                  <p className="text-[10px] text-gray-400">{txt.desc}</p>
+          <div className="space-y-4">
+            {/* SAVED CUSTOM PRESETS */}
+            {customPresets.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] text-purple-400 uppercase font-bold flex items-center justify-between">
+                  <span>My Saved Presets</span>
+                  <span>{customPresets.length}</span>
+                </span>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {customPresets.map((preset) => (
+                    <div
+                      key={preset.id}
+                      onClick={() => onAddTextToTimeline(`custom:${JSON.stringify(preset.props)}`)}
+                      className="p-2.5 rounded-xl bg-purple-950/20 border border-purple-500/30 hover:border-purple-400 cursor-pointer transition-all flex items-center justify-between group"
+                    >
+                      <div>
+                        <p className="font-bold text-purple-200 text-xs group-hover:text-white">{preset.name}</p>
+                        <p className="text-[9px] text-purple-400/80">
+                          {preset.props?.fontFamily || "Orbitron"} • {preset.props?.fontSize || 36}px
+                        </p>
+                      </div>
+                      <Plus className="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  ))}
                 </div>
-                <Plus className="w-4 h-4 text-neon-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-            ))}
+            )}
+
+            {/* MOTION TITLE TEMPLATES */}
+            <div className="space-y-2">
+              <span className="text-[10px] text-gray-500 uppercase font-bold">Title Templates & Lower Thirds</span>
+              {[
+                { id: "title", label: "Animated Neon Title", category: "Header", desc: "Glowing cyberpunk header with typewriter reveal" },
+                { id: "lower-third", label: "Lower Third Speaker Badge", category: "Lower Third", desc: "Speaker name + job title banner" },
+                { id: "subtitle", label: "Subtitles Caption Pill", category: "Caption", desc: "Clean bottom caption bar with high contrast" },
+                { id: "callout", label: "Callout Highlight Box", category: "Badge", desc: "Bold pink callout box for key highlights" },
+                { id: "quote", label: "Cinematic Quote Card", category: "Quote", desc: "Elegant italic quote with attribution line" },
+                { id: "end-screen", label: "Outro Subscribe Banner", category: "Outro", desc: "High-impact CTA banner for channel callouts" },
+              ].map((txt) => (
+                <div
+                  key={txt.id}
+                  onClick={() => onAddTextToTimeline(txt.id)}
+                  className="p-3 rounded-xl bg-neutral-900 border border-white/5 hover:border-neon-cyan cursor-pointer transition-all flex items-center justify-between group"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-white text-xs group-hover:text-neon-cyan">{txt.label}</p>
+                      <span className="px-1.5 py-0.2 rounded bg-white/10 text-[8px] font-bold text-cyan-300">
+                        {txt.category}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{txt.desc}</p>
+                  </div>
+                  <Plus className="w-4 h-4 text-neon-cyan opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

@@ -1,5 +1,6 @@
 import { VideoClip, VideoProjectData, LogoAnimationPreset, ChromaKeyProps } from "../types/video";
 import { renderProjectAudioMix } from "./audioEngine";
+import { loadFontFamily } from "./fontLoader";
 
 // Cache for loaded HTMLImageElements
 const imageCache: Map<string, HTMLImageElement> = new Map();
@@ -527,6 +528,7 @@ function renderClipOnCanvas(
   const currentCropBottom = getInterpolatedValue(clip, "cropBottom", relTime, clip.crop?.bottom || 0);
   const currentCropLeft = getInterpolatedValue(clip, "cropLeft", relTime, clip.crop?.left || 0);
   const currentCropRight = getInterpolatedValue(clip, "cropRight", relTime, clip.crop?.right || 0);
+  const currentLetterSpacing = getInterpolatedValue(clip, "letterSpacing", relTime, clip.textProps?.letterSpacing || 0);
 
   // 1. Calculate Opacity with Fade In / Fade Out
   let clipOpacity = currentOpacity;
@@ -903,61 +905,7 @@ function renderClipOnCanvas(
       }
     }
   } else if (clip.type === "text") {
-    const tp = clip.textProps;
-    if (tp && tp.content) {
-      let displayText = tp.content;
-
-      // Text Animation Logic
-      if (tp.animationType === "typewriter") {
-        const charRatio = Math.min(1, relTime / 3);
-        const count = Math.ceil(tp.content.length * charRatio);
-        displayText = tp.content.substring(0, count);
-      } else if (tp.animationType === "slideUp" && relTime < 1) {
-        ctx.translate(0, (1 - relTime) * 30 * scaleY);
-      } else if (tp.animationType === "pop" && relTime < 0.5) {
-        const popScale = 1 + Math.sin((relTime / 0.5) * Math.PI) * 0.4;
-        ctx.scale(popScale, popScale);
-      }
-
-      ctx.font = `${tp.fontWeight || 700} ${Math.round(tp.fontSize * scaleX)}px ${tp.fontFamily || "Orbitron"}, sans-serif`;
-      ctx.textAlign = tp.alignment || "center";
-      ctx.textBaseline = "middle";
-
-      const metrics = ctx.measureText(displayText);
-      const textW = metrics.width;
-      const textH = tp.fontSize * scaleX;
-
-      // Draw Background Pill
-      if (tp.backgroundColor && tp.backgroundColor !== "transparent") {
-        const pad = (tp.backgroundPadding || 8) * scaleX;
-        ctx.fillStyle = tp.backgroundColor;
-        ctx.beginPath();
-        ctx.roundRect(-textW / 2 - pad, -textH / 2 - pad, textW + pad * 2, textH + pad * 2, 8);
-        ctx.fill();
-      }
-
-      // Draw Glow / Shadow
-      if (tp.glowColor && tp.glowBlur > 0) {
-        ctx.shadowColor = tp.glowColor;
-        ctx.shadowBlur = tp.glowBlur;
-      } else if (tp.shadowColor) {
-        ctx.shadowColor = tp.shadowColor;
-        ctx.shadowBlur = tp.shadowBlur || 4;
-        ctx.shadowOffsetX = (tp.shadowOffsetX || 2) * scaleX;
-        ctx.shadowOffsetY = (tp.shadowOffsetY || 2) * scaleY;
-      }
-
-      // Draw Outline
-      if (tp.outlineWidth > 0) {
-        ctx.strokeStyle = tp.outlineColor || "#000000";
-        ctx.lineWidth = tp.outlineWidth * scaleX;
-        ctx.strokeText(displayText, 0, 0);
-      }
-
-      // Fill Text
-      ctx.fillStyle = tp.color || "#00f5ff";
-      ctx.fillText(displayText, 0, 0);
-    }
+    renderTextLayer(ctx, clip, relTime, scaleX, scaleY, clipOpacity, currentLetterSpacing);
   }
 
   // 6. Draw Vignette Overlay if set
@@ -1127,4 +1075,328 @@ export async function exportVideoProject(
       reject(err);
     }
   });
+}
+
+function renderTextLayer(
+  ctx: CanvasRenderingContext2D,
+  clip: VideoClip,
+  relTime: number,
+  scaleX: number,
+  scaleY: number,
+  clipOpacity: number,
+  letterSpacingKeyframed?: number
+): void {
+  const tp = clip.textProps;
+  if (!tp) return;
+
+  const mainFont = tp.fontFamily || "Orbitron";
+  loadFontFamily(mainFont);
+  if (tp.secondaryFontFamily) loadFontFamily(tp.secondaryFontFamily);
+
+  let mainRawText = tp.content || "";
+  if (tp.isUppercase) mainRawText = mainRawText.toUpperCase();
+
+  // Handle Entrance / Exit animations
+  const inDur = tp.animationInDuration || 0.8;
+  const outDur = tp.animationOutDuration || 0.8;
+  const remTime = clip.duration - relTime;
+
+  let animOpacity = 1;
+  let translateX = 0;
+  let translateY = 0;
+  let animScale = 1;
+  let typewriterCharCount = mainRawText.length;
+
+  // Entrance Animation
+  const animInType = tp.animationIn || tp.animationType || "none";
+  if (animInType !== "none" && relTime < inDur) {
+    const p = Math.max(0, Math.min(1, relTime / inDur));
+    if (animInType === "fadeIn") animOpacity *= p;
+    else if (animInType === "slideUp") translateY += (1 - p) * 50 * scaleY;
+    else if (animInType === "slideDown") translateY -= (1 - p) * 50 * scaleY;
+    else if (animInType === "slideLeft") translateX += (1 - p) * 60 * scaleX;
+    else if (animInType === "slideRight") translateX -= (1 - p) * 60 * scaleX;
+    else if (animInType === "scaleIn" || animInType === "pop") animScale *= p;
+    else if (animInType === "typewriter") typewriterCharCount = Math.ceil(mainRawText.length * p);
+  }
+
+  // Exit Animation
+  const animOutType = tp.animationOut || "none";
+  if (animOutType !== "none" && remTime < outDur) {
+    const p = Math.max(0, Math.min(1, remTime / outDur));
+    if (animOutType === "fadeOut") animOpacity *= p;
+    else if (animOutType === "slideUp") translateY -= (1 - p) * 50 * scaleY;
+    else if (animOutType === "slideDown") translateY += (1 - p) * 50 * scaleY;
+    else if (animOutType === "slideLeft") translateX -= (1 - p) * 60 * scaleX;
+    else if (animOutType === "slideRight") translateX += (1 - p) * 60 * scaleX;
+    else if (animOutType === "scaleOut") animScale *= p;
+  }
+
+  const finalAlpha = clipOpacity * animOpacity;
+  if (finalAlpha <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = finalAlpha;
+  ctx.translate(translateX, translateY);
+  if (animScale !== 1) ctx.scale(animScale, animScale);
+
+  // Configure Canvas Text Styles
+  const fontSize = Math.max(8, (tp.fontSize || 32) * scaleX);
+  const fontStyle = tp.isItalic ? "italic " : "";
+  const fontWeight = tp.fontWeight || 700;
+  ctx.font = `${fontStyle}${fontWeight} ${Math.round(fontSize)}px "${mainFont}", sans-serif`;
+
+  const letterSpacing = (letterSpacingKeyframed !== undefined ? letterSpacingKeyframed : (tp.letterSpacing || 0)) * scaleX;
+  if ("letterSpacing" in ctx) {
+    (ctx as any).letterSpacing = `${letterSpacing}px`;
+  }
+
+  const align = tp.alignment || "center";
+  ctx.textAlign = align;
+  ctx.textBaseline = "middle";
+
+  // Slice text for Typewriter
+  const activeMainText = mainRawText.substring(0, typewriterCharCount);
+
+  // Line splitting and word wrapping for fixed boxMode
+  const lineMultiplier = tp.lineHeight || 1.2;
+  const lineGap = fontSize * lineMultiplier;
+
+  let lines: string[] = [];
+  const rawParagraphs = activeMainText.split("\n");
+
+  if (tp.boxMode === "fixed" && tp.boxWidth && tp.boxWidth > 20) {
+    const maxBoxWidth = tp.boxWidth * scaleX;
+    rawParagraphs.forEach((para) => {
+      const words = para.split(" ");
+      let currentLine = "";
+      words.forEach((word) => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testW = ctx.measureText(testLine).width;
+        if (testW > maxBoxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      });
+      if (currentLine) lines.push(currentLine);
+    });
+  } else {
+    lines = rawParagraphs;
+  }
+
+  // Secondary text if Lower Third or Template
+  let secondaryLines: string[] = [];
+  let secFontSize = 0;
+  let secLineGap = 0;
+  if (tp.secondaryContent) {
+    secFontSize = (tp.secondaryFontSize || Math.round(tp.fontSize * 0.6)) * scaleX;
+    secLineGap = secFontSize * (tp.lineHeight || 1.2);
+    let secRaw = tp.secondaryContent;
+    if (tp.isUppercase) secRaw = secRaw.toUpperCase();
+    secondaryLines = secRaw.split("\n");
+  }
+
+  // Calculate Text Dimensions & Bounding Box for background
+  let maxLineWidth = 0;
+  lines.forEach((line) => {
+    const w = ctx.measureText(line).width;
+    if (w > maxLineWidth) maxLineWidth = w;
+  });
+
+  if (secondaryLines.length > 0) {
+    const secFont = tp.secondaryFontFamily || mainFont;
+    ctx.font = `${fontStyle}400 ${Math.round(secFontSize)}px "${secFont}", sans-serif`;
+    secondaryLines.forEach((sLine) => {
+      const w = ctx.measureText(sLine).width;
+      if (w > maxLineWidth) maxLineWidth = w;
+    });
+    // restore main font
+    ctx.font = `${fontStyle}${fontWeight} ${Math.round(fontSize)}px "${mainFont}", sans-serif`;
+  }
+
+  const mainTotalH = lines.length * lineGap;
+  const secTotalH = secondaryLines.length > 0 ? (secondaryLines.length * secLineGap + 8 * scaleY) : 0;
+  const totalContentH = mainTotalH + secTotalH;
+
+  const bgW = tp.boxMode === "fixed" && tp.boxWidth ? Math.max(maxLineWidth, tp.boxWidth * scaleX) : maxLineWidth;
+  const bgH = tp.boxMode === "fixed" && tp.boxHeight ? Math.max(totalContentH, tp.boxHeight * scaleY) : totalContentH;
+
+  const pad = (tp.backgroundPadding !== undefined ? tp.backgroundPadding : 12) * scaleX;
+  const totalBoxW = bgW + pad * 2;
+  const totalBoxH = bgH + pad * 2;
+
+  // Box alignment offsets
+  let boxOffsetX = -bgW / 2 - pad;
+  if (align === "left") boxOffsetX = -pad;
+  else if (align === "right") boxOffsetX = -bgW - pad;
+
+  let boxOffsetY = -bgH / 2 - pad;
+  if (tp.verticalAlign === "top") boxOffsetY = -pad;
+  else if (tp.verticalAlign === "bottom") boxOffsetY = -bgH - pad;
+
+  // Draw Background Box & Border
+  if (tp.backgroundEnabled !== false && tp.backgroundColor && tp.backgroundColor !== "transparent") {
+    ctx.save();
+    ctx.globalAlpha = finalAlpha * (tp.backgroundOpacity ?? 1);
+    ctx.fillStyle = tp.backgroundColor;
+
+    // Corner Radii
+    let tl = 8 * scaleX, tr = 8 * scaleX, br = 8 * scaleX, bl = 8 * scaleX;
+    if (tp.backgroundIndependentCorners && tp.backgroundCorners) {
+      tl = (tp.backgroundCorners.topLeft || 0) * scaleX;
+      tr = (tp.backgroundCorners.topRight || 0) * scaleX;
+      br = (tp.backgroundCorners.bottomRight || 0) * scaleX;
+      bl = (tp.backgroundCorners.bottomLeft || 0) * scaleX;
+    } else if (tp.backgroundCornerRadius !== undefined) {
+      const r = tp.backgroundCornerRadius * scaleX;
+      tl = r; tr = r; br = r; bl = r;
+    }
+
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(boxOffsetX, boxOffsetY, totalBoxW, totalBoxH, [tl, tr, br, bl]);
+    } else {
+      ctx.rect(boxOffsetX, boxOffsetY, totalBoxW, totalBoxH);
+    }
+    ctx.fill();
+
+    if (tp.backgroundBorderWidth && tp.backgroundBorderWidth > 0) {
+      ctx.strokeStyle = tp.backgroundBorderColor || "#00f5ff";
+      ctx.lineWidth = tp.backgroundBorderWidth * scaleX;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Configure Fill Color / Gradient
+  let fillStyle: string | CanvasGradient = tp.color || "#00f5ff";
+  if (tp.gradientEnabled && tp.gradientStart && tp.gradientEnd) {
+    if (tp.gradientType === "radial") {
+      const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, Math.max(bgW, bgH) / 2);
+      grad.addColorStop(0, tp.gradientStart);
+      grad.addColorStop(1, tp.gradientEnd);
+      fillStyle = grad;
+    } else {
+      // Linear gradient at angle
+      const rad = ((tp.gradientAngle || 90) * Math.PI) / 180;
+      const x1 = -Math.cos(rad) * (bgW / 2);
+      const y1 = -Math.sin(rad) * (bgH / 2);
+      const x2 = Math.cos(rad) * (bgW / 2);
+      const y2 = Math.sin(rad) * (bgH / 2);
+      const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+      grad.addColorStop(0, tp.gradientStart);
+      grad.addColorStop(1, tp.gradientEnd);
+      fillStyle = grad;
+    }
+  }
+
+  // Configure Shadow
+  if (tp.shadowEnabled !== false && (tp.shadowColor || tp.shadowBlur || tp.glowColor)) {
+    if (tp.glowColor && (tp.glowBlur || 0) > 0) {
+      ctx.shadowColor = tp.glowColor;
+      ctx.shadowBlur = (tp.glowBlur || 10) * scaleX;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+    } else if (tp.shadowColor) {
+      ctx.shadowColor = tp.shadowColor;
+      ctx.shadowBlur = (tp.shadowBlur || 4) * scaleX;
+      ctx.shadowOffsetX = (tp.shadowOffsetX || 2) * scaleX;
+      ctx.shadowOffsetY = (tp.shadowOffsetY || 2) * scaleY;
+    }
+  }
+
+  // Draw Main Text Lines
+  const startY = boxOffsetY + pad + lineGap / 2;
+  lines.forEach((line, idx) => {
+    const curY = startY + idx * lineGap;
+    let lineX = 0;
+    if (align === "left") lineX = boxOffsetX + pad;
+    else if (align === "right") lineX = boxOffsetX + totalBoxW - pad;
+    else lineX = boxOffsetX + totalBoxW / 2;
+
+    // Draw Outline
+    if (tp.outlineEnabled !== false && tp.outlineWidth > 0) {
+      ctx.save();
+      ctx.strokeStyle = tp.outlineColor || "#000000";
+      ctx.lineWidth = tp.outlineWidth * scaleX;
+      if (tp.outlineOpacity !== undefined) ctx.globalAlpha = finalAlpha * tp.outlineOpacity;
+      ctx.strokeText(line, lineX, curY);
+      ctx.restore();
+    }
+
+    // Fill Text
+    ctx.fillStyle = fillStyle;
+    ctx.fillText(line, lineX, curY);
+
+    // Underline
+    if (tp.isUnderline) {
+      const lineMetrics = ctx.measureText(line);
+      const underlineY = curY + fontSize * 0.4;
+      let startX = lineX - lineMetrics.width / 2;
+      if (align === "left") startX = lineX;
+      else if (align === "right") startX = lineX - lineMetrics.width;
+
+      ctx.beginPath();
+      ctx.moveTo(startX, underlineY);
+      ctx.lineTo(startX + lineMetrics.width, underlineY);
+      ctx.strokeStyle = typeof fillStyle === "string" ? fillStyle : "#ffffff";
+      ctx.lineWidth = Math.max(1, fontSize * 0.08);
+      ctx.stroke();
+    }
+  });
+
+  // Draw Secondary Content (Lower Third Job Title / Subtitle)
+  if (secondaryLines.length > 0) {
+    const secFont = tp.secondaryFontFamily || mainFont;
+    ctx.font = `${fontStyle}400 ${Math.round(secFontSize)}px "${secFont}", sans-serif`;
+    ctx.fillStyle = tp.secondaryColor || "rgba(255, 255, 255, 0.8)";
+
+    const secStartY = startY + lines.length * lineGap + 4 * scaleY;
+    secondaryLines.forEach((sLine, idx) => {
+      const curY = secStartY + idx * secLineGap;
+      let lineX = 0;
+      if (align === "left") lineX = boxOffsetX + pad;
+      else if (align === "right") lineX = boxOffsetX + totalBoxW - pad;
+      else lineX = boxOffsetX + totalBoxW / 2;
+
+      ctx.fillText(sLine, lineX, curY);
+    });
+  }
+
+  ctx.restore();
+}
+
+export function renderSafeAreaGuides(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number
+): void {
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+
+  // Action Safe 90%
+  const actionW = width * 0.9;
+  const actionH = height * 0.9;
+  ctx.strokeStyle = "rgba(0, 245, 255, 0.4)";
+  ctx.strokeRect((width - actionW) / 2, (height - actionH) / 2, actionW, actionH);
+
+  // Title Safe 80%
+  const titleW = width * 0.8;
+  const titleH = height * 0.8;
+  ctx.strokeStyle = "rgba(251, 191, 36, 0.5)";
+  ctx.strokeRect((width - titleW) / 2, (height - titleH) / 2, titleW, titleH);
+
+  // Labels
+  ctx.setLineDash([]);
+  ctx.font = "10px sans-serif";
+  ctx.fillStyle = "rgba(0, 245, 255, 0.7)";
+  ctx.fillText("ACTION SAFE (90%)", (width - actionW) / 2 + 6, (height - actionH) / 2 + 14);
+
+  ctx.fillStyle = "rgba(251, 191, 36, 0.8)";
+  ctx.fillText("TITLE SAFE (80%)", (width - titleW) / 2 + 6, (height - titleH) / 2 + 14);
+
+  ctx.restore();
 }

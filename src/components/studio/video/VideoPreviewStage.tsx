@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { VideoClip, VideoProjectData } from "../../../types/video";
-import { renderFrameToCanvas, getInterpolatedValue } from "../../../utils/videoRenderer";
-import { Maximize2, ZoomIn, ZoomOut, Play, Pause } from "lucide-react";
+import { renderFrameToCanvas, getInterpolatedValue, renderSafeAreaGuides } from "../../../utils/videoRenderer";
+import { Maximize2, ZoomIn, ZoomOut, Play, Pause, Grid } from "lucide-react";
 
 interface Props {
   project: VideoProjectData;
@@ -20,6 +20,7 @@ export const VideoPreviewStage: React.FC<Props> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [showSafeArea, setShowSafeArea] = useState(false);
 
   // Render canvas frame on currentTime change or project change
   useEffect(() => {
@@ -34,6 +35,10 @@ export const VideoPreviewStage: React.FC<Props> = ({
     canvas.height = project.height;
 
     renderFrameToCanvas(ctx, project, currentTime, project.width, project.height);
+
+    if (showSafeArea) {
+      renderSafeAreaGuides(ctx, project.width, project.height);
+    }
 
     // Draw Motion Path overlay for selected clip with keyframes
     if (selectedClipId) {
@@ -87,7 +92,7 @@ export const VideoPreviewStage: React.FC<Props> = ({
         }
       }
     }
-  }, [project, currentTime, selectedClipId]);
+  }, [project, currentTime, selectedClipId, showSafeArea]);
 
   return (
     <div
@@ -118,6 +123,26 @@ export const VideoPreviewStage: React.FC<Props> = ({
           {/* PROJECT RESOLUTION & PRESET BADGE OVERLAY */}
           <div className="absolute top-3 left-3 bg-black/80 border border-white/10 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold text-gray-300">
             {project.width}x{project.height} • {project.fps} FPS
+          </div>
+
+          {/* SAFE AREA GUIDES TOGGLE OVERLAY */}
+          <div className="absolute top-3 right-3 z-10">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSafeArea(!showSafeArea);
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all ${
+                showSafeArea
+                  ? "bg-amber-400 text-black border border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.6)]"
+                  : "bg-black/80 border border-white/20 text-gray-300 hover:text-white"
+              }`}
+              title="Toggle Text Safe (80%) & Action Safe (90%) Guides"
+            >
+              <Grid className="w-3.5 h-3.5" />
+              <span>{showSafeArea ? "Safe Area ON" : "Safe Area"}</span>
+            </button>
           </div>
         </div>
       </div>

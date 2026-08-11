@@ -132,7 +132,8 @@ export interface Keyframe {
     | "cropTop"
     | "cropBottom"
     | "cropLeft"
-    | "cropRight";
+    | "cropRight"
+    | "letterSpacing";
   value: number;
   easing: InterpolationMode;
 }
@@ -142,19 +143,72 @@ export interface TextClipProps {
   fontFamily: string;
   fontSize: number;
   fontWeight: number;
+  isItalic?: boolean;
+  isUnderline?: boolean;
+  isUppercase?: boolean;
+  letterSpacing?: number;
+  lineHeight?: number;
   color: string;
+  alignment: "center" | "left" | "right";
+  verticalAlign?: "top" | "middle" | "bottom";
+  
+  // Box dimensions & wrapping
+  boxMode?: "auto" | "fixed";
+  boxWidth?: number;
+  boxHeight?: number;
+
+  // Background
+  backgroundEnabled?: boolean;
+  backgroundColor: string;
+  backgroundOpacity?: number;
+  backgroundPadding: number;
+  backgroundBorderColor?: string;
+  backgroundBorderWidth?: number;
+  backgroundCornerRadius?: number;
+  backgroundIndependentCorners?: boolean;
+  backgroundCorners?: {
+    topLeft: number;
+    topRight: number;
+    bottomLeft: number;
+    bottomRight: number;
+  };
+
+  // Outline
+  outlineEnabled?: boolean;
   outlineColor: string;
   outlineWidth: number;
+  outlineOpacity?: number;
+
+  // Shadow & Glow
+  shadowEnabled?: boolean;
   shadowColor: string;
   shadowBlur: number;
   shadowOffsetX: number;
   shadowOffsetY: number;
-  glowColor: string;
-  glowBlur: number;
-  backgroundColor: string;
-  backgroundPadding: number;
-  alignment: "center" | "left" | "right";
-  animationType: "none" | "fadeIn" | "typewriter" | "slideUp" | "pop" | "bounce";
+  shadowOpacity?: number;
+  glowColor?: string;
+  glowBlur?: number;
+
+  // Gradient
+  gradientEnabled?: boolean;
+  gradientType?: "solid" | "linear" | "radial";
+  gradientStart?: string;
+  gradientEnd?: string;
+  gradientAngle?: number;
+
+  // Animations
+  animationType?: "none" | "fadeIn" | "typewriter" | "slideUp" | "pop" | "bounce";
+  animationIn?: "none" | "fadeIn" | "slideUp" | "slideDown" | "slideLeft" | "slideRight" | "scaleIn" | "popIn" | "typewriter";
+  animationInDuration?: number;
+  animationOut?: "none" | "fadeOut" | "slideUp" | "slideDown" | "slideLeft" | "slideRight" | "scaleOut";
+  animationOutDuration?: number;
+
+  // Secondary text for templates & lower thirds
+  secondaryContent?: string;
+  secondaryFontSize?: number;
+  secondaryFontFamily?: string;
+  secondaryColor?: string;
+  templateType?: "none" | "lowerThird" | "mainTitle" | "subtitle" | "sectionTitle" | "quote" | "callToAction" | "outro" | "socialMedia";
 }
 
 export interface EffectProps {
