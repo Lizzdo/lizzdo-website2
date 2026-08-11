@@ -645,12 +645,14 @@ export function VideoEditorWorkspace() {
           onSeek={(t) => setCurrentTime(t)}
           onSplitClip={handleSplitClip}
           onDetachAudio={handleDetachAudio}
+          onUpdateProject={updateProjectWithHistory}
           onAddMarker={(time) => {
             const newMarker = {
               id: `m-${Date.now()}`,
               time,
               label: `Marker ${(project.markers?.length || 0) + 1}`,
               color: "#fbbf24",
+              notes: "Key production milestone",
             };
             updateProjectWithHistory({ markers: [...(project.markers || []), newMarker] });
           }}

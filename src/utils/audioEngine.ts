@@ -190,7 +190,55 @@ export class AudioTimelinePlayer {
   }
 }
 
-// Render project audio into an OfflineAudioContext for complete export
+// Voice Recorder Engine helper using browser MediaRecorder
+export class VoiceRecorderEngine {
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private startTime: number = 0;
+
+  public async startRecording(): Promise<boolean> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.audioChunks = [];
+      this.mediaRecorder = new MediaRecorder(stream);
+      this.startTime = Date.now();
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.start();
+      return true;
+    } catch (err) {
+      console.error("Microphone access failed:", err);
+      return false;
+    }
+  }
+
+  public stopRecording(): Promise<{ url: string; duration: number }> {
+    return new Promise((resolve, reject) => {
+      if (!this.mediaRecorder) {
+        reject(new Error("MediaRecorder not initialized"));
+        return;
+      }
+
+      const recDuration = (Date.now() - this.startTime) / 1000;
+
+      this.mediaRecorder.onstop = () => {
+        const blob = new Blob(this.audioChunks, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        // Stop stream tracks
+        this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
+        resolve({ url, duration: Math.max(0.5, recDuration) });
+      };
+
+      this.mediaRecorder.stop();
+    });
+  }
+}
+
 export async function renderProjectAudioMix(
   project: VideoProjectData,
   durationSecs: number,

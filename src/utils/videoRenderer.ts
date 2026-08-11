@@ -155,6 +155,112 @@ export function renderGuidesOnCanvas(
   ctx.restore();
 }
 
+// Render Burned-In Subtitles / Captions
+export function renderCaptionsOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  project: VideoProjectData,
+  time: number,
+  cw: number,
+  ch: number,
+  scaleX: number
+) {
+  if (!project.captions || project.captions.length === 0) return;
+
+  const activeCap = project.captions.find((c) => time >= c.startTime && time <= c.endTime);
+  if (!activeCap || !activeCap.text) return;
+
+  const style = project.captionStyle || {
+    fontFamily: "Inter",
+    fontSize: 28,
+    fontWeight: 700,
+    color: "#ffffff",
+    backgroundColor: "rgba(0,0,0,0.75)",
+    backgroundPadding: 10,
+    outlineColor: "#000000",
+    outlineWidth: 2,
+    shadowColor: "rgba(0,0,0,0.5)",
+    shadowBlur: 6,
+    alignment: "center",
+    positionY: 0.85,
+    highlightColor: "#00f5ff",
+  };
+
+  ctx.save();
+
+  const fontPx = Math.round((style.fontSize || 28) * scaleX);
+  ctx.font = `${style.fontWeight || 700} ${fontPx}px ${style.fontFamily || "Inter"}, sans-serif`;
+  ctx.textAlign = style.alignment || "center";
+  ctx.textBaseline = "middle";
+
+  const words = activeCap.text.split(" ");
+  const capDur = activeCap.endTime - activeCap.startTime;
+  const elapsed = time - activeCap.startTime;
+  const currentWordIdx = Math.min(words.length - 1, Math.floor((elapsed / capDur) * words.length));
+
+  const textMetrics = ctx.measureText(activeCap.text);
+  const textW = textMetrics.width;
+  const textH = fontPx * 1.2;
+
+  const posX = style.alignment === "left" ? cw * 0.1 : style.alignment === "right" ? cw * 0.9 : cw / 2;
+  const posY = ch * (style.positionY || 0.85);
+
+  // Background Pill
+  if (style.backgroundColor && style.backgroundColor !== "transparent") {
+    const pad = (style.backgroundPadding || 8) * scaleX;
+    ctx.fillStyle = style.backgroundColor;
+    ctx.beginPath();
+    let bgLeft = posX - textW / 2 - pad;
+    if (style.alignment === "left") bgLeft = posX - pad;
+    if (style.alignment === "right") bgLeft = posX - textW - pad;
+    ctx.roundRect(bgLeft, posY - textH / 2 - pad, textW + pad * 2, textH + pad * 2, 8 * scaleX);
+    ctx.fill();
+  }
+
+  // Shadow
+  if (style.shadowColor && style.shadowBlur > 0) {
+    ctx.shadowColor = style.shadowColor;
+    ctx.shadowBlur = style.shadowBlur;
+  }
+
+  // Word-by-word highlight or full text
+  if (style.presetName === "highlight" || style.highlightColor) {
+    let currentX = style.alignment === "center" ? posX - textW / 2 : posX;
+    ctx.textAlign = "left";
+
+    words.forEach((word, idx) => {
+      const wordStr = word + " ";
+      const wordW = ctx.measureText(wordStr).width;
+
+      if (idx === currentWordIdx && style.highlightColor) {
+        ctx.fillStyle = style.highlightColor;
+      } else {
+        ctx.fillStyle = style.color || "#ffffff";
+      }
+
+      if (style.outlineWidth && style.outlineWidth > 0) {
+        ctx.strokeStyle = style.outlineColor || "#000000";
+        ctx.lineWidth = style.outlineWidth * scaleX;
+        ctx.strokeText(wordStr, currentX, posY);
+      }
+
+      ctx.fillText(wordStr, currentX, posY);
+      currentX += wordW;
+    });
+  } else {
+    // Standard full line text
+    if (style.outlineWidth && style.outlineWidth > 0) {
+      ctx.strokeStyle = style.outlineColor || "#000000";
+      ctx.lineWidth = style.outlineWidth * scaleX;
+      ctx.strokeText(activeCap.text, posX, posY);
+    }
+
+    ctx.fillStyle = style.color || "#ffffff";
+    ctx.fillText(activeCap.text, posX, posY);
+  }
+
+  ctx.restore();
+}
+
 // Main Frame Renderer for Video Canvas
 export function renderFrameToCanvas(
   ctx: CanvasRenderingContext2D,
@@ -163,9 +269,9 @@ export function renderFrameToCanvas(
   canvasWidth: number,
   canvasHeight: number
 ) {
-  // Clear Canvas & Render Selected Background
   ctx.save();
 
+  // Clear Canvas & Render Background
   if (project.bgType === "gradient") {
     const grad = ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
     grad.addColorStop(0, "#0f172a");
@@ -180,16 +286,10 @@ export function renderFrameToCanvas(
     ctx.lineWidth = 1;
     const gridSize = 40;
     for (let x = 0; x < canvasWidth; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvasHeight);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvasHeight); ctx.stroke();
     }
     for (let y = 0; y < canvasHeight; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvasWidth, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasWidth, y); ctx.stroke();
     }
   } else if (project.bgType === "image" && project.bgImage) {
     const bgImg = getLoadedImage(project.bgImage);
@@ -217,7 +317,7 @@ export function renderFrameToCanvas(
     return time >= clip.startTime && time <= clip.startTime + clip.duration;
   });
 
-  // Sort clips by track order
+  // Track priority
   const trackTypePriority: Record<string, number> = {
     background: 1,
     video: 2,
@@ -225,7 +325,9 @@ export function renderFrameToCanvas(
     overlay: 4,
     logo: 5,
     text: 6,
-    effect: 7,
+    caption: 7,
+    adjustment: 8,
+    effect: 9,
   };
 
   activeClips.sort((a, b) => {
@@ -234,12 +336,44 @@ export function renderFrameToCanvas(
     return pA - pB;
   });
 
-  // Render each clip
+  // Render each clip or handle adjustment layers
   for (const clip of activeClips) {
-    renderClipOnCanvas(ctx, clip, time, canvasWidth, canvasHeight, scaleX, scaleY);
+    if (clip.type === "adjustment") {
+      // Apply Adjustment Layer filter to existing canvas content below
+      const relTime = time - clip.startTime;
+      const adjBlur = getInterpolatedValue(clip, "blur", relTime, clip.effectProps?.blur || 0);
+      const adjBrightness = getInterpolatedValue(clip, "brightness", relTime, clip.effectProps?.brightness || 0);
+      const adjContrast = getInterpolatedValue(clip, "contrast", relTime, clip.effectProps?.contrast || 0);
+      const adjSaturation = getInterpolatedValue(clip, "saturation", relTime, clip.effectProps?.saturation || 100);
+
+      const snapCanvas = document.createElement("canvas");
+      snapCanvas.width = canvasWidth;
+      snapCanvas.height = canvasHeight;
+      const snapCtx = snapCanvas.getContext("2d");
+      if (snapCtx) {
+        snapCtx.drawImage(ctx.canvas, 0, 0);
+        ctx.save();
+        const filterParts: string[] = [];
+        if (adjBlur > 0) filterParts.push(`blur(${adjBlur}px)`);
+        if (adjBrightness !== 0) filterParts.push(`brightness(${100 + adjBrightness}%)`);
+        if (adjContrast !== 0) filterParts.push(`contrast(${100 + adjContrast}%)`);
+        if (adjSaturation !== 100) filterParts.push(`saturate(${adjSaturation}%)`);
+
+        if (filterParts.length > 0) {
+          ctx.filter = filterParts.join(" ");
+        }
+        ctx.drawImage(snapCanvas, 0, 0);
+        ctx.restore();
+      }
+    } else {
+      renderClipOnCanvas(ctx, clip, time, canvasWidth, canvasHeight, scaleX, scaleY);
+    }
   }
 
-  // Draw Guides Overlay if enabled in preview
+  // Render Captions
+  renderCaptionsOnCanvas(ctx, project, time, canvasWidth, canvasHeight, scaleX);
+
+  // Draw Guides Overlay if enabled
   if (project.showGuides && project.guidePreset && project.guidePreset !== "none") {
     renderGuidesOnCanvas(ctx, project.guidePreset, canvasWidth, canvasHeight);
   }
@@ -614,6 +748,7 @@ function renderClipOnCanvas(
   }
 
   // 6. Draw Vignette Overlay if set
+  const fx = clip.effectProps;
   if (fx && fx.vignette > 0) {
     const rx = cw / 2;
     const ry = ch / 2;
@@ -627,15 +762,20 @@ function renderClipOnCanvas(
   ctx.restore();
 }
 
-// Full Frame Export Engine
+// Full Frame Export Engine (supports entire project or scene/range export)
 export async function exportVideoProject(
   project: VideoProjectData,
   exportWidth: number,
   exportHeight: number,
   fps: number,
-  onProgress: (percent: number, frame: number, totalFrames: number, estSecsLeft: number) => void
+  onProgress: (percent: number, frame: number, totalFrames: number, estSecsLeft: number) => void,
+  exportRange?: { start: number; end: number } | null
 ): Promise<string> {
-  // Pre-render audio mix if audio or video clips exist
+  const rangeStart = exportRange ? Math.max(0, exportRange.start) : 0;
+  const rangeEnd = exportRange ? Math.min(project.duration, exportRange.end) : project.duration;
+  const exportDuration = Math.max(1, rangeEnd - rangeStart);
+
+  // Pre-render audio mix for duration
   const audioBuffer = await renderProjectAudioMix(project, project.duration);
 
   return new Promise((resolve, reject) => {
@@ -647,7 +787,7 @@ export async function exportVideoProject(
 
       if (!ctx) return reject("Failed to initialize export canvas context");
 
-      const totalFrames = Math.ceil(project.duration * fps);
+      const totalFrames = Math.ceil(exportDuration * fps);
       const frameDurationMs = 1000 / fps;
 
       const stream = canvas.captureStream(fps);
@@ -666,7 +806,7 @@ export async function exportVideoProject(
             stream.addTrack(track);
           });
 
-          source.start(0);
+          source.start(0, rangeStart, exportDuration);
         } catch (audErr) {
           console.warn("Failed to attach audio stream to export:", audErr);
         }
@@ -703,7 +843,7 @@ export async function exportVideoProject(
           return;
         }
 
-        const currentTime = currentFrame / fps;
+        const currentTime = rangeStart + currentFrame / fps;
         renderFrameToCanvas(ctx, project, currentTime, exportWidth, exportHeight);
 
         currentFrame++;

@@ -5,7 +5,9 @@ export type VideoTrackType =
   | "logo"
   | "overlay"
   | "background"
-  | "effect";
+  | "effect"
+  | "caption"
+  | "adjustment";
 
 export type LogoAnimationPreset =
   | "none"
@@ -24,16 +26,28 @@ export type LogoAnimationPreset =
 
 export type TransitionType =
   | "none"
+  | "cut"
   | "fade"
-  | "dissolve"
-  | "wipe"
-  | "slide"
-  | "zoom"
-  | "blur"
-  | "push"
   | "crossfade"
-  | "flash"
-  | "dipToBlack";
+  | "dissolve"
+  | "dipToBlack"
+  | "dipToWhite"
+  | "slideLeft"
+  | "slideRight"
+  | "slideUp"
+  | "slideDown"
+  | "zoom"
+  | "push"
+  | "wipe"
+  | "blur"
+  | "flash";
+
+export interface TransitionProps {
+  type: TransitionType;
+  duration: number; // in seconds
+  direction?: "normal" | "reverse" | "in" | "out";
+  intensity?: number; // 0 to 1
+}
 
 export type InterpolationMode = "linear" | "easeIn" | "easeOut" | "easeInOut" | "hold";
 
@@ -154,6 +168,16 @@ export interface EffectProps {
   filmGrain: number; // 0 - 100
   noise: number; // 0 - 100
   lut: "none" | "cyberpunk" | "vintage" | "noir" | "neon" | "cinematic" | "matrix";
+  sepia?: number;
+  grayscale?: number;
+  invert?: number;
+  grain?: number;
+  sharpness?: number;
+  bloom?: number;
+  chromaticAberration?: number;
+  glowColor?: string;
+  glowBlur?: number;
+  lutPreset?: string;
 }
 
 export interface LogoAnimProps {
@@ -270,6 +294,88 @@ export interface VideoMarker {
   time: number;
   label: string;
   color: string;
+  notes?: string;
+}
+
+export interface VideoScene {
+  id: string;
+  name: string;
+  startTime: number;
+  endTime: number;
+  color?: string;
+  thumbnail?: string;
+  notes?: string;
+}
+
+export interface CaptionItem {
+  id: string;
+  startTime: number;
+  endTime: number;
+  text: string;
+  highlightWordIndex?: number;
+}
+
+export interface CaptionStyleProps {
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  color: string;
+  backgroundColor: string;
+  backgroundPadding: number;
+  outlineColor: string;
+  outlineWidth: number;
+  shadowColor: string;
+  shadowBlur: number;
+  alignment: "left" | "center" | "right";
+  positionY: number; // 0 to 1 relative to container height (0.85 = bottom)
+  presetName?: "clean" | "bold" | "subtitle" | "social" | "minimal" | "highlight";
+  highlightColor?: string;
+}
+
+export interface NestedSequence {
+  id: string;
+  name: string;
+  duration: number;
+  clips: VideoClip[];
+  tracks: VideoTrack[];
+}
+
+export interface TransitionPreset {
+  id: string;
+  name: string;
+  type: TransitionType;
+  duration: number;
+  direction?: "normal" | "reverse" | "in" | "out";
+  intensity?: number;
+}
+
+export interface CaptionStylePreset {
+  id: string;
+  name: string;
+  style: CaptionStyleProps;
+}
+
+export interface EffectPreset {
+  id: string;
+  name: string;
+  effectProps: EffectProps;
+}
+
+export interface ProjectTemplate {
+  id: string;
+  name: string;
+  category: string;
+  aspectRatio: string;
+  width: number;
+  height: number;
+  description: string;
+  placeholders: {
+    id: string;
+    type: "video" | "image" | "logo" | "text" | "audio";
+    label: string;
+    clipId: string;
+  }[];
+  projectData: Partial<VideoProjectData>;
 }
 
 export interface VideoProjectData {
@@ -290,6 +396,17 @@ export interface VideoProjectData {
   showGuides?: boolean;
   guidePreset?: "none" | "grid" | "youtube" | "tiktok" | "instagram" | "facebook" | "linkedin";
   snapToGuides?: boolean;
+  snapToMarkers?: boolean;
   markers?: VideoMarker[];
+  scenes?: VideoScene[];
+  activeSceneId?: string;
+  sceneRange?: { start: number; end: number } | null;
+  nestedSequences?: NestedSequence[];
+  captions?: CaptionItem[];
+  captionStyle?: CaptionStyleProps;
+  burnCaptionsOnExport?: boolean;
+  rangeSelection?: { start: number; end: number } | null;
+  rippleEditing?: boolean;
+  trackTargeting?: string[]; // track IDs targeted for operations
   updatedAt: string;
 }

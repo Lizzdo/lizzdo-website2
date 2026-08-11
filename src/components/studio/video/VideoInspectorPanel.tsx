@@ -394,6 +394,30 @@ export const VideoInspectorPanel: React.FC<Props> = ({
     });
   };
 
+  const updateEffect = (updated: any) => {
+    onUpdateClip(clip.id, {
+      effectProps: {
+        blur: clip.effectProps?.blur || 0,
+        brightness: clip.effectProps?.brightness || 0,
+        contrast: clip.effectProps?.contrast || 0,
+        saturation: clip.effectProps?.saturation ?? 100,
+        hueRotate: clip.effectProps?.hueRotate || 0,
+        sepia: clip.effectProps?.sepia || 0,
+        grayscale: clip.effectProps?.grayscale || 0,
+        invert: clip.effectProps?.invert || 0,
+        vignette: clip.effectProps?.vignette || 0,
+        grain: clip.effectProps?.grain || 0,
+        sharpness: clip.effectProps?.sharpness || 0,
+        bloom: clip.effectProps?.bloom || 0,
+        chromaticAberration: clip.effectProps?.chromaticAberration || 0,
+        glowColor: clip.effectProps?.glowColor || "#00f5ff",
+        glowBlur: clip.effectProps?.glowBlur || 0,
+        lutPreset: clip.effectProps?.lutPreset || "none",
+        ...updated,
+      },
+    });
+  };
+
   return (
     <div className="w-full md:w-80 bg-neutral-950 border-l border-white/10 p-4 flex flex-col shrink-0 font-mono text-xs text-gray-300 overflow-y-auto custom-scrollbar space-y-4 select-none">
       {/* HEADER BAR */}

@@ -22,7 +22,8 @@ import {
   Check,
 } from "lucide-react";
 import { MediaFolder, MediaItem, VideoClip, VideoTrack } from "../../../types/video";
-import { INITIAL_FOLDERS, INITIAL_STOCK_MEDIA, VoiceRecorderEngine, createDefaultTextProps, createDefaultEffectProps } from "../../../utils/videoEngine";
+import { INITIAL_FOLDERS, INITIAL_STOCK_MEDIA, createDefaultTextProps, createDefaultEffectProps } from "../../../utils/videoEngine";
+import { VoiceRecorderEngine } from "../../../utils/audioEngine";
 import { useStudio } from "../../../context/StudioContext";
 
 interface Props {
