@@ -158,8 +158,16 @@ export function SingleCornerSvg({
     filters.push(`blur(${blurVal}px)`);
   }
 
+  const posStyles: Record<string, React.CSSProperties> = {
+    tl: { top: 0, left: 0 },
+    tr: { top: 0, right: 0 },
+    bl: { bottom: 0, left: 0 },
+    br: { bottom: 0, right: 0 },
+  };
+
   const containerStyle: React.CSSProperties = {
     position: "absolute",
+    ...posStyles[position],
     width: `${size}px`,
     height: `${size}px`,
     opacity,

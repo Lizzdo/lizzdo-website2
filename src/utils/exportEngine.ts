@@ -846,20 +846,16 @@ export async function renderArtworkFormat(
 
   let offscreenCleanup: (() => void) | null = null;
   
-  // Prefer live DOM canvas node if available in current document
-  let targetCaptureNode: HTMLElement | null = node;
-  const liveCanvasInDom = document.getElementById("lizzdo-designer-canvas") as HTMLElement | null;
-  
-  if (liveCanvasInDom) {
-    targetCaptureNode = liveCanvasInDom;
-  } else if (!targetCaptureNode) {
-    try {
-      const { container, canvasNode, cleanup } = await mountOffscreenCanvasStage(state);
-      offscreenCleanup = cleanup;
-      targetCaptureNode = canvasNode;
-    } catch (mountErr) {
-      console.warn("Offscreen stage mount warning, falling back to active node:", mountErr);
-    }
+  // Always use a clean offscreen canvas stage rendered directly from design model
+  // to prevent any editor selection handles, rings, guides, or hover states from being captured.
+  let targetCaptureNode: HTMLElement | null = null;
+  try {
+    const { container, canvasNode, cleanup } = await mountOffscreenCanvasStage(state);
+    offscreenCleanup = cleanup;
+    targetCaptureNode = canvasNode;
+  } catch (mountErr) {
+    console.warn("Offscreen stage mount warning, falling back to active node:", mountErr);
+    targetCaptureNode = node || (document.getElementById("lizzdo-designer-canvas") as HTMLElement | null);
   }
 
   if (!targetCaptureNode) {

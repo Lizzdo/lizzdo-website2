@@ -326,8 +326,77 @@ export const BackgroundInspector: React.FC<BackgroundInspectorProps> = ({ state,
     }
   };
 
+  const handleSmartAutoCompose = () => {
+    // Find image element or default artwork
+    const imgEl = state.elements.find((el) => el.type === "image" && el.visible);
+    
+    // Generate a vibrant smart dark mesh / cyber radial background
+    const smartBg: DesignBackground = {
+      type: "mesh",
+      solidColor: "#060919",
+      gradientFrom: "#00f5ff",
+      gradientTo: "#a855f7",
+      gradientDirection: "to-br",
+      meshColor1: "#00f5ff",
+      meshColor2: "#7c3aed",
+      meshColor3: "#06b6d4",
+      meshColor4: "#020617",
+      pattern: "dots",
+      patternColor: "rgba(0, 245, 255, 0.25)",
+      patternOpacity: 0.2,
+      brightness: 105,
+      contrast: 105,
+      blur: 0,
+    };
+
+    // Center image element subject if available
+    let updatedElements = state.elements;
+    if (imgEl) {
+      updatedElements = state.elements.map((el) => {
+        if (el.id === imgEl.id) {
+          const w = el.width ?? 60;
+          const h = el.height ?? 60;
+          return {
+            ...el,
+            x: Math.round(((100 - w) / 2) * 10) / 10,
+            y: Math.round(((100 - h) / 2) * 10) / 10,
+          };
+        }
+        return el;
+      });
+    }
+
+    onChange({
+      ...state,
+      background: smartBg,
+      elements: updatedElements,
+    });
+  };
+
   return (
     <div className="space-y-6 text-sm text-gray-300">
+      {/* SMART AUTO COMPOSE ACTION */}
+      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-neon-cyan/20 via-neon-purple/20 to-neon-pink/20 border border-neon-cyan/40 space-y-2 shadow-[0_0_20px_rgba(0,245,255,0.15)]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold font-mono uppercase text-white flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-neon-cyan animate-pulse" /> Smart Auto Compose
+          </span>
+          <span className="px-2 py-0.5 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan text-[9px] font-mono font-bold">
+            AI AGENT
+          </span>
+        </div>
+        <p className="text-[11px] text-gray-300 leading-snug">
+          Analyze canvas artwork, auto-generate complementary background glow, and center subject.
+        </p>
+        <button
+          type="button"
+          onClick={handleSmartAutoCompose}
+          className="w-full py-2 px-3 rounded-xl bg-neon-cyan text-black font-bold font-mono text-xs hover:bg-white transition-all shadow-[0_0_15px_rgba(0,245,255,0.4)] flex items-center justify-center gap-2"
+        >
+          <Zap className="w-4 h-4 fill-black" /> Auto-Compose Background & Subject
+        </button>
+      </div>
+
       {/* Canvas Dimensions & Ratio */}
       <div className="space-y-3 pb-4 border-b border-white/10">
         <div className="flex items-center justify-between">

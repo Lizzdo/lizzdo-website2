@@ -354,19 +354,70 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
 
             <button
               type="button"
+              onClick={() => {
+                const w = element.width ?? 50;
+                onChange({ ...element, x: Math.round(((100 - w) / 2) * 10) / 10 });
+              }}
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
+            >
+              Center Horiz.
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const h = element.height ?? 50;
+                onChange({ ...element, y: Math.round(((100 - h) / 2) * 10) / 10 });
+              }}
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
+            >
+              Center Vert.
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const w = element.width ?? 50;
+                const h = element.height ?? 50;
+                onChange({
+                  ...element,
+                  x: Math.round(((100 - w) / 2) * 10) / 10,
+                  y: Math.round(((100 - h) / 2) * 10) / 10,
+                });
+              }}
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
+            >
+              Center Both
+            </button>
+
+            <button
+              type="button"
               onClick={() =>
                 onChange({
                   ...element,
                   x: 0,
-                  y: 0,
                   width: 100,
+                  fitMode: "contain",
+                })
+              }
+              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
+            >
+              Fit Width
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...element,
+                  y: 0,
                   height: 100,
                   fitMode: "contain",
                 })
               }
               className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
             >
-              Fit Canvas
+              Fit Height
             </button>
 
             <button
@@ -384,22 +435,6 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
               className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
             >
               Fill Canvas
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                onChange({
-                  ...element,
-                  x: 25,
-                  y: 25,
-                  width: 50,
-                  height: 50,
-                })
-              }
-              className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-all text-center text-[11px]"
-            >
-              Center Image
             </button>
 
             <button
