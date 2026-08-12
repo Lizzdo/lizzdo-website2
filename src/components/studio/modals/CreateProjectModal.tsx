@@ -9,6 +9,7 @@ import {
   calculateAspectRatio,
   convertUnitsToPixels,
 } from "../../../data/projectPresets";
+import { DESIGN_TEMPLATES } from "../../../data/designerTemplates";
 import { StudioToolId } from "../../../types/studio";
 import {
   X,
@@ -156,6 +157,102 @@ export function CreateProjectModal({ isOpen, onClose, defaultToolId = "designer"
       imageFit: "cover",
     };
 
+    // Check if selected preset matches a template composition in DESIGN_TEMPLATES
+    const matchedTemplate = DESIGN_TEMPLATES.find(
+      (t) => t.id === selectedPreset.id || t.state.preset === selectedPreset.id
+    );
+
+    let compositionElements = [
+      {
+        id: `el-badge-${Date.now()}`,
+        name: "Category Badge",
+        type: "badge",
+        visible: true,
+        locked: false,
+        x: 8,
+        y: 12,
+        text: `${selectedPreset.platform.toUpperCase()} // ${selectedPreset.projectType.toUpperCase()}`,
+        bg: "rgba(0, 245, 255, 0.15)",
+        textColor: "#00f5ff",
+        borderColor: "rgba(0, 245, 255, 0.4)",
+        borderRadius: 8,
+        fontSize: 11,
+        zIndex: 10,
+      },
+      {
+        id: `el-title-${Date.now()}`,
+        name: "Project Headline",
+        type: "text",
+        visible: true,
+        locked: false,
+        x: 8,
+        y: 24,
+        text: finalTitle,
+        fontSize: 32,
+        fontFamily: "Orbitron",
+        fontWeight: "bold",
+        color: "#ffffff",
+        textAlign: "left",
+        zIndex: 11,
+      },
+      {
+        id: `el-sub-${Date.now()}`,
+        name: "Project Subtitle",
+        type: "text",
+        visible: true,
+        locked: false,
+        x: 8,
+        y: 52,
+        text: "Custom editable composition created in Version 1 Designer. Drag, resize, swap images, or customize layout.",
+        fontSize: 13,
+        fontFamily: "Inter",
+        color: "#94a3b8",
+        textAlign: "left",
+        lineHeight: 1.5,
+        zIndex: 12,
+      },
+      {
+        id: `el-img-${Date.now()}`,
+        name: "Image Frame Placeholder",
+        type: "image",
+        visible: true,
+        locked: false,
+        x: 52,
+        y: 12,
+        width: 42,
+        height: 76,
+        url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
+        fitMode: "cover",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.2)",
+        shadowGlow: "cyan",
+        zIndex: 5,
+      },
+      {
+        id: `el-btn-${Date.now()}`,
+        name: "Action CTA Button",
+        type: "button",
+        visible: true,
+        locked: false,
+        x: 8,
+        y: 76,
+        text: "EXPLORE SHOWCASE",
+        bgGradient: "linear-gradient(90deg, #00f5ff, #a855f7)",
+        textColor: "#000000",
+        borderRadius: 10,
+        fontSize: 12,
+        zIndex: 14,
+      },
+    ];
+
+    if (matchedTemplate && matchedTemplate.state.elements) {
+      compositionElements = matchedTemplate.state.elements.map((el) => ({
+        ...el,
+        id: `${el.id}-${Date.now()}`,
+      }));
+    }
+
     // Initial Design State Payload
     const initialDesignData = {
       title: finalTitle,
@@ -166,30 +263,12 @@ export function CreateProjectModal({ isOpen, onClose, defaultToolId = "designer"
       dpi: customDpi,
       projectType,
       allowTransparentBackground: transparentBg,
-      background: backgroundConfig,
-      showCyberBorders: bgType === "wireframe",
-      showGlassPanel: false,
-      elements: [
-        // Standard welcoming layer element
-        {
-          id: `el-text-${Date.now()}`,
-          name: "Project Title",
-          type: "text",
-          visible: true,
-          locked: false,
-          x: 10,
-          y: 40,
-          width: 80,
-          height: 20,
-          text: finalTitle,
-          fontSize: 36,
-          fontFamily: "Orbitron",
-          fontWeight: "bold",
-          color: "#ffffff",
-          textAlign: "center",
-          zIndex: 10,
-        },
-      ],
+      background: matchedTemplate ? matchedTemplate.state.background : backgroundConfig,
+      showCyberBorders: bgType === "wireframe" || (matchedTemplate ? matchedTemplate.state.showCyberBorders : false),
+      showGlassPanel: matchedTemplate ? matchedTemplate.state.showGlassPanel : false,
+      glassOpacity: matchedTemplate ? matchedTemplate.state.glassOpacity : 0.3,
+      glassBlur: matchedTemplate ? matchedTemplate.state.glassBlur : 10,
+      elements: compositionElements,
     };
 
     createProject(
