@@ -11,6 +11,7 @@ import {
 } from "../../../data/projectPresets";
 import { DESIGN_TEMPLATES } from "../../../data/designerTemplates";
 import { StudioToolId } from "../../../types/studio";
+import { CanvasElement } from "../../../types/designer";
 import {
   X,
   Plus,
@@ -162,7 +163,7 @@ export function CreateProjectModal({ isOpen, onClose, defaultToolId = "designer"
       (t) => t.id === selectedPreset.id || t.state.preset === selectedPreset.id
     );
 
-    let compositionElements = [
+    let compositionElements: CanvasElement[] = [
       {
         id: `el-badge-${Date.now()}`,
         name: "Category Badge",

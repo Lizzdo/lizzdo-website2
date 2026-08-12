@@ -26,6 +26,7 @@ import { TopMenuBar } from "./TopMenuBar";
 import { LeftToolRail, ToolMode } from "./LeftToolRail";
 import { ExpandedLeftSidebar } from "./ExpandedLeftSidebar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { PROJECT_PRESETS } from "../../data/projectPresets";
 import {
   prepareDesignStateForExport,
   renderArtworkFormat,
@@ -946,8 +947,21 @@ export default function PostDesigner() {
 
   // PRESET CANVAS FORMAT CHANGE
   const handlePresetChange = (presetId: string) => {
-    const updated = { ...designState, preset: presetId };
-    updateStateAndHistory(updated);
+    const presetObj = PROJECT_PRESETS.find((p) => p.id === presetId);
+    if (presetObj) {
+      const updated = {
+        ...designState,
+        preset: presetId,
+        width: presetObj.width,
+        height: presetObj.height,
+        safeMarginPct: presetObj.safeMarginPct,
+        safeNote: presetObj.safeNote,
+      };
+      updateStateAndHistory(updated);
+    } else {
+      const updated = { ...designState, preset: presetId };
+      updateStateAndHistory(updated);
+    }
   };
 
   // TRACK MOUSE MOVEMENT ON CANVAS FOR BOTTOM STATUS BAR
