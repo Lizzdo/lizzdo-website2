@@ -466,6 +466,29 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
 
                 const filterString = getCanvasElementCssFilter(el);
 
+                let extraDropShadows = "";
+                if (el.subjectGlow?.enabled) {
+                  const gColor = el.subjectGlow.color || "#00f5ff";
+                  const gBlur = el.subjectGlow.blur ?? 25;
+                  extraDropShadows += ` drop-shadow(0px 0px ${gBlur}px ${gColor})`;
+                  if ((el.subjectGlow.intensity ?? 80) > 50) {
+                    extraDropShadows += ` drop-shadow(0px 0px ${Math.round(gBlur * 0.5)}px ${gColor})`;
+                  }
+                }
+                if (el.subjectShadow?.enabled) {
+                  const sColor = el.subjectShadow.color || "rgba(0,0,0,0.75)";
+                  const sBlur = el.subjectShadow.blur ?? 25;
+                  const sDist = el.subjectShadow.distance ?? 20;
+                  const rad = ((el.subjectShadow.angle ?? 90) * Math.PI) / 180;
+                  const offX = Math.round(Math.cos(rad) * sDist);
+                  const offY = Math.round(Math.sin(rad) * sDist);
+                  extraDropShadows += ` drop-shadow(${offX}px ${offY}px ${sBlur}px ${sColor})`;
+                }
+
+                const combinedImgFilter =
+                  (filterString !== "brightness(100%) contrast(100%) saturate(100%) blur(0px)" ? filterString : "") +
+                  extraDropShadows;
+
                 const crop = el.crop;
                 const cropStyle =
                   crop && crop.enabled
@@ -475,6 +498,15 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                     : {};
 
                 const maskClipPath = getMaskClipPath(el.mask);
+
+                const hasGradientBorder = el.gradientBorder?.enabled;
+                const gbColor1 = el.gradientBorder?.color1 || "#00f5ff";
+                const gbColor2 = el.gradientBorder?.color2 || "#a855f7";
+                const gbColor3 = el.gradientBorder?.color3;
+                const gbStops = gbColor3 ? `${gbColor1}, ${gbColor2}, ${gbColor3}` : `${gbColor1}, ${gbColor2}`;
+                const gbAngle = el.gradientBorder?.angle || 135;
+                const gbWidth = el.gradientBorder?.width || 4;
+                const gbGlow = el.gradientBorder?.glow;
 
                 return (
                   <div
@@ -488,9 +520,11 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                       height: el.height ? `${el.height}%` : "100%",
                       overflow: "hidden",
                       borderRadius: frameRadiusStyle,
-                      border: borderStyleStr,
+                      border: hasGradientBorder ? "none" : borderStyleStr,
+                      background: hasGradientBorder ? `linear-gradient(${gbAngle}deg, ${gbStops})` : "transparent",
+                      padding: hasGradientBorder ? `${gbWidth}px` : "0px",
                       opacity: (el.opacity ?? 1) * borderOpacity,
-                      boxShadow: elementBoxShadow,
+                      boxShadow: hasGradientBorder && gbGlow ? `0 0 20px ${gbColor1}80, ${elementBoxShadow}` : elementBoxShadow,
                       zIndex: el.zIndex || 10,
                       clipPath: maskClipPath !== "none" ? maskClipPath : (cropStyle.clipPath || "none"),
                       backdropFilter: el.backdropBlur ? `blur(${el.backdropBlur}px)` : "none",
@@ -498,46 +532,149 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                     onClick={() => interactive && onSelectElement?.(el.id)}
                     className={selectionStyle}
                   >
-                    {/* Ambient Blurred Background if Contain mode */}
-                    {frameFit === "contain" && el.url && (
-                      <img
-                        src={el.url}
-                        alt=""
-                        crossOrigin="anonymous"
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          filter: "blur(20px)",
-                          opacity: 0.35,
-                          transform: "scale(1.2)",
-                          pointerEvents: "none",
-                        }}
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
+                    {/* Inner wrapper if gradient border is enabled */}
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: hasGradientBorder ? `calc(${frameRadiusStyle} - ${gbWidth}px)` : frameRadiusStyle,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Ambient Blurred Background if Contain mode */}
+                      {frameFit === "contain" && el.url && (
+                        <img
+                          src={el.url}
+                          alt=""
+                          crossOrigin="anonymous"
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            filter: "blur(20px)",
+                            opacity: 0.35,
+                            transform: "scale(1.2)",
+                            pointerEvents: "none",
+                          }}
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
 
-                    {el.url && (
-                      <img
-                        src={el.url}
-                        alt={el.name}
-                        crossOrigin="anonymous"
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: objectFitValue,
-                          filter: filterString !== "brightness(100%) contrast(100%) saturate(100%) blur(0px)" ? filterString : "none",
-                          transform: `scale(${zoom * flipXScale}, ${zoom * flipYScale}) translate(${offsetX}px, ${offsetY}px) rotate(${imgRotation}deg)`,
-                          transformOrigin: "center",
-                          transition: "transform 0.1s ease-out, filter 0.1s ease-out",
-                        }}
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
+                      {el.url && (
+                        <img
+                          src={el.url}
+                          alt={el.name}
+                          crossOrigin="anonymous"
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            width: "100%",
+                            height: "100%",
+                            objectFit: objectFitValue,
+                            filter: combinedImgFilter.trim() || "none",
+                            transform: `scale(${zoom * flipXScale}, ${zoom * flipYScale}) translate(${offsetX}px, ${offsetY}px) rotate(${imgRotation}deg)`,
+                            transformOrigin: "center",
+                            transition: "transform 0.1s ease-out, filter 0.1s ease-out",
+                          }}
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+
+                      {/* Shader / Lighting Effect Overlay */}
+                      {el.shaderPreset === "soft-light" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "radial-gradient(circle at 50% 20%, rgba(255,255,255,0.25) 0%, transparent 70%)",
+                            mixBlendMode: "soft-light",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {el.shaderPreset === "rim-light" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "radial-gradient(circle at 85% 15%, rgba(0,245,255,0.45) 0%, transparent 60%)",
+                            mixBlendMode: "screen",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {(el.shaderPreset === "neon-glow" || el.shaderPreset === "cyberpunk") && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "linear-gradient(135deg, rgba(0,245,255,0.35) 0%, transparent 50%, rgba(255,0,110,0.35) 100%)",
+                            mixBlendMode: "overlay",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {el.shaderPreset === "bloom" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 60%)",
+                            mixBlendMode: "screen",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {el.shaderPreset === "spotlight" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "conic-gradient(from 180deg at 50% 0%, rgba(255,255,255,0.35) 0deg, transparent 60deg, transparent 300deg, rgba(255,255,255,0.35) 360deg)",
+                            mixBlendMode: "soft-light",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {el.shaderPreset === "holographic" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "linear-gradient(45deg, rgba(255,0,0,0.25), rgba(0,255,0,0.25), rgba(0,0,255,0.25), rgba(255,0,255,0.25))",
+                            mixBlendMode: "color-dodge",
+                            opacity: 0.45,
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {el.shaderPreset === "metallic" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%)",
+                            mixBlendMode: "hard-light",
+                            opacity: 0.5,
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                      {el.shaderPreset === "glass" && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%)",
+                            backdropFilter: "blur(2px)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      )}
+                    </div>
 
                     {/* Selection Label Badge */}
                     {interactive && isSelected && (

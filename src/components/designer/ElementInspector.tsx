@@ -915,55 +915,377 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
         </div>
       )}
 
-      {/* 5. IMAGE MASKING SYSTEM */}
+      {/* 5. IMAGE MASKING, GLOW, SHADOW, BORDERS & SHADERS */}
       {element.type === "image" && (
-        <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
-          <div className="flex items-center justify-between">
-            <label className="text-[11px] uppercase text-amber-400 font-bold flex items-center gap-1.5">
-              <Scissors className="w-3.5 h-3.5" /> Masking System
+        <>
+          {/* BOUNDING MODE */}
+          <div className="space-y-2 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <label className="text-[11px] uppercase text-cyan-400 font-bold block flex items-center gap-1.5">
+              <Maximize2 className="w-3.5 h-3.5" /> Bounding Mode
             </label>
-            <button
-              type="button"
-              onClick={() =>
-                updateProp("mask", {
-                  enabled: !(element.mask?.enabled),
-                  shape: element.mask?.shape || "circle",
-                  zoom: 1,
-                  offsetX: 0,
-                  offsetY: 0,
-                  rotation: 0,
-                })
-              }
-              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                element.mask?.enabled ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400 hover:text-white"
-              }`}
-            >
-              {element.mask?.enabled ? "Mask Enabled" : "Enable Mask"}
-            </button>
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/60 rounded-lg border border-white/10 text-[10px]">
+              <button
+                type="button"
+                onClick={() => updateProp("boundsMode", "full")}
+                className={`py-1.5 rounded transition-all ${
+                  !element.boundsMode || element.boundsMode === "full"
+                    ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Full Canvas Bounds
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateProp("boundsMode", "visible");
+                  handleAutoTrimAlphaBounds();
+                }}
+                className={`py-1.5 rounded transition-all ${
+                  element.boundsMode === "visible"
+                    ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Visible Cutout Bounds
+              </button>
+            </div>
           </div>
 
-          {element.mask?.enabled && (
-            <div className="space-y-2 pt-2 border-t border-white/10">
-              <div>
-                <label className="text-[10px] text-gray-400 block mb-1">Mask Shape</label>
-                <select
-                  value={element.mask.shape || "circle"}
-                  onChange={(e) =>
-                    updateProp("mask", { ...element.mask!, shape: e.target.value as any })
-                  }
-                  className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-amber-400 focus:outline-none"
-                >
-                  <option value="circle">Circle Mask</option>
-                  <option value="ellipse">Ellipse Mask</option>
-                  <option value="rounded">Rounded Rectangle</option>
-                  <option value="star">Star Mask</option>
-                  <option value="hexagon">Hexagon Mask</option>
-                  <option value="triangle">Triangle Mask</option>
-                </select>
-              </div>
+          {/* SUBJECT GLOW */}
+          <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] uppercase text-cyan-400 font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Subject Glow Effect
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  updateProp("subjectGlow", {
+                    enabled: !(element.subjectGlow?.enabled),
+                    color: element.subjectGlow?.color || "#00f5ff",
+                    intensity: element.subjectGlow?.intensity || 80,
+                    blur: element.subjectGlow?.blur || 25,
+                    spread: element.subjectGlow?.spread || 10,
+                    opacity: element.subjectGlow?.opacity || 0.85,
+                  })
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  element.subjectGlow?.enabled ? "bg-cyan-400 text-black" : "bg-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                {element.subjectGlow?.enabled ? "Glow ON" : "Add Glow"}
+              </button>
             </div>
-          )}
-        </div>
+
+            {element.subjectGlow?.enabled && (
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 w-16">Color:</span>
+                  <input
+                    type="color"
+                    value={element.subjectGlow.color || "#00f5ff"}
+                    onChange={(e) =>
+                      updateProp("subjectGlow", { ...element.subjectGlow!, color: e.target.value })
+                    }
+                    className="w-7 h-7 rounded bg-transparent border border-white/20 cursor-pointer"
+                  />
+                  <div className="flex gap-1 flex-1">
+                    {["#00f5ff", "#a855f7", "#ff006e", "#3b82f6", "#22c55e", "#ffffff"].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() =>
+                          updateProp("subjectGlow", { ...element.subjectGlow!, color: c })
+                        }
+                        className="w-4 h-4 rounded-full border border-white/20 hover:scale-125 transition-transform"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">
+                    Blur Radius ({element.subjectGlow.blur ?? 25}px)
+                  </label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="80"
+                    value={element.subjectGlow.blur ?? 25}
+                    onChange={(e) =>
+                      updateProp("subjectGlow", { ...element.subjectGlow!, blur: parseInt(e.target.value) })
+                    }
+                    className="w-full accent-cyan-400"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SUBJECT GROUND / DROP SHADOW */}
+          <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] uppercase text-purple-400 font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" /> Ground & Drop Shadow
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  updateProp("subjectShadow", {
+                    enabled: !(element.subjectShadow?.enabled),
+                    color: element.subjectShadow?.color || "rgba(0,0,0,0.8)",
+                    blur: element.subjectShadow?.blur || 25,
+                    distance: element.subjectShadow?.distance || 20,
+                    angle: element.subjectShadow?.angle || 90,
+                    opacity: element.subjectShadow?.opacity || 0.8,
+                    preset: element.subjectShadow?.preset || "ground",
+                  })
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  element.subjectShadow?.enabled ? "bg-purple-400 text-black" : "bg-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                {element.subjectShadow?.enabled ? "Shadow ON" : "Add Shadow"}
+              </button>
+            </div>
+
+            {element.subjectShadow?.enabled && (
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <div className="grid grid-cols-3 gap-1 text-[9px] text-center">
+                  {[
+                    { id: "soft", label: "Soft Drop" },
+                    { id: "ground", label: "Ground Base" },
+                    { id: "floating", label: "Floating 3D" },
+                    { id: "cinematic", label: "Cinematic" },
+                    { id: "neon", label: "Neon Glow" },
+                    { id: "hard", label: "Hard Edge" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        let presetShadow: any = { ...element.subjectShadow, preset: p.id };
+                        if (p.id === "soft") { presetShadow.blur = 20; presetShadow.distance = 12; presetShadow.angle = 90; }
+                        if (p.id === "ground") { presetShadow.blur = 35; presetShadow.distance = 25; presetShadow.angle = 90; }
+                        if (p.id === "floating") { presetShadow.blur = 45; presetShadow.distance = 40; presetShadow.angle = 90; }
+                        if (p.id === "cinematic") { presetShadow.blur = 50; presetShadow.distance = 30; presetShadow.angle = 120; }
+                        if (p.id === "neon") { presetShadow.blur = 30; presetShadow.distance = 0; presetShadow.color = "#00f5ff"; }
+                        updateProp("subjectShadow", presetShadow);
+                      }}
+                      className={`py-1 rounded border transition-all ${
+                        element.subjectShadow.preset === p.id
+                          ? "bg-purple-500/30 border-purple-400 text-purple-200 font-bold"
+                          : "bg-black/40 border-white/10 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">
+                      Distance ({element.subjectShadow.distance ?? 20}px)
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="60"
+                      value={element.subjectShadow.distance ?? 20}
+                      onChange={(e) =>
+                        updateProp("subjectShadow", { ...element.subjectShadow!, distance: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-purple-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">
+                      Blur ({element.subjectShadow.blur ?? 25}px)
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="80"
+                      value={element.subjectShadow.blur ?? 25}
+                      onChange={(e) =>
+                        updateProp("subjectShadow", { ...element.subjectShadow!, blur: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-purple-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* GRADIENT BORDER */}
+          <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] uppercase text-amber-400 font-bold flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-amber-400" /> Gradient & Custom Border
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  updateProp("gradientBorder", {
+                    enabled: !(element.gradientBorder?.enabled),
+                    color1: element.gradientBorder?.color1 || "#00f5ff",
+                    color2: element.gradientBorder?.color2 || "#a855f7",
+                    color3: element.gradientBorder?.color3 || "#ff006e",
+                    angle: element.gradientBorder?.angle || 135,
+                    width: element.gradientBorder?.width || 4,
+                    glow: element.gradientBorder?.glow ?? true,
+                  })
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  element.gradientBorder?.enabled ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                {element.gradientBorder?.enabled ? "Border ON" : "Add Border"}
+              </button>
+            </div>
+
+            {element.gradientBorder?.enabled && (
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 w-16">Colors:</span>
+                  <input
+                    type="color"
+                    value={element.gradientBorder.color1 || "#00f5ff"}
+                    onChange={(e) =>
+                      updateProp("gradientBorder", { ...element.gradientBorder!, color1: e.target.value })
+                    }
+                    className="w-6 h-6 rounded bg-transparent border border-white/20 cursor-pointer"
+                  />
+                  <input
+                    type="color"
+                    value={element.gradientBorder.color2 || "#a855f7"}
+                    onChange={(e) =>
+                      updateProp("gradientBorder", { ...element.gradientBorder!, color2: e.target.value })
+                    }
+                    className="w-6 h-6 rounded bg-transparent border border-white/20 cursor-pointer"
+                  />
+                  <input
+                    type="color"
+                    value={element.gradientBorder.color3 || "#ff006e"}
+                    onChange={(e) =>
+                      updateProp("gradientBorder", { ...element.gradientBorder!, color3: e.target.value })
+                    }
+                    className="w-6 h-6 rounded bg-transparent border border-white/20 cursor-pointer"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">
+                      Width ({element.gradientBorder.width || 4}px)
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      value={element.gradientBorder.width || 4}
+                      onChange={(e) =>
+                        updateProp("gradientBorder", { ...element.gradientBorder!, width: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">
+                      Angle ({element.gradientBorder.angle || 135}°)
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      value={element.gradientBorder.angle || 135}
+                      onChange={(e) =>
+                        updateProp("gradientBorder", { ...element.gradientBorder!, angle: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SHADER & LIGHTING ATMOSPHERE */}
+          <div className="space-y-2 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <label className="text-[11px] uppercase text-pink-400 font-bold block flex items-center gap-1.5">
+              <Sun className="w-3.5 h-3.5 text-pink-400" /> Shader & Lighting Atmosphere
+            </label>
+            <select
+              value={element.shaderPreset || "none"}
+              onChange={(e) => updateProp("shaderPreset", e.target.value as any)}
+              className="w-full bg-black/70 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-pink-400 focus:outline-none"
+            >
+              <option value="none">None (Standard Image)</option>
+              <option value="soft-light">Soft Studio Light</option>
+              <option value="rim-light">Cyan Rim Light Highlight</option>
+              <option value="neon-glow">Neon Cyber Glow</option>
+              <option value="bloom">Bloom Central Burst</option>
+              <option value="spotlight">Top Spotlight Cone</option>
+              <option value="ambient-dark">Ambient Dark Studio</option>
+              <option value="holographic">Holographic Rainbow Shimmer</option>
+              <option value="metallic">Metallic Gold/Silver Shimmer</option>
+              <option value="glass">Glass Sheen Overlay</option>
+            </select>
+          </div>
+
+          {/* MASKING SYSTEM */}
+          <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] uppercase text-amber-400 font-bold flex items-center gap-1.5">
+                <Scissors className="w-3.5 h-3.5" /> Masking System
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  updateProp("mask", {
+                    enabled: !(element.mask?.enabled),
+                    shape: element.mask?.shape || "circle",
+                    zoom: 1,
+                    offsetX: 0,
+                    offsetY: 0,
+                    rotation: 0,
+                  })
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  element.mask?.enabled ? "bg-amber-400 text-black" : "bg-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                {element.mask?.enabled ? "Mask Enabled" : "Enable Mask"}
+              </button>
+            </div>
+
+            {element.mask?.enabled && (
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <div>
+                  <label className="text-[10px] text-gray-400 block mb-1">Mask Shape</label>
+                  <select
+                    value={element.mask.shape || "circle"}
+                    onChange={(e) =>
+                      updateProp("mask", { ...element.mask!, shape: e.target.value as any })
+                    }
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white focus:border-amber-400 focus:outline-none"
+                  >
+                    <option value="circle">Circle Mask</option>
+                    <option value="ellipse">Ellipse Mask</option>
+                    <option value="rounded">Rounded Rectangle</option>
+                    <option value="star">Star Mask</option>
+                    <option value="hexagon">Hexagon Mask</option>
+                    <option value="triangle">Triangle Mask</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* 6. DROP SHADOW & OBJECT EFFECTS */}

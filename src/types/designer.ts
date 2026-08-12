@@ -179,6 +179,78 @@ export interface FillGradientConfig {
   opacity?: number;
 }
 
+export interface ElementSubjectGlowConfig {
+  enabled: boolean;
+  color: string;
+  intensity: number; // 0 to 100
+  spread: number; // 0 to 50
+  blur: number; // 0 to 100
+  opacity: number; // 0 to 1
+}
+
+export type ElementSubjectShadowPreset =
+  | "soft"
+  | "hard"
+  | "floating"
+  | "ground"
+  | "cinematic"
+  | "neon"
+  | "custom";
+
+export interface ElementSubjectShadowConfig {
+  enabled: boolean;
+  preset?: ElementSubjectShadowPreset;
+  color: string;
+  opacity: number; // 0 to 1
+  blur: number; // 0 to 100
+  distance: number; // 0 to 100
+  angle: number; // 0 to 360
+  spread?: number; // 0 to 50
+}
+
+export interface ElementGradientBorderConfig {
+  enabled: boolean;
+  color1: string;
+  color2: string;
+  color3?: string;
+  angle: number; // 0 to 360
+  width: number;
+  opacity?: number; // 0 to 1
+  glow?: boolean;
+  style?: "solid" | "dashed" | "dotted" | "glow" | "gradient" | "neon" | "double" | "minimal";
+}
+
+export type ShaderLightingPreset =
+  | "none"
+  | "soft_light"
+  | "soft-light"
+  | "rim_light"
+  | "rim-light"
+  | "neon_light"
+  | "neon-glow"
+  | "cyberpunk"
+  | "glow"
+  | "bloom"
+  | "spotlight"
+  | "ambient_light"
+  | "ambient-dark"
+  | "holographic"
+  | "metallic"
+  | "glass"
+  | "cinematic";
+
+export type SmartCompositionStyle =
+  | "01_studio_showcase"
+  | "02_cyberpunk"
+  | "03_glossy_product"
+  | "04_gaming_character"
+  | "05_roblox_showcase"
+  | "06_portfolio_showcase"
+  | "07_minimal"
+  | "08_glass_ui"
+  | "09_neon_frame"
+  | "10_editorial";
+
 export interface CanvasElement {
   id: string;
   name: string;
@@ -236,7 +308,7 @@ export interface CanvasElement {
   shadowGlow?: string;
 
   // Advanced Image & Graphics properties
-  boundsMode?: "object" | "visible";
+  boundsMode?: "object" | "visible" | "full";
   visibleBounds?: { x: number; y: number; width: number; height: number };
   crop?: ElementCrop;
   frame?: ElementFrame;
@@ -300,6 +372,12 @@ export interface CanvasElement {
   shadow?: ElementShadowConfig;
   innerShadow?: ElementInnerShadowConfig;
   backdropBlur?: number;
+
+  // Smart Composition Controls
+  subjectGlow?: ElementSubjectGlowConfig;
+  subjectShadow?: ElementSubjectShadowConfig;
+  gradientBorder?: ElementGradientBorderConfig;
+  shaderPreset?: ShaderLightingPreset;
 }
 
 export type BackgroundType = "gradient" | "radial" | "mesh" | "solid" | "image" | "pattern" | "glass";
