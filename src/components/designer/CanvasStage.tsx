@@ -467,6 +467,12 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 const filterString = getCanvasElementCssFilter(el);
 
                 let extraDropShadows = "";
+                if (el.outline?.enabled) {
+                  const oW = el.outline.width || 4;
+                  const oC = el.outline.color || "#ffffff";
+                  const oSoft = el.outline.softness || 0;
+                  extraDropShadows += ` drop-shadow(${oW}px 0px ${oSoft}px ${oC}) drop-shadow(-${oW}px 0px ${oSoft}px ${oC}) drop-shadow(0px ${oW}px ${oSoft}px ${oC}) drop-shadow(0px -${oW}px ${oSoft}px ${oC})`;
+                }
                 if (el.subjectGlow?.enabled) {
                   const gColor = el.subjectGlow.color || "#00f5ff";
                   const gBlur = el.subjectGlow.blur ?? 25;

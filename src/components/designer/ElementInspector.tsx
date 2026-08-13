@@ -952,6 +952,230 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
             </div>
           </div>
 
+          {/* COLOR & LIGHTING ADJUSTMENTS */}
+          <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] uppercase text-emerald-400 font-bold flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" /> Adjustments
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  updateProp("adjustments", {
+                    brightness: 0,
+                    contrast: 0,
+                    saturation: 0,
+                    saturate: 0,
+                    exposure: 0,
+                    temperature: 0,
+                    blur: 0,
+                  })
+                }
+                className="px-2 py-0.5 rounded text-[9px] font-bold bg-white/10 text-gray-400 hover:text-white"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                  <span>Brightness</span>
+                  <span>{element.adjustments?.brightness || 0}</span>
+                </div>
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  value={element.adjustments?.brightness || 0}
+                  onChange={(e) =>
+                    updateProp("adjustments", { ...element.adjustments, brightness: parseInt(e.target.value) })
+                  }
+                  className="w-full accent-emerald-400"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                  <span>Contrast</span>
+                  <span>{element.adjustments?.contrast || 0}</span>
+                </div>
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  value={element.adjustments?.contrast || 0}
+                  onChange={(e) =>
+                    updateProp("adjustments", { ...element.adjustments, contrast: parseInt(e.target.value) })
+                  }
+                  className="w-full accent-emerald-400"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                  <span>Saturation</span>
+                  <span>{element.adjustments?.saturation ?? element.adjustments?.saturate ?? 0}</span>
+                </div>
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  value={element.adjustments?.saturation ?? element.adjustments?.saturate ?? 0}
+                  onChange={(e) =>
+                    updateProp("adjustments", { ...element.adjustments, saturation: parseInt(e.target.value) })
+                  }
+                  className="w-full accent-emerald-400"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                  <span>Exposure</span>
+                  <span>{element.adjustments?.exposure || 0}</span>
+                </div>
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  value={element.adjustments?.exposure || 0}
+                  onChange={(e) =>
+                    updateProp("adjustments", { ...element.adjustments, exposure: parseInt(e.target.value) })
+                  }
+                  className="w-full accent-emerald-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* PROFESSIONAL IMAGE FILTERS & INTENSITY */}
+          <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <label className="text-[11px] uppercase text-indigo-400 font-bold block flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5 text-indigo-400" /> Filter Preset
+            </label>
+            <select
+              value={element.filterPreset || "normal"}
+              onChange={(e) => updateProp("filterPreset", e.target.value as any)}
+              className="w-full bg-black/70 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-indigo-400 focus:outline-none"
+            >
+              <option value="normal">Normal (Original)</option>
+              <option value="cinematic">Cinematic Movie</option>
+              <option value="cyberpunk">Cyberpunk Neon</option>
+              <option value="neon">Neon Boost</option>
+              <option value="cold">Cold Cool Tone</option>
+              <option value="warm">Warm Golden Hour</option>
+              <option value="black_white">Black & White (Monochrome)</option>
+              <option value="high_contrast">High Contrast Vivid</option>
+              <option value="vintage">Vintage Sepia</option>
+              <option value="film">Film Grain Aesthetic</option>
+              <option value="moody">Moody Dark Studio</option>
+              <option value="clean">Clean Minimal Bright</option>
+              <option value="hdr">HDR Dynamic Range</option>
+              <option value="soft">Soft Focus Glow</option>
+              <option value="dramatic">Dramatic Contrast</option>
+            </select>
+
+            {element.filterPreset && element.filterPreset !== "normal" && (
+              <div>
+                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                  <span>Filter Intensity</span>
+                  <span>{element.filterIntensity ?? 100}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={element.filterIntensity ?? 100}
+                  onChange={(e) => updateProp("filterIntensity", parseInt(e.target.value))}
+                  className="w-full accent-indigo-400"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* SILHOUETTE OUTLINE */}
+          <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] uppercase text-cyan-300 font-bold flex items-center gap-1.5">
+                <Scissors className="w-3.5 h-3.5 text-cyan-300" /> Silhouette Outline / Stroke
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  updateProp("outline", {
+                    enabled: !(element.outline?.enabled),
+                    width: element.outline?.width || 4,
+                    color: element.outline?.color || "#ffffff",
+                    softness: element.outline?.softness || 0,
+                  })
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  element.outline?.enabled ? "bg-cyan-300 text-black" : "bg-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                {element.outline?.enabled ? "Outline ON" : "Add Outline"}
+              </button>
+            </div>
+
+            {element.outline?.enabled && (
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400 w-16">Color:</span>
+                  <input
+                    type="color"
+                    value={element.outline.color || "#ffffff"}
+                    onChange={(e) =>
+                      updateProp("outline", { ...element.outline!, color: e.target.value })
+                    }
+                    className="w-7 h-7 rounded bg-transparent border border-white/20 cursor-pointer"
+                  />
+                  <div className="flex gap-1 flex-1">
+                    {["#ffffff", "#00f5ff", "#a855f7", "#ff006e", "#3b82f6", "#22c55e"].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() =>
+                          updateProp("outline", { ...element.outline!, color: c })
+                        }
+                        className="w-4 h-4 rounded-full border border-white/20 hover:scale-125 transition-transform"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">Width ({element.outline.width || 4}px)</label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      value={element.outline.width || 4}
+                      onChange={(e) =>
+                        updateProp("outline", { ...element.outline!, width: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-cyan-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-1">Softness ({element.outline.softness || 0}px)</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="10"
+                      value={element.outline.softness || 0}
+                      onChange={(e) =>
+                        updateProp("outline", { ...element.outline!, softness: parseInt(e.target.value) })
+                      }
+                      className="w-full accent-cyan-300"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* SUBJECT GLOW */}
           <div className="space-y-3 bg-black/40 p-3 rounded-xl border border-white/10 font-mono text-xs">
             <div className="flex items-center justify-between">

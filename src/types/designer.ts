@@ -107,6 +107,10 @@ export interface ElementAdjustments {
   brightness?: number;
   contrast?: number;
   saturate?: number;
+  saturation?: number;
+  exposure?: number;
+  temperature?: number;
+  tint?: number;
   blur?: number;
   hueRotate?: number;
   sepia?: number;
@@ -378,6 +382,31 @@ export interface CanvasElement {
   subjectShadow?: ElementSubjectShadowConfig;
   gradientBorder?: ElementGradientBorderConfig;
   shaderPreset?: ShaderLightingPreset;
+  outline?: ElementOutlineConfig;
+  gloss?: ElementGlossConfig;
+  filterIntensity?: number;
+}
+
+export interface ElementOutlineConfig {
+  enabled: boolean;
+  width: number;
+  color: string;
+  opacity?: number;
+  softness?: number;
+  position?: "inside" | "center" | "outside";
+  style?: "solid" | "gradient" | "neon";
+  color1?: string;
+  color2?: string;
+  angle?: number;
+}
+
+export interface ElementGlossConfig {
+  enabled: boolean;
+  preset?: "glass" | "glossy" | "holographic" | "metallic" | "cyberpunk" | "neon_glass" | "frosted_glass";
+  intensity?: number;
+  reflection?: number;
+  opacity?: number;
+  angle?: number;
 }
 
 export type BackgroundType = "gradient" | "radial" | "mesh" | "solid" | "image" | "pattern" | "glass";

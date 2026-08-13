@@ -194,48 +194,96 @@ export function getCanvasElementCssFilter(el: {
     brightness?: number;
     contrast?: number;
     saturation?: number;
+    saturate?: number;
     exposure?: number;
     temperature?: number;
     tint?: number;
+    hueRotate?: number;
     blur?: number;
+    sepia?: number;
   };
   filterPreset?: string;
+  filterIntensity?: number;
 }): string {
   const adj = el.adjustments || {};
   const b = 100 + (adj.brightness || 0) + (adj.exposure || 0);
   const c = 100 + (adj.contrast || 0);
-  const s = 100 + (adj.saturation || 0);
+  const s = 100 + (adj.saturation ?? adj.saturate ?? 0);
   const blur = adj.blur || 0;
+  const hue = adj.hueRotate || 0;
+  const sep = adj.sepia || 0;
+
+  // Temperature shift
+  const temp = adj.temperature || 0;
+  const tempHue = temp > 0 ? -15 * (temp / 100) : 20 * (Math.abs(temp) / 100);
+
+  const intensity = (el.filterIntensity ?? 100) / 100;
 
   let presetFilter = "";
-  switch (el.filterPreset) {
-    case "grayscale":
-      presetFilter = "grayscale(100%)";
+  const preset = el.filterPreset || "normal";
+
+  switch (preset) {
+    case "cinematic":
+      presetFilter = `contrast(${100 + 40 * intensity}%) saturate(${100 + 30 * intensity}%) sepia(${20 * intensity}%)`;
       break;
-    case "sepia":
-      presetFilter = "sepia(100%)";
+    case "cyberpunk":
+    case "cyber":
+      presetFilter = `hue-rotate(${-30 * intensity}deg) contrast(${100 + 50 * intensity}%) saturate(${100 + 60 * intensity}%)`;
       break;
-    case "vintage":
-      presetFilter = "sepia(40%) contrast(110%) brightness(95%)";
+    case "neon":
+      presetFilter = `saturate(${100 + 100 * intensity}%) contrast(${100 + 30 * intensity}%)`;
       break;
+    case "cold":
     case "cool":
-      presetFilter = "hue-rotate(25deg) saturate(110%)";
+      presetFilter = `hue-rotate(${30 * intensity}deg) saturate(${100 - 20 * intensity}%)`;
       break;
     case "warm":
-      presetFilter = "sepia(25%) saturate(120%) brightness(105%)";
+      presetFilter = `sepia(${30 * intensity}%) saturate(${100 + 20 * intensity}%)`;
       break;
-    case "high-contrast":
-      presetFilter = "contrast(160%) saturate(120%)";
-      break;
+    case "black_white":
     case "black-and-white":
-      presetFilter = "grayscale(100%) contrast(140%)";
+    case "monochrome":
+    case "noir":
+      presetFilter = `grayscale(${100 * intensity}%) contrast(${100 + 30 * intensity}%)`;
+      break;
+    case "high_contrast":
+    case "high-contrast":
+    case "vivid":
+      presetFilter = `contrast(${100 + 80 * intensity}%) saturate(${100 + 30 * intensity}%)`;
+      break;
+    case "vintage":
+      presetFilter = `sepia(${50 * intensity}%) contrast(${100 - 10 * intensity}%)`;
+      break;
+    case "film":
+      presetFilter = `contrast(${100 + 20 * intensity}%) sepia(${15 * intensity}%)`;
+      break;
+    case "moody":
+      presetFilter = `brightness(${100 - 20 * intensity}%) contrast(${100 + 40 * intensity}%)`;
+      break;
+    case "clean":
+      presetFilter = `brightness(${100 + 10 * intensity}%) contrast(${100 + 10 * intensity}%)`;
+      break;
+    case "hdr":
+      presetFilter = `contrast(${100 + 60 * intensity}%) saturate(${100 + 40 * intensity}%)`;
+      break;
+    case "soft":
+      presetFilter = `blur(${3 * intensity}px) brightness(${100 + 5 * intensity}%)`;
+      break;
+    case "dramatic":
+      presetFilter = `contrast(${100 + 70 * intensity}%) brightness(${100 - 15 * intensity}%)`;
+      break;
+    case "grayscale":
+      presetFilter = `grayscale(${100 * intensity}%)`;
+      break;
+    case "sepia":
+      presetFilter = `sepia(${100 * intensity}%)`;
       break;
     default:
       presetFilter = "";
       break;
   }
 
-  const baseFilter = `brightness(${Math.max(0, b)}%) contrast(${Math.max(0, c)}%) saturate(${Math.max(0, s)}%) blur(${blur}px)`;
+  const baseFilter = `brightness(${Math.max(0, b)}%) contrast(${Math.max(0, c)}%) saturate(${Math.max(0, s)}%) hue-rotate(${hue + tempHue}deg) sepia(${sep}%) blur(${blur}px)`;
   return [baseFilter, presetFilter].filter(Boolean).join(" ");
 }
 
