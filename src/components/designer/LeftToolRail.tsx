@@ -21,6 +21,7 @@ import {
   Layout,
   Scissors,
   Grid,
+  ShieldCheck,
 } from "lucide-react";
 
 export type ToolMode =
@@ -35,6 +36,7 @@ export type ToolMode =
   | "gradient"
   | "shape"
   | "text"
+  | "watermark"
   | "line"
   | "bg-remover"
   | "comment";
@@ -63,6 +65,13 @@ export function LeftToolRail({ activeTool, onSelectTool, onAddElement }: Props) 
       shortcut: "T",
       icon: Type,
       action: () => onAddElement("text"),
+    },
+    {
+      id: "watermark",
+      label: "Watermark & Branding",
+      shortcut: "K",
+      icon: ShieldCheck,
+      action: () => onAddElement("watermark"),
     },
     {
       id: "shape",

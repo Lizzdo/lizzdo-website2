@@ -38,7 +38,111 @@ export type ElementType =
   | "draw"
   | "path"
   | "line"
-  | "arrow";
+  | "arrow"
+  | "watermark";
+
+export type WatermarkType = "text" | "logo" | "tiled" | "signature";
+
+export type WatermarkStylePreset =
+  | "solid"
+  | "gradient"
+  | "neon"
+  | "glass"
+  | "holographic"
+  | "metallic"
+  | "soft"
+  | "cyberpunk"
+  | "minimal"
+  | "outline"
+  | "glow"
+  | "subtle"
+  | "clean"
+  | "professional"
+  | "bold"
+  | "copyright"
+  | "custom";
+
+export type WatermarkPositionPreset =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "center-left"
+  | "center"
+  | "center-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right"
+  | "custom";
+
+export interface WatermarkConfig {
+  type: WatermarkType;
+  watermarkText?: string;
+  logoUrl?: string;
+  signatureUrl?: string;
+  stylePreset?: WatermarkStylePreset;
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: string | number;
+  fontStyle?: "normal" | "italic";
+  textDecoration?: "none" | "underline";
+  textTransform?: "none" | "uppercase" | "lowercase";
+  letterSpacing?: number;
+  lineHeight?: number;
+  textAlign?: "left" | "center" | "right";
+  color?: string;
+  opacity?: number;
+
+  gradientEnabled?: boolean;
+  gradientType?: "linear" | "radial" | "angular" | "reflected";
+  gradientColor1?: string;
+  gradientColor2?: string;
+  gradientColor3?: string;
+  gradientAngle?: number;
+
+  outlineEnabled?: boolean;
+  outlineWidth?: number;
+  outlineColor?: string;
+  outlineOpacity?: number;
+  outlineSoftness?: number;
+  outlinePosition?: "inside" | "center" | "outside";
+
+  shadowEnabled?: boolean;
+  shadowColor?: string;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowDistance?: number;
+  shadowX?: number;
+  shadowY?: number;
+  shadowAngle?: number;
+
+  glowEnabled?: boolean;
+  glowColor?: string;
+  glowOpacity?: number;
+  glowBlur?: number;
+  glowSpread?: number;
+  glowIntensity?: number;
+  glowPreset?: string;
+
+  blendMode?: "normal" | "multiply" | "screen" | "overlay" | "soft-light" | "hard-light" | "darken" | "lighten";
+
+  positionPreset?: WatermarkPositionPreset;
+  marginX?: number;
+  marginY?: number;
+
+  rotation?: number;
+  scale?: number;
+  lockAspectRatio?: boolean;
+
+  tiledEnabled?: boolean;
+  tiledSpacingX?: number;
+  tiledSpacingY?: number;
+  tiledRotation?: number;
+  tiledOpacity?: number;
+  tiledScale?: number;
+  tiledDensity?: number;
+
+  safeAreaEnabled?: boolean;
+}
 
 export interface PathAnchorPoint {
   id?: string;
@@ -279,7 +383,7 @@ export interface CanvasElement {
   text?: string;
   fontSize?: number;
   fontFamily?: "Orbitron" | "Rajdhani" | "Inter" | "Space Mono" | "Playfair Display" | "Plus Jakarta Sans" | string;
-  fontWeight?: "normal" | "semibold" | "bold" | "black";
+  fontWeight?: "normal" | "semibold" | "bold" | "black" | string | number;
   fontStyle?: "normal" | "italic";
   textDecoration?: "none" | "underline" | "line-through";
   color?: string;
@@ -385,6 +489,9 @@ export interface CanvasElement {
   outline?: ElementOutlineConfig;
   gloss?: ElementGlossConfig;
   filterIntensity?: number;
+
+  // Watermark Configuration
+  watermarkConfig?: WatermarkConfig;
 }
 
 export interface ElementOutlineConfig {

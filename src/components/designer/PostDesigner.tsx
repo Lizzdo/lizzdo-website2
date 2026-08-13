@@ -522,6 +522,44 @@ export default function PostDesigner() {
         };
         break;
 
+      case "watermark":
+        newEl = {
+          id,
+          name: `Watermark ${designState.elements.length + 1}`,
+          type: "watermark",
+          visible: true,
+          locked: false,
+          x: 50,
+          y: 90,
+          width: 40,
+          height: 10,
+          text: "LIZZDO STUDIO",
+          fontSize: 22,
+          fontFamily: "Space Grotesk",
+          fontWeight: "bold",
+          color: "#ffffff",
+          opacity: 0.35,
+          zIndex: 900 + designState.elements.length,
+          watermarkConfig: {
+            type: "text",
+            watermarkText: "LIZZDO STUDIO",
+            stylePreset: "clean",
+            fontFamily: "Space Grotesk",
+            fontSize: 22,
+            fontWeight: "bold",
+            color: "#ffffff",
+            opacity: 0.35,
+            shadowEnabled: true,
+            shadowOpacity: 0.5,
+            positionPreset: "bottom-right",
+            marginX: 5,
+            marginY: 5,
+            rotation: 0,
+            scale: 100,
+          },
+        };
+        break;
+
       case "button":
         newEl = {
           id,

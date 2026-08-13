@@ -34,7 +34,9 @@ import {
   Check,
   BookmarkCheck,
   Box,
+  ShieldCheck,
 } from "lucide-react";
+import { WatermarkInspector } from "./WatermarkInspector";
 
 interface Props {
   state: DesignState;
@@ -64,7 +66,7 @@ export function ExpandedLeftSidebar({
   const { activeBrandKit, brandKits, setActiveBrandId, applyBrandKitToDesign } = useStudio();
 
   const [activeTab, setActiveTab] = useState<
-    "templates" | "elements" | "my-elements" | "assets" | "uploads" | "history" | "plugins" | "brand"
+    "templates" | "elements" | "my-elements" | "watermark" | "assets" | "uploads" | "history" | "plugins" | "brand"
   >("elements");
 
   const [assetCategory, setAssetCategory] = useState<
@@ -96,7 +98,7 @@ export function ExpandedLeftSidebar({
   return (
     <div className="w-80 bg-neutral-900 border-r border-white/10 flex flex-col h-full overflow-hidden shrink-0 select-none z-20 text-xs font-sans">
       {/* SIDEBAR TABS HEADER */}
-      <div className="grid grid-cols-8 gap-0.5 p-1 bg-black/60 border-b border-white/10 text-[9px] font-mono shrink-0">
+      <div className="grid grid-cols-9 gap-0.5 p-1 bg-black/60 border-b border-white/10 text-[9px] font-mono shrink-0">
         <button
           type="button"
           onClick={() => setActiveTab("elements")}
@@ -109,6 +111,20 @@ export function ExpandedLeftSidebar({
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Insert</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("watermark")}
+          className={`py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
+            activeTab === "watermark"
+              ? "bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-bold shadow-[0_0_10px_rgba(0,245,255,0.2)]"
+              : "text-gray-400 hover:text-white"
+          }`}
+          title="Watermark & Branding"
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-neon-cyan" />
+          <span>Watermark</span>
         </button>
 
         <button
@@ -212,6 +228,25 @@ export function ExpandedLeftSidebar({
 
       {/* TAB CONTENT AREA */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        {/* WATERMARK TAB */}
+        {activeTab === "watermark" && (
+          <WatermarkInspector
+            state={state}
+            onChangeState={onChangeState}
+            selectedElement={state.elements.find((el) => el.id === selectedElementId) || null}
+            onUpdateElement={(id, updates) => {
+              const updated = {
+                ...state,
+                elements: state.elements.map((el) => (el.id === id ? { ...el, ...updates } : el)),
+              };
+              onChangeState(updated);
+            }}
+            onAddElement={(el) => onAddElement(el)}
+            onDuplicateElement={(id) => onDuplicateElement(id)}
+            onDeleteElement={(id) => onDeleteElement(id)}
+          />
+        )}
+
         {/* TAB 1: ELEMENTS & QUICK ADD */}
         {activeTab === "elements" && (
           <div className="space-y-4">
@@ -220,6 +255,18 @@ export function ExpandedLeftSidebar({
             </h3>
 
             <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onAddElement("watermark")}
+                className="p-3 rounded-2xl bg-neon-cyan/10 border border-neon-cyan/40 hover:border-neon-cyan text-neon-cyan transition-all text-left flex items-center gap-2.5 text-xs font-mono group col-span-2 shadow-[0_0_12px_rgba(0,245,255,0.15)]"
+              >
+                <ShieldCheck className="w-4 h-4 text-neon-cyan group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col">
+                  <span className="font-bold">Watermark Layer</span>
+                  <span className="text-[9px] text-gray-400 font-sans">Text, Logo, Tiled, Signature</span>
+                </div>
+              </button>
+
               <button
                 type="button"
                 onClick={() => onAddElement("text")}

@@ -1,5 +1,5 @@
 import React, { forwardRef } from "react";
-import { DesignState, CanvasElement } from "../../types/designer";
+import { DesignState, CanvasElement, WatermarkConfig } from "../../types/designer";
 import { FrameCornerDecorationRenderer } from "./FrameCornerDecorationRenderer";
 import { getCanvasElementCssFilter } from "../../utils/imageProcessing";
 
@@ -724,6 +724,145 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                     className={selectionStyle}
                   >
                     {el.text}
+                  </div>
+                );
+              }
+
+              // WATERMARK ELEMENT
+              if (el.type === "watermark") {
+                const cfg: WatermarkConfig = el.watermarkConfig || { type: "text" };
+                const wType = cfg.type || "text";
+                const isTiled = cfg.tiledEnabled || wType === "tiled";
+                const scale = (cfg.scale ?? 100) / 100;
+                const opacity = cfg.opacity ?? el.opacity ?? 0.35;
+                const blendMode = (cfg.blendMode || "normal") as any;
+                const textColor = cfg.color || el.color || "#ffffff";
+                const textVal = cfg.watermarkText || el.text || "LIZZDO STUDIO";
+                const rotation = cfg.rotation ?? el.rotation ?? 0;
+
+                const shadowParts: string[] = [];
+                if (cfg.shadowEnabled) {
+                  shadowParts.push(
+                    `${cfg.shadowX ?? 0}px ${cfg.shadowY ?? 2}px ${cfg.shadowBlur ?? 8}px rgba(0,0,0,${cfg.shadowOpacity ?? 0.6})`
+                  );
+                }
+                if (cfg.glowEnabled) {
+                  shadowParts.push(
+                    `0 0 ${cfg.glowBlur || 15}px ${cfg.glowColor || "#00f5ff"}`
+                  );
+                }
+                const combinedShadow = shadowParts.length > 0 ? shadowParts.join(", ") : "none";
+
+                const outlineCss = cfg.outlineEnabled
+                  ? `${cfg.outlineWidth || 2}px ${cfg.outlineColor || "#ffffff"}`
+                  : "none";
+
+                const watermarkTextStyle: React.CSSProperties = {
+                  fontFamily: getFontFamily(cfg.fontFamily || el.fontFamily || "Space Grotesk"),
+                  fontSize: `${(cfg.fontSize || el.fontSize || 22) * scale}px`,
+                  fontWeight: cfg.fontWeight || el.fontWeight || "bold",
+                  fontStyle: cfg.fontStyle || "normal",
+                  textDecoration: cfg.textDecoration || "none",
+                  textTransform: cfg.textTransform || "uppercase",
+                  letterSpacing: `${cfg.letterSpacing ?? 4}px`,
+                  lineHeight: cfg.lineHeight || 1.2,
+                  textAlign: cfg.textAlign || "center",
+                  textShadow: combinedShadow,
+                  WebkitTextStroke: outlineCss,
+                  whiteSpace: "nowrap",
+                  userSelect: "none",
+                  ...(cfg.gradientEnabled
+                    ? {
+                        background: `linear-gradient(${cfg.gradientAngle || 135}deg, ${cfg.gradientColor1 || "#00f5ff"}, ${cfg.gradientColor2 || "#a855f7"})`,
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }
+                    : {
+                        color: textColor,
+                      }),
+                };
+
+                if (isTiled) {
+                  const density = cfg.tiledDensity || 1;
+                  const repeatCount = Math.round(30 * density);
+                  const tileAngle = cfg.tiledRotation ?? -30;
+
+                  return (
+                    <div
+                      key={el.id}
+                      data-element-id={el.id}
+                      style={{
+                        position: "absolute",
+                        inset: "-20%",
+                        width: "140%",
+                        height: "140%",
+                        pointerEvents: interactive ? "auto" : "none",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: `${cfg.tiledSpacingY || 50}px ${cfg.tiledSpacingX || 70}px`,
+                        justifyContent: "space-around",
+                        alignContent: "space-around",
+                        transform: `rotate(${tileAngle}deg)`,
+                        transformOrigin: "center",
+                        opacity: opacity,
+                        mixBlendMode: blendMode,
+                        zIndex: el.zIndex || 900,
+                        overflow: "hidden",
+                      }}
+                      onClick={() => interactive && onSelectElement?.(el.id)}
+                      className={selectionStyle}
+                    >
+                      {Array.from({ length: repeatCount }).map((_, idx) => (
+                        <div key={idx} style={watermarkTextStyle}>
+                          {wType === "logo" && cfg.logoUrl ? (
+                            <img
+                              src={cfg.logoUrl}
+                              alt="Watermark Logo"
+                              className="h-8 object-contain"
+                              style={{ opacity }}
+                            />
+                          ) : (
+                            textVal
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={el.id}
+                    data-element-id={el.id}
+                    style={{
+                      position: "absolute",
+                      left: `${el.x}%`,
+                      top: `${el.y}%`,
+                      transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                      zIndex: el.zIndex || 900,
+                      opacity: opacity,
+                      mixBlendMode: blendMode,
+                      cursor: interactive ? "pointer" : "default",
+                      pointerEvents: interactive ? "auto" : "none",
+                    }}
+                    onClick={() => interactive && onSelectElement?.(el.id)}
+                    className={selectionStyle}
+                  >
+                    {wType === "logo" && (cfg.logoUrl || el.url) ? (
+                      <img
+                        src={cfg.logoUrl || el.url}
+                        alt="Logo Watermark"
+                        crossOrigin="anonymous"
+                        style={{
+                          maxHeight: `${(cfg.fontSize || 40) * scale}px`,
+                          width: "auto",
+                          objectFit: "contain",
+                          filter: combinedShadow !== "none" ? `drop-shadow(${combinedShadow})` : "none",
+                        }}
+                      />
+                    ) : (
+                      <div style={watermarkTextStyle}>{textVal}</div>
+                    )}
                   </div>
                 );
               }
