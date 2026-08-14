@@ -1,5 +1,7 @@
 import React, { forwardRef, useState, useRef, useEffect } from "react";
 import { CanvasStage } from "./CanvasStage";
+import { TextTool } from "./TextTool";
+import { ToolMode } from "./LeftToolRail";
 import { DesignState, CanvasElement } from "../../types/designer";
 import {
   Copy,
@@ -51,6 +53,10 @@ interface CanvasProps {
   snapToGrid?: boolean;
   gridSize?: number;
   onExportSelected?: (id: string) => void;
+  activeTool?: ToolMode;
+  onAddElement?: (element: CanvasElement) => void;
+  editingElementId?: string | null;
+  onSetEditingElementId?: (id: string | null) => void;
 }
 
 interface ContextMenuState {
@@ -76,6 +82,10 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(
       snapToGrid = true,
       gridSize = 10,
       onExportSelected,
+      activeTool,
+      onAddElement,
+      editingElementId,
+      onSetEditingElementId,
     },
     ref
   ) => {
@@ -145,6 +155,11 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(
         // Pan canvas
         setIsPanning(true);
         startPanRef.current = { x: e.clientX - panOffset.x, y: e.clientY - panOffset.y };
+        return;
+      }
+
+      // If active tool is text, let TextTool handle canvas clicking & dragging
+      if (activeTool === "text") {
         return;
       }
 
@@ -453,8 +468,27 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(
             }}
           />
 
-          {/* SELECTION OVERLAY WITH INTERACTIVE RESIZE & ROTATE HANDLES */}
-          {primarySelectedElement && (
+          {/* TEXT TOOL COMPONENT FOR POINT & PARAGRAPH TEXT, DOUBLE-CLICK INLINE EDITING & DIRECT MANIPULATION */}
+          <TextTool
+            active={activeTool === "text"}
+            state={state}
+            scaleFactor={scaleFactor}
+            canvasContainerRef={containerRef}
+            canvasStageRef={ref as any}
+            selectedElementId={primarySelectedId}
+            onSelectElement={(id) => onSelectElement?.(id)}
+            onUpdateElement={(id, updates) => onUpdateElement?.(id, updates)}
+            onAddElement={(el) => onAddElement?.(el)}
+            onDeleteElement={onDeleteElement}
+            onDuplicateElement={onDuplicateElement}
+            snapToGrid={snapToGrid}
+            gridSize={gridSize}
+            editingElementId={editingElementId}
+            onSetEditingElementId={onSetEditingElementId}
+          />
+
+          {/* SELECTION OVERLAY WITH INTERACTIVE RESIZE & ROTATE HANDLES FOR NON-TEXT ELEMENTS */}
+          {primarySelectedElement && !["text", "badge", "button", "logo"].includes(primarySelectedElement.type) && (
             <div
               className="absolute pointer-events-none z-40 border-2 border-neon-cyan shadow-[0_0_15px_rgba(0,245,255,0.4)]"
               style={{

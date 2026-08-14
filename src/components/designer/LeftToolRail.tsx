@@ -61,10 +61,9 @@ export function LeftToolRail({ activeTool, onSelectTool, onAddElement }: Props) 
     { id: "crop", label: "Crop Canvas", shortcut: "C", icon: Crop },
     {
       id: "text",
-      label: "Text Tool",
+      label: "Text Tool (Click for Point, Drag for Box)",
       shortcut: "T",
       icon: Type,
-      action: () => onAddElement("text"),
     },
     {
       id: "watermark",

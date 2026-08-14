@@ -1135,6 +1135,18 @@ export default function PostDesigner() {
               onDuplicateElement={handleDuplicateElement}
               onZoomChange={setZoomScale}
               snapToGrid={designState.showGrid}
+              activeTool={activeTool}
+              onAddElement={(newEl) => {
+                const updated = {
+                  ...designState,
+                  elements: [...designState.elements, newEl],
+                };
+                updateStateAndHistory(updated);
+                setSelectedElementId(newEl.id);
+                setSelectedElementIds([newEl.id]);
+                setRightSidebarOpen(true);
+                setActiveRightTab("inspector");
+              }}
             />
           </div>
         </div>
