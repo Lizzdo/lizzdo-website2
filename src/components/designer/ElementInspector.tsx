@@ -113,9 +113,10 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
   };
 
   const handleAutoTrimAlphaBounds = async () => {
-    if (!element.src) return;
+    const imgSrc = element.url || element.src;
+    if (!imgSrc) return;
     try {
-      const bounds = await detectAlphaBounds(element.src);
+      const bounds = await detectAlphaBounds(imgSrc);
       if (bounds) {
         onChange({
           ...element,

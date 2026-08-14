@@ -23,7 +23,7 @@ import { FrameCornerInspector } from "./FrameCornerInspector";
 import { TemplateManager } from "./TemplateManager";
 import { LayersPanel } from "./LayersPanel";
 import { TopMenuBar } from "./TopMenuBar";
-import { LeftToolRail, ToolMode } from "./LeftToolRail";
+import { LeftToolRail, ToolMode, SidebarTab } from "./LeftToolRail";
 import { ExpandedLeftSidebar } from "./ExpandedLeftSidebar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { PROJECT_PRESETS } from "../../data/projectPresets";
@@ -280,6 +280,7 @@ export default function PostDesigner() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [designState, selectedElementId, historyIndex, historyStack, currentProject, updateProject, handleDuplicateElement, handleDeleteElement, handleUndo, handleRedo, handleUpdateElement]);
   const [activeTool, setActiveTool] = useState<ToolMode>("select");
+  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("elements");
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [zoomScale, setZoomScale] = useState<number>(0.85);
 
@@ -1056,26 +1057,47 @@ export default function PostDesigner() {
 
       {/* 2. MAIN FULL-SCREEN WORKSPACE BODY */}
       <div className="flex-1 flex min-h-0 relative overflow-hidden">
-        {/* LEFT EDITING TOOL RAIL */}
+        {/* LEFT AUTHORITATIVE 10-TOOL NAVIGATION RAIL */}
         <LeftToolRail
           activeTool={activeTool}
-          onSelectTool={setActiveTool}
-          onAddElement={handleAddElement}
+          activeSidebarTab={activeSidebarTab}
+          leftSidebarOpen={leftSidebarOpen}
+          onSelectSidebarTab={(tab) => {
+            setActiveSidebarTab(tab);
+            setLeftSidebarOpen(true);
+          }}
+          onSelectCanvasTool={(tool) => {
+            setActiveTool(tool);
+            if (tool === "select") {
+              // keep select tool active
+            }
+          }}
+          onToggleSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+          onOpenShortcuts={() => setShowShortcutsModal(true)}
         />
 
-        {/* EXPANDED LEFT SIDEBAR (Panels & Assets) */}
+        {/* EXPANDED LEFT SIDEBAR (Dedicated tool panel right beside rail) */}
         {leftSidebarOpen && (
           <ExpandedLeftSidebar
+            activeTab={activeSidebarTab}
             state={designState}
             onChangeState={updateStateAndHistory}
             selectedElementId={selectedElementId}
-            onSelectElement={setSelectedElementId}
+            onSelectElement={(id) => {
+              setSelectedElementId(id);
+              if (id) setSelectedElementIds([id]);
+            }}
             onAddElement={handleAddElement}
             onMultipleImagesUpload={handleMultipleImagesUpload}
             onDuplicateElement={handleDuplicateElement}
             onDeleteElement={handleDeleteElement}
             onMoveLayer={handleMoveLayer}
             onSelectTemplate={handleSelectTemplate}
+            onClose={() => setLeftSidebarOpen(false)}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={historyIndex > 0}
+            canRedo={historyIndex < historyStack.length - 1}
           />
         )}
 

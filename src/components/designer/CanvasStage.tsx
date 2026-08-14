@@ -448,9 +448,11 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 }
 
                 const borderObj = el.border;
-                const borderStyleStr = borderObj?.enabled
+                const isSubjectBorder = borderObj?.enabled && (borderObj.mode === "subject" || borderObj.followSubject);
+                const isBoxBorder = borderObj?.enabled && !isSubjectBorder;
+                const borderStyleStr = isBoxBorder
                   ? `${borderObj.width || 2}px ${borderObj.style || "solid"} ${borderObj.color || "#00f5ff"}`
-                  : el.borderWidth
+                  : (!borderObj?.enabled && el.borderWidth)
                   ? `${el.borderWidth}px solid ${el.borderColor || "rgba(255,255,255,0.1)"}`
                   : "none";
                 const borderOpacity = borderObj?.enabled ? (borderObj.opacity ?? 1) : 1;
@@ -468,6 +470,11 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 const filterString = getCanvasElementCssFilter(el);
 
                 let extraDropShadows = "";
+                if (isSubjectBorder && borderObj) {
+                  const bW = borderObj.width || 3;
+                  const bC = borderObj.color || "#00f5ff";
+                  extraDropShadows += ` drop-shadow(${bW}px 0px 0px ${bC}) drop-shadow(-${bW}px 0px 0px ${bC}) drop-shadow(0px ${bW}px 0px ${bC}) drop-shadow(0px -${bW}px 0px ${bC}) drop-shadow(${Math.round(bW * 0.7)}px ${Math.round(bW * 0.7)}px 0px ${bC}) drop-shadow(-${Math.round(bW * 0.7)}px ${Math.round(bW * 0.7)}px 0px ${bC}) drop-shadow(${Math.round(bW * 0.7)}px -${Math.round(bW * 0.7)}px 0px ${bC}) drop-shadow(-${Math.round(bW * 0.7)}px -${Math.round(bW * 0.7)}px 0px ${bC})`;
+                }
                 if (el.outline?.enabled) {
                   const oW = el.outline.width || 4;
                   const oC = el.outline.color || "#ffffff";

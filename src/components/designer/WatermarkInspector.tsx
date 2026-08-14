@@ -157,33 +157,41 @@ export function WatermarkInspector({
 }: Props) {
   const { activeBrandKit } = useStudio();
 
-  // If selected element is a watermark, use its config, otherwise local staging
-  const isWatermarkElement = selectedElement?.type === "watermark" || selectedElement?.watermarkConfig;
-  const currentConfig: WatermarkConfig = isWatermarkElement
-    ? selectedElement?.watermarkConfig || DEFAULT_WATERMARK_CONFIG
-    : DEFAULT_WATERMARK_CONFIG;
+  // Find if a watermark element is already on canvas
+  const canvasWatermark = state.elements.find(
+    (el) => el.id === selectedElement?.id && (el.type === "watermark" || el.watermarkConfig)
+  ) || state.elements.find((el) => el.type === "watermark" || el.watermarkConfig);
+
+  const activeWatermarkElement = selectedElement?.type === "watermark" || selectedElement?.watermarkConfig
+    ? selectedElement
+    : canvasWatermark || null;
+
+  const [stagedConfig, setStagedConfig] = useState<WatermarkConfig>(DEFAULT_WATERMARK_CONFIG);
+
+  const currentConfig: WatermarkConfig = {
+    ...DEFAULT_WATERMARK_CONFIG,
+    ...(activeWatermarkElement?.watermarkConfig || stagedConfig),
+  };
 
   const [activeTab, setActiveTab] = useState<"type" | "style" | "position" | "presets" | "tiled">("type");
 
-  // Helper to update watermark element
+  // Helper to safely update watermark element or staging
   const updateConfig = (updates: Partial<WatermarkConfig>) => {
-    const newConfig = { ...currentConfig, ...updates };
+    const newConfig: WatermarkConfig = { ...currentConfig, ...updates };
+    setStagedConfig(newConfig);
 
-    if (isWatermarkElement && selectedElement) {
-      onUpdateElement(selectedElement.id, {
+    if (activeWatermarkElement) {
+      onUpdateElement(activeWatermarkElement.id, {
         watermarkConfig: newConfig,
-        text: newConfig.watermarkText || selectedElement.text,
-        color: newConfig.color || selectedElement.color,
-        opacity: newConfig.opacity ?? selectedElement.opacity,
-        rotation: newConfig.rotation ?? selectedElement.rotation,
+        text: newConfig.watermarkText || activeWatermarkElement.text,
+        color: newConfig.color || activeWatermarkElement.color,
+        opacity: newConfig.opacity ?? activeWatermarkElement.opacity,
+        rotation: newConfig.rotation ?? activeWatermarkElement.rotation,
       });
-    } else {
-      // Create new watermark layer
-      createNewWatermark(newConfig);
     }
   };
 
-  const createNewWatermark = (config: WatermarkConfig = DEFAULT_WATERMARK_CONFIG) => {
+  const createNewWatermark = (config: WatermarkConfig = currentConfig) => {
     const watermarkId = `el-watermark-${Date.now()}`;
     const newEl: Partial<CanvasElement> = {
       id: watermarkId,
@@ -191,10 +199,10 @@ export function WatermarkInspector({
       name: `Watermark (${config.type.toUpperCase()})`,
       text: config.watermarkText || "LIZZDO STUDIO",
       url: config.logoUrl || config.signatureUrl,
-      x: 50,
-      y: 90,
-      width: 40,
-      height: 10,
+      x: config.positionPreset === "center" ? 50 : config.positionPreset?.includes("left") ? 10 : config.positionPreset?.includes("right") ? 80 : 50,
+      y: config.positionPreset?.includes("top") ? 10 : config.positionPreset?.includes("bottom") ? 85 : 50,
+      width: config.tiledEnabled ? 100 : 35,
+      height: config.tiledEnabled ? 100 : 10,
       opacity: config.opacity ?? 0.35,
       rotation: config.rotation || 0,
       color: config.color || "#ffffff",
@@ -327,8 +335,8 @@ export function WatermarkInspector({
 
     updateConfig({ positionPreset: pos });
 
-    if (isWatermarkElement && selectedElement) {
-      onUpdateElement(selectedElement.id, { x, y });
+    if (activeWatermarkElement) {
+      onUpdateElement(activeWatermarkElement.id, { x, y });
     }
   };
 
@@ -372,27 +380,32 @@ export function WatermarkInspector({
       </div>
 
       {/* ACTIVE WATERMARK STATUS BANNER */}
-      {isWatermarkElement ? (
+      {activeWatermarkElement ? (
         <div className="bg-neon-cyan/10 border border-neon-cyan/30 rounded-xl p-2.5 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse" />
-            <span className="font-mono font-bold text-white text-[11px]">
-              Editing: {selectedElement?.name}
-            </span>
+            <div className="flex flex-col">
+              <span className="font-mono font-bold text-white text-[11px]">
+                Active: {activeWatermarkElement.name || "Watermark Layer"}
+              </span>
+              <span className="text-[9px] text-gray-400 font-mono">
+                {activeWatermarkElement.watermarkConfig?.type?.toUpperCase() || "TEXT"} • {Math.round((activeWatermarkElement.watermarkConfig?.opacity ?? 0.35) * 100)}% Opacity
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => onDuplicateElement(selectedElement!.id)}
-              className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+              onClick={() => onDuplicateElement(activeWatermarkElement.id)}
+              className="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
               title="Duplicate Watermark"
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
-              onClick={() => onDeleteElement(selectedElement!.id)}
-              className="p-1 rounded hover:bg-rose-500/20 text-rose-400 hover:text-rose-300"
+              onClick={() => onDeleteElement(activeWatermarkElement.id)}
+              className="p-1.5 rounded hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors"
               title="Delete Watermark"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -400,8 +413,21 @@ export function WatermarkInspector({
           </div>
         </div>
       ) : (
-        <div className="bg-black/40 border border-white/10 rounded-xl p-2.5 text-[11px] text-gray-400 font-mono text-center">
-          No watermark selected. Click "New Watermark" to insert a watermark layer.
+        <div className="bg-neon-cyan/5 border border-neon-cyan/20 rounded-xl p-3 flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-neon-cyan font-mono text-xs">
+            <Sparkles className="w-4 h-4" />
+            <span className="font-bold">No Watermark on Canvas</span>
+          </div>
+          <p className="text-[10px] text-gray-400">
+            Configure your brand watermark below and click the button to apply it to your design.
+          </p>
+          <button
+            type="button"
+            onClick={() => createNewWatermark(currentConfig)}
+            className="w-full py-2 rounded-lg bg-neon-cyan text-black font-mono font-bold text-xs hover:bg-cyan-300 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(0,245,255,0.3)]"
+          >
+            <Plus className="w-4 h-4" /> Add Watermark to Canvas
+          </button>
         </div>
       )}
 

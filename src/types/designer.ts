@@ -201,6 +201,8 @@ export interface ElementCornerRadii {
 
 export interface ElementBorder {
   enabled: boolean;
+  mode?: "box" | "subject";
+  followSubject?: boolean;
   width?: number;
   style?: "solid" | "dashed" | "dotted";
   color?: string;
@@ -335,7 +337,7 @@ export interface ElementInnerShadowConfig {
 
 export interface ElementMaskConfig {
   enabled: boolean;
-  shape: "none" | "circle" | "rectangle" | "rounded" | "ellipse" | "star" | "hexagon" | "triangle" | "custom";
+  shape: "none" | "circle" | "rectangle" | "rounded" | "ellipse" | "star" | "hexagon" | "triangle" | "custom" | "auto-silhouette";
   zoom: number;
   offsetX: number;
   offsetY: number;
@@ -775,6 +777,9 @@ export interface DesignState {
   preset: CanvasPresetId;
   width: number;
   height: number;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  aspectRatio?: string;
   background: DesignBackground;
   elements: CanvasElement[];
   showCyberBorders: boolean;
