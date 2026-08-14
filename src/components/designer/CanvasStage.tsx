@@ -2,6 +2,7 @@ import React, { forwardRef } from "react";
 import { DesignState, CanvasElement, WatermarkConfig } from "../../types/designer";
 import { FrameCornerDecorationRenderer } from "./FrameCornerDecorationRenderer";
 import { getCanvasElementCssFilter } from "../../utils/imageProcessing";
+import { getFontFamilyWithFallback } from "../../utils/fontLoader";
 
 interface CanvasStageProps {
   state: DesignState;
@@ -867,24 +868,201 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                 );
               }
 
-              // TEXT ELEMENT
+              // TEXT ELEMENT (TYPOGRAPHY STUDIO RENDERER)
               if (el.type === "text") {
-                const ts = el.textShadow;
-                const textShadowCss = ts?.enabled
-                  ? `${ts.offsetX}px ${ts.offsetY}px ${ts.blur}px ${ts.color}`
-                  : "0 2px 10px rgba(0,0,0,0.8)";
+                // 1. Font Family & Weight
+                const fontFamilyCss = getFontFamilyWithFallback(el.fontFamily);
+                const fontWeightCss =
+                  typeof el.fontWeight === "number"
+                    ? el.fontWeight
+                    : el.fontWeight === "black"
+                    ? 900
+                    : el.fontWeight === "bold"
+                    ? 700
+                    : el.fontWeight === "semibold"
+                    ? 600
+                    : el.fontWeight === "light"
+                    ? 300
+                    : el.fontWeight === "thin"
+                    ? 100
+                    : parseInt(el.fontWeight || "400") || 400;
 
+                // 2. Text Shadows, 3D Extrusion & Neon Glow Combined
+                const shadowParts: string[] = [];
+
+                // Drop Shadow
+                if (el.textShadow?.enabled) {
+                  const ts = el.textShadow;
+                  shadowParts.push(
+                    `${ts.offsetX || 0}px ${ts.offsetY || 0}px ${ts.blur || 0}px ${
+                      ts.color || "rgba(0,0,0,0.8)"
+                    }`
+                  );
+                }
+
+                // Neon Glow
+                if (el.textGlow?.enabled) {
+                  const glow = el.textGlow;
+                  const gColor = glow.color || "#00f5ff";
+                  const gBlur = glow.blur || 15;
+                  shadowParts.push(`0 0 ${gBlur}px ${gColor}`);
+                  shadowParts.push(`0 0 ${gBlur * 2}px ${gColor}`);
+                }
+
+                // 3D Extrusion
+                if (el.textEffect?.preset === "3d" && el.textEffect?.threeD?.enabled) {
+                  const td = el.textEffect.threeD;
+                  const depth = td.depth || 6;
+                  const color = td.color || "#1e293b";
+                  const dir = td.direction || "diagonal-right";
+
+                  let stepX = 1;
+                  let stepY = 1;
+                  if (dir === "top") {
+                    stepX = 0;
+                    stepY = -1;
+                  }
+                  if (dir === "bottom") {
+                    stepX = 0;
+                    stepY = 1;
+                  }
+                  if (dir === "left") {
+                    stepX = -1;
+                    stepY = 0;
+                  }
+                  if (dir === "right") {
+                    stepX = 1;
+                    stepY = 0;
+                  }
+                  if (dir === "diagonal-left") {
+                    stepX = -1;
+                    stepY = 1;
+                  }
+
+                  for (let i = 1; i <= depth; i++) {
+                    shadowParts.push(`${i * stepX}px ${i * stepY}px 0px ${color}`);
+                  }
+                  if (td.shadowColor) {
+                    shadowParts.push(
+                      `${depth * stepX + 2}px ${depth * stepY + 4}px 8px ${td.shadowColor}`
+                    );
+                  }
+                }
+
+                // Glitch Offset Shadow
+                if (el.textEffect?.preset === "glitch") {
+                  const offset = el.textEffect.glitchOffset || 3;
+                  shadowParts.push(`-${offset}px 0 0 #00f5ff`);
+                  shadowParts.push(`${offset}px 0 0 #ff006e`);
+                }
+
+                const combinedTextShadow = shadowParts.length > 0 ? shadowParts.join(", ") : "none";
+
+                // 3. Stroke / Outline
                 const tStroke = el.textStroke;
-                const strokeCss = tStroke?.enabled ? `${tStroke.width}px ${tStroke.color}` : "none";
+                const strokeCss = tStroke?.enabled
+                  ? `${tStroke.width || 1}px ${tStroke.color || "#000000"}`
+                  : "none";
 
+                // 4. Background Badge Style
                 const tBg = el.textBg;
-                const textBgStyle = tBg?.enabled
+                const textBgStyle: React.CSSProperties = tBg?.enabled
                   ? {
-                      backgroundColor: tBg.color,
-                      padding: `${tBg.padding || 6}px`,
-                      borderRadius: `${tBg.borderRadius || 6}px`,
+                      backgroundColor: tBg.color || "rgba(0,0,0,0.6)",
+                      paddingTop: `${tBg.paddingTop ?? tBg.padding ?? 8}px`,
+                      paddingRight: `${tBg.paddingRight ?? tBg.padding ?? 16}px`,
+                      paddingBottom: `${tBg.paddingBottom ?? tBg.padding ?? 8}px`,
+                      paddingLeft: `${tBg.paddingLeft ?? tBg.padding ?? 16}px`,
+                      borderRadius: `${tBg.borderRadius || 12}px`,
+                      border: tBg.borderEnabled
+                        ? `${tBg.borderWidth || 1}px solid ${
+                            tBg.borderColor || "rgba(255,255,255,0.2)"
+                          }`
+                        : "none",
+                      backdropFilter: tBg.type === "glass" ? "blur(12px)" : "none",
                     }
                   : {};
+
+                // 5. Gradient Text CSS
+                let gradientCss = {};
+                if (el.gradientText) {
+                  const tg = el.textGradient;
+                  let gradientString = "linear-gradient(45deg, #00f5ff, #a855f7, #ff006e)";
+                  if (tg && tg.colorStops && tg.colorStops.length > 0) {
+                    const stops = tg.colorStops
+                      .map((s) => `${s.color} ${s.offset}%`)
+                      .join(", ");
+                    if (tg.type === "radial") {
+                      gradientString = `radial-gradient(circle, ${stops})`;
+                    } else if (tg.type === "angular") {
+                      gradientString = `conic-gradient(from ${tg.angle || 0}deg, ${stops})`;
+                    } else {
+                      gradientString = `linear-gradient(${tg.angle || 90}deg, ${stops})`;
+                    }
+                  }
+                  gradientCss = {
+                    background: gradientString,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  };
+                }
+
+                // 6. Curved Text / Arc SVG Renderer
+                if (el.textCurve?.enabled && el.text) {
+                  const curve = el.textCurve;
+                  const curveAmount = curve.amount || 40;
+                  const pathId = `text-path-${el.id}`;
+                  const pathD =
+                    curve.curveType === "arc-down"
+                      ? `M 10,20 Q 150,${20 + curveAmount * 1.5} 290,20`
+                      : curve.curveType === "wave"
+                      ? `M 10,50 Q 75,${50 - curveAmount} 150,50 T 290,50`
+                      : `M 10,80 Q 150,${80 - curveAmount * 1.5} 290,80`;
+
+                  return (
+                    <div
+                      key={el.id}
+                      data-element-id={el.id}
+                      style={{
+                        position: "absolute",
+                        left: `${el.x}%`,
+                        top: `${el.y}%`,
+                        zIndex: el.zIndex || 30,
+                        width: el.width ? `${el.width}%` : "88%",
+                        height: el.height ? `${el.height}%` : "auto",
+                        opacity: el.opacity ?? 1,
+                        transform: el.rotation ? `rotate(${el.rotation}deg)` : "none",
+                        mixBlendMode: (el.blendMode as any) || "normal",
+                        ...textBgStyle,
+                      }}
+                      onClick={() => interactive && onSelectElement?.(el.id)}
+                      className={selectionStyle}
+                    >
+                      <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible">
+                        <path id={pathId} d={pathD} fill="none" stroke="none" />
+                        <text
+                          fill={el.gradientText ? "url(#grad-" + el.id + ")" : el.color || "#ffffff"}
+                          style={{
+                            fontFamily: fontFamilyCss,
+                            fontWeight: fontWeightCss,
+                            fontSize: `${el.fontSize || 24}px`,
+                            letterSpacing: `${el.letterSpacing || 0}px`,
+                            textTransform: el.textTransform || "none",
+                            filter:
+                              combinedTextShadow !== "none"
+                                ? `drop-shadow(${combinedTextShadow})`
+                                : "none",
+                          }}
+                        >
+                          <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
+                            {el.text}
+                          </textPath>
+                        </text>
+                      </svg>
+                    </div>
+                  );
+                }
 
                 return (
                   <div
@@ -897,8 +1075,8 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                       zIndex: el.zIndex || 30,
                       width: el.width ? `${el.width}%` : "88%",
                       height: el.height ? `${el.height}%` : "auto",
-                      fontFamily: getFontFamily(el.fontFamily),
-                      fontWeight: el.fontWeight === "black" ? 900 : el.fontWeight === "bold" ? 700 : 400,
+                      fontFamily: fontFamilyCss,
+                      fontWeight: fontWeightCss,
                       fontStyle: el.fontStyle || "normal",
                       textDecoration: el.textDecoration || "none",
                       fontSize: `${el.fontSize || 16}px`,
@@ -907,19 +1085,15 @@ export const CanvasStage = forwardRef<HTMLDivElement, CanvasStageProps>(
                       letterSpacing: `${el.letterSpacing || 0}px`,
                       lineHeight: el.lineHeight || 1.3,
                       textTransform: el.textTransform || "none",
-                      textShadow: textShadowCss,
+                      textShadow: combinedTextShadow,
                       WebkitTextStroke: strokeCss,
                       whiteSpace: el.autoWrap === false ? "nowrap" : "normal",
+                      wordBreak: el.autoWrap === false ? "keep-all" : "break-word",
                       opacity: el.opacity ?? 1,
+                      mixBlendMode: (el.blendMode as any) || "normal",
                       transform: el.rotation ? `rotate(${el.rotation}deg)` : "none",
                       ...textBgStyle,
-                      ...(el.gradientText
-                        ? {
-                            background: "linear-gradient(45deg, #00f5ff, #a855f7, #ff006e)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                          }
-                        : {}),
+                      ...gradientCss,
                     }}
                     onClick={() => interactive && onSelectElement?.(el.id)}
                     className={selectionStyle}

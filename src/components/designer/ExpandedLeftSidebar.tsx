@@ -269,11 +269,67 @@ export function ExpandedLeftSidebar({
 
               <button
                 type="button"
-                onClick={() => onAddElement("text")}
+                onClick={() => {
+                  const newEl: CanvasElement = {
+                    id: `text-point-${Date.now()}`,
+                    type: "text",
+                    textType: "point",
+                    name: "Point Text",
+                    text: "POINT TYPOGRAPHY",
+                    fontFamily: "Orbitron",
+                    fontWeight: "700",
+                    fontSize: 32,
+                    color: "#00f5ff",
+                    letterSpacing: 4,
+                    x: 25,
+                    y: 35,
+                    width: 50,
+                    height: 12,
+                    zIndex: 25,
+                    visible: true,
+                    locked: false,
+                    autoWrap: false,
+                  };
+                  onChangeState({ ...state, elements: [...state.elements, newEl] });
+                  onSelectElement(newEl.id);
+                }}
                 className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-cyan/50 hover:bg-neon-cyan/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
               >
                 <Type className="w-4 h-4 text-neon-cyan group-hover:scale-110 transition-transform" />
-                <span>Text Box</span>
+                <span>Point Text</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newEl: CanvasElement = {
+                    id: `text-para-${Date.now()}`,
+                    type: "text",
+                    textType: "paragraph",
+                    name: "Paragraph Box",
+                    text: "Lizzdo Studio professional typography engine provides complete control over kerning, leading, gradients, 3D extrusions, and custom text paths.",
+                    fontFamily: "Inter",
+                    fontWeight: "400",
+                    fontSize: 16,
+                    color: "#ffffff",
+                    letterSpacing: 0,
+                    lineHeight: 1.5,
+                    x: 20,
+                    y: 45,
+                    width: 60,
+                    height: 25,
+                    zIndex: 25,
+                    visible: true,
+                    locked: false,
+                    autoWrap: true,
+                  };
+                  onChangeState({ ...state, elements: [...state.elements, newEl] });
+                  onSelectElement(newEl.id);
+                }}
+                className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-neon-purple/50 hover:bg-neon-purple/10 text-gray-300 hover:text-white transition-all text-left flex items-center gap-2.5 text-xs font-mono group"
+              >
+                <Type className="w-4 h-4 text-neon-purple group-hover:scale-110 transition-transform" />
+                <span>Paragraph Box</span>
               </button>
 
               <button

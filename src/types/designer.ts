@@ -228,25 +228,90 @@ export interface TextShadowConfig {
   blur: number;
   offsetX: number;
   offsetY: number;
+  opacity?: number;
+  distance?: number;
+  angle?: number;
+  spread?: number;
 }
 
 export interface TextStrokeConfig {
   enabled: boolean;
   color: string;
   width: number;
+  opacity?: number;
+  position?: "inside" | "center" | "outside";
+  gradientEnabled?: boolean;
+  gradientColor1?: string;
+  gradientColor2?: string;
 }
 
 export interface TextGlowConfig {
   enabled: boolean;
   color: string;
   blur: number;
+  type?: "soft" | "neon" | "outer" | "inner";
+  opacity?: number;
+  spread?: number;
+  intensity?: number;
+}
+
+export interface TextGradientConfig {
+  enabled: boolean;
+  type: "linear" | "radial" | "angular" | "reflected";
+  angle?: number;
+  colorStops: Array<{ color: string; offset: number }>;
+}
+
+export interface Text3DEffectConfig {
+  enabled: boolean;
+  depth: number;
+  direction: "top" | "bottom" | "left" | "right" | "diagonal-right" | "diagonal-left";
+  color: string;
+  shadowColor: string;
+  opacity: number;
+}
+
+export interface TextEffectConfig {
+  preset: "none" | "neon" | "glass" | "holographic" | "metallic" | "chrome" | "gradient" | "glitch" | "cyberpunk" | "retro" | "3d" | "soft" | "outline" | "shadow";
+  threeD?: Text3DEffectConfig;
+  glitchOffset?: number;
+  chromeShineColor?: string;
+}
+
+export interface TextCurveConfig {
+  enabled: boolean;
+  curveType: "arc-up" | "arc-down" | "circle" | "wave";
+  amount: number; // -100 to 100
+  radius?: number;
+  spacing?: number;
 }
 
 export interface TextBgConfig {
   enabled: boolean;
+  type?: "solid" | "gradient" | "glass" | "neon" | "holographic";
   color: string;
-  padding: number;
-  borderRadius: number;
+  gradientColor1?: string;
+  gradientColor2?: string;
+  gradientAngle?: number;
+  opacity?: number;
+  padding?: number;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  paddingLinked?: boolean;
+  borderRadius?: number;
+  cornerRadiusTL?: number;
+  cornerRadiusTR?: number;
+  cornerRadiusBR?: number;
+  cornerRadiusBL?: number;
+  cornersLinked?: boolean;
+  borderEnabled?: boolean;
+  borderColor?: string;
+  borderWidth?: number;
+  shadowEnabled?: boolean;
+  glowEnabled?: boolean;
+  glowColor?: string;
 }
 
 export interface ElementShadowConfig {
@@ -381,23 +446,28 @@ export interface CanvasElement {
 
   // Text properties
   text?: string;
+  textType?: "point" | "paragraph" | "headline" | "subtitle" | "caption" | "label" | "button" | "badge" | "display" | "quote" | "custom";
   fontSize?: number;
-  fontFamily?: "Orbitron" | "Rajdhani" | "Inter" | "Space Mono" | "Playfair Display" | "Plus Jakarta Sans" | string;
-  fontWeight?: "normal" | "semibold" | "bold" | "black" | string | number;
+  fontFamily?: string;
+  fontWeight?: "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | "normal" | "semibold" | "bold" | "black" | string | number;
   fontStyle?: "normal" | "italic";
   textDecoration?: "none" | "underline" | "line-through";
   color?: string;
+  blendMode?: string;
   textAlign?: "left" | "center" | "right" | "justify";
   verticalAlign?: "top" | "middle" | "bottom";
   letterSpacing?: number;
   lineHeight?: number;
   textTransform?: "uppercase" | "none" | "capitalize" | "lowercase";
   gradientText?: boolean;
+  textGradient?: TextGradientConfig;
   autoWrap?: boolean;
   textShadow?: TextShadowConfig;
   textStroke?: TextStrokeConfig;
   textGlow?: TextGlowConfig;
   textBg?: TextBgConfig;
+  textEffect?: TextEffectConfig;
+  textCurve?: TextCurveConfig;
 
   // Badge / Tag properties
   bg?: string;

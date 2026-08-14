@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { CanvasElement, ElementType, FilterPreset, PathAnchorPoint } from "../../types/designer";
 import { detectAlphaBounds } from "../../utils/imageProcessing";
+import { TypographyStudioInspector } from "./TypographyStudioInspector";
 import {
   Type,
   Tag,
@@ -458,129 +459,15 @@ export const ElementInspector: React.FC<ElementInspectorProps> = ({
         </div>
       )}
 
-      {/* 3. CONTENT & TYPOGRAPHY TOOL */}
+      {/* 3. CONTENT & TYPOGRAPHY STUDIO INSPECTOR */}
       {(element.type === "text" || element.type === "badge" || element.type === "button" || element.type === "logo") && (
-        <div className="space-y-4 bg-black/40 p-3 rounded-xl border border-white/10">
-          <label className="text-[11px] uppercase font-mono text-neon-cyan font-bold block">
-            Typography & Style
-          </label>
-
-          <div className="space-y-2">
-            <label className="text-xs font-mono text-gray-400 block">Text Content</label>
-            <textarea
-              rows={2}
-              value={element.text || ""}
-              onChange={(e) => updateProp("text", e.target.value)}
-              className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-white focus:border-neon-cyan focus:outline-none text-xs font-sans"
-              placeholder="Type content..."
-            />
-          </div>
-
-          {/* Font Family & Weight */}
-          <div className="grid grid-cols-2 gap-2 font-mono text-xs">
-            <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Font Family</label>
-              <select
-                value={element.fontFamily || "Orbitron"}
-                onChange={(e) => updateProp("fontFamily", e.target.value as any)}
-                className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
-              >
-                <option value="Orbitron">Orbitron (Display)</option>
-                <option value="Rajdhani">Rajdhani (Clean Tech)</option>
-                <option value="Inter">Inter (Sans)</option>
-                <option value="Space Mono">Space Mono (Code)</option>
-                <option value="Playfair Display">Playfair (Serif)</option>
-                <option value="Plus Jakarta Sans">Plus Jakarta</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Font Size ({element.fontSize || 16}px)</label>
-              <input
-                type="number"
-                value={element.fontSize || 16}
-                onChange={(e) => updateProp("fontSize", parseInt(e.target.value) || 12)}
-                className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white focus:border-neon-cyan focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Alignments & Format Toggle */}
-          <div className="flex items-center justify-between gap-1 pt-1">
-            <div className="flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-white/10">
-              <button
-                type="button"
-                onClick={() => updateProp("textAlign", "left")}
-                className={`p-1.5 rounded ${element.textAlign === "left" || !element.textAlign ? "bg-neon-cyan text-black" : "text-gray-400 hover:text-white"}`}
-              >
-                <AlignLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => updateProp("textAlign", "center")}
-                className={`p-1.5 rounded ${element.textAlign === "center" ? "bg-neon-cyan text-black" : "text-gray-400 hover:text-white"}`}
-              >
-                <AlignCenter className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => updateProp("textAlign", "right")}
-                className={`p-1.5 rounded ${element.textAlign === "right" ? "bg-neon-cyan text-black" : "text-gray-400 hover:text-white"}`}
-              >
-                <AlignRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-white/10">
-              <button
-                type="button"
-                onClick={() => updateProp("fontStyle", element.fontStyle === "italic" ? "normal" : "italic")}
-                className={`p-1.5 rounded ${element.fontStyle === "italic" ? "bg-neon-purple text-white" : "text-gray-400 hover:text-white"}`}
-                title="Italic"
-              >
-                <Italic className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => updateProp("textDecoration", element.textDecoration === "underline" ? "none" : "underline")}
-                className={`p-1.5 rounded ${element.textDecoration === "underline" ? "bg-neon-purple text-white" : "text-gray-400 hover:text-white"}`}
-                title="Underline"
-              >
-                <Underline className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Color & Gradient Text */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <label className="text-gray-400">Text Color</label>
-              <button
-                type="button"
-                onClick={() => updateProp("gradientText", !element.gradientText)}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
-                  element.gradientText ? "bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink text-white" : "bg-white/10 text-gray-400"
-                }`}
-              >
-                Gradient Text
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={element.color || "#ffffff"}
-                onChange={(e) => updateProp("color", e.target.value)}
-                className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
-              />
-              <input
-                type="text"
-                value={element.color || "#ffffff"}
-                onChange={(e) => updateProp("color", e.target.value)}
-                className="flex-1 bg-black/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-neon-cyan focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
+        <TypographyStudioInspector
+          element={element}
+          onUpdateProp={updateProp}
+          onUpdateProps={(updates) => {
+            Object.entries(updates).forEach(([k, v]) => updateProp(k as keyof CanvasElement, v));
+          }}
+        />
       )}
 
       {/* 4. VECTOR SHAPES, DRAWINGS & PATHS INSPECTOR */}
