@@ -183,6 +183,316 @@ export default function PostDesigner() {
     [designState, selectedElementId, updateStateAndHistory]
   );
 
+  // MOVE LAYER Z-INDEX UP/DOWN/TOP/BOTTOM & REORDER
+  const handleMoveLayer = useCallback((id: string, direction: "up" | "down") => {
+    const idx = designState.elements.findIndex((el) => el.id === id);
+    if (idx === -1) return;
+    const targetIdx = direction === "up" ? idx + 1 : idx - 1;
+    if (targetIdx < 0 || targetIdx >= designState.elements.length) return;
+
+    const newElements = [...designState.elements];
+    const temp = newElements[idx];
+    newElements[idx] = newElements[targetIdx];
+    newElements[targetIdx] = temp;
+
+    const updated = {
+      ...designState,
+      elements: newElements.map((el, i) => ({ ...el, zIndex: (i + 1) * 5 })),
+    };
+    updateStateAndHistory(updated);
+  }, [designState, updateStateAndHistory]);
+
+  const handleMoveLayerToTop = useCallback((id: string) => {
+    const idx = designState.elements.findIndex((el) => el.id === id);
+    if (idx === -1 || idx === designState.elements.length - 1) return;
+    const item = designState.elements[idx];
+    const rest = designState.elements.filter((el) => el.id !== id);
+    const newElements = [...rest, item].map((el, i) => ({ ...el, zIndex: (i + 1) * 5 }));
+    updateStateAndHistory({ ...designState, elements: newElements });
+  }, [designState, updateStateAndHistory]);
+
+  const handleMoveLayerToBottom = useCallback((id: string) => {
+    const idx = designState.elements.findIndex((el) => el.id === id);
+    if (idx === -1 || idx === 0) return;
+    const item = designState.elements[idx];
+    const rest = designState.elements.filter((el) => el.id !== id);
+    const newElements = [item, ...rest].map((el, i) => ({ ...el, zIndex: (i + 1) * 5 }));
+    updateStateAndHistory({ ...designState, elements: newElements });
+  }, [designState, updateStateAndHistory]);
+
+  const handleReorderLayers = useCallback((draggedId: string, targetId: string, position: "before" | "after" = "after") => {
+    const draggedIdx = designState.elements.findIndex((el) => el.id === draggedId);
+    const targetIdx = designState.elements.findIndex((el) => el.id === targetId);
+    if (draggedIdx === -1 || targetIdx === -1 || draggedIdx === targetIdx) return;
+
+    const newElements = [...designState.elements];
+    const [removed] = newElements.splice(draggedIdx, 1);
+    const insertIdx = position === "before" ? targetIdx : targetIdx + 1;
+    newElements.splice(insertIdx > draggedIdx ? insertIdx - 1 : insertIdx, 0, removed);
+
+    const updated = {
+      ...designState,
+      elements: newElements.map((el, i) => ({ ...el, zIndex: (i + 1) * 5 })),
+    };
+    updateStateAndHistory(updated);
+  }, [designState, updateStateAndHistory]);
+
+  // GROUP SELECTED ELEMENTS
+  const handleGroupSelected = useCallback(() => {
+    const ids = selectedElementIds.length > 0 ? selectedElementIds : selectedElementId ? [selectedElementId] : [];
+    if (ids.length < 2) return;
+
+    const selectedElements = designState.elements.filter((el) => ids.includes(el.id));
+    if (selectedElements.length < 2) return;
+
+    let minX = 100, minY = 100, maxX = 0, maxY = 0;
+    selectedElements.forEach((el) => {
+      minX = Math.min(minX, el.x);
+      minY = Math.min(minY, el.y);
+      maxX = Math.max(maxX, el.x + (el.width ?? 30));
+      maxY = Math.max(maxY, el.y + (el.height ?? 15));
+    });
+
+    const groupId = `group-${Date.now()}`;
+    const maxZ = Math.max(...selectedElements.map((e) => e.zIndex || 5));
+
+    const groupElement: CanvasElement = {
+      id: groupId,
+      name: `Group ${designState.elements.filter((e) => e.isGroup).length + 1}`,
+      type: "shape",
+      isGroup: true,
+      childrenIds: ids,
+      visible: true,
+      locked: false,
+      x: Math.max(0, minX),
+      y: Math.max(0, minY),
+      width: Math.max(5, maxX - minX),
+      height: Math.max(5, maxY - minY),
+      opacity: 1,
+      zIndex: maxZ + 1,
+    };
+
+    const newElements = designState.elements.map((el) => {
+      if (ids.includes(el.id)) {
+        return { ...el, groupId };
+      }
+      return el;
+    });
+
+    const updated = {
+      ...designState,
+      elements: [...newElements, groupElement].map((el, i) => ({ ...el, zIndex: (i + 1) * 5 })),
+    };
+
+    updateStateAndHistory(updated);
+    setSelectedElementId(groupId);
+    setSelectedElementIds([groupId]);
+  }, [designState, selectedElementId, selectedElementIds, updateStateAndHistory]);
+
+  // UNGROUP SELECTED ELEMENTS
+  const handleUngroupSelected = useCallback(() => {
+    const ids = selectedElementIds.length > 0 ? selectedElementIds : selectedElementId ? [selectedElementId] : [];
+    const groupsToUngroup = designState.elements.filter((el) => el.isGroup && ids.includes(el.id));
+    if (groupsToUngroup.length === 0) return;
+
+    const groupIds = groupsToUngroup.map((g) => g.id);
+    const childrenIdsToSelect: string[] = [];
+
+    const newElements = designState.elements
+      .filter((el) => !groupIds.includes(el.id))
+      .map((el) => {
+        if (el.groupId && groupIds.includes(el.groupId)) {
+          childrenIdsToSelect.push(el.id);
+          return { ...el, groupId: undefined };
+        }
+        return el;
+      });
+
+    const updated = {
+      ...designState,
+      elements: newElements.map((el, i) => ({ ...el, zIndex: (i + 1) * 5 })),
+    };
+
+    updateStateAndHistory(updated);
+    if (childrenIdsToSelect.length > 0) {
+      setSelectedElementId(childrenIdsToSelect[0]);
+      setSelectedElementIds(childrenIdsToSelect);
+    }
+  }, [designState, selectedElementId, selectedElementIds, updateStateAndHistory]);
+
+  // ALIGN SELECTED ELEMENTS (OR SINGLE ELEMENT RELATIVE TO CANVAS)
+  const handleAlignSelected = useCallback(
+    (type: "left" | "center-h" | "right" | "top" | "center-v" | "bottom") => {
+      const ids = selectedElementIds.length > 0 ? selectedElementIds : selectedElementId ? [selectedElementId] : [];
+      if (ids.length === 0) return;
+
+      const selectedEls = designState.elements.filter((el) => ids.includes(el.id));
+      if (selectedEls.length === 0) return;
+
+      let boundsMinX = 100, boundsMaxX = 0, boundsMinY = 100, boundsMaxY = 0;
+      if (selectedEls.length > 1) {
+        selectedEls.forEach((el) => {
+          boundsMinX = Math.min(boundsMinX, el.x);
+          boundsMaxX = Math.max(boundsMaxX, el.x + (el.width ?? 30));
+          boundsMinY = Math.min(boundsMinY, el.y);
+          boundsMaxY = Math.max(boundsMaxY, el.y + (el.height ?? 15));
+        });
+      } else {
+        boundsMinX = 0;
+        boundsMaxX = 100;
+        boundsMinY = 0;
+        boundsMaxY = 100;
+      }
+
+      const boundsCenterH = (boundsMinX + boundsMaxX) / 2;
+      const boundsCenterV = (boundsMinY + boundsMaxY) / 2;
+
+      const newElements = designState.elements.map((el) => {
+        if (!ids.includes(el.id) || el.locked) return el;
+        const w = el.width ?? 30;
+        const h = el.height ?? 15;
+        let newX = el.x;
+        let newY = el.y;
+
+        if (type === "left") newX = boundsMinX;
+        if (type === "center-h") newX = boundsCenterH - w / 2;
+        if (type === "right") newX = boundsMaxX - w;
+        if (type === "top") newY = boundsMinY;
+        if (type === "center-v") newY = boundsCenterV - h / 2;
+        if (type === "bottom") newY = boundsMaxY - h;
+
+        return {
+          ...el,
+          x: Math.max(0, Math.min(100 - w, Math.round(newX * 10) / 10)),
+          y: Math.max(0, Math.min(100 - h, Math.round(newY * 10) / 10)),
+        };
+      });
+
+      updateStateAndHistory({ ...designState, elements: newElements });
+    },
+    [designState, selectedElementId, selectedElementIds, updateStateAndHistory]
+  );
+
+  // DISTRIBUTE EQUAL SPACING ACROSS 3+ ELEMENTS
+  const handleDistributeSelected = useCallback(
+    (type: "horizontal" | "vertical") => {
+      const ids = selectedElementIds.length > 0 ? selectedElementIds : [];
+      if (ids.length < 3) return;
+
+      const selectedEls = designState.elements.filter((el) => ids.includes(el.id));
+      if (selectedEls.length < 3) return;
+
+      if (type === "horizontal") {
+        const sorted = [...selectedEls].sort((a, b) => a.x - b.x);
+        const minX = sorted[0].x;
+        const lastEl = sorted[sorted.length - 1];
+        const maxX = lastEl.x + (lastEl.width ?? 30);
+        const totalElemWidth = sorted.reduce((sum, el) => sum + (el.width ?? 30), 0);
+        const totalGap = maxX - minX - totalElemWidth;
+        const gap = Math.max(0, totalGap / (sorted.length - 1));
+
+        let currentPos = minX;
+        const newPosMap = new Map<string, number>();
+        sorted.forEach((el) => {
+          newPosMap.set(el.id, Math.round(currentPos * 10) / 10);
+          currentPos += (el.width ?? 30) + gap;
+        });
+
+        const newElements = designState.elements.map((el) => {
+          if (newPosMap.has(el.id) && !el.locked) {
+            return { ...el, x: newPosMap.get(el.id)! };
+          }
+          return el;
+        });
+
+        updateStateAndHistory({ ...designState, elements: newElements });
+      } else {
+        const sorted = [...selectedEls].sort((a, b) => a.y - b.y);
+        const minY = sorted[0].y;
+        const lastEl = sorted[sorted.length - 1];
+        const maxY = lastEl.y + (lastEl.height ?? 15);
+        const totalElemHeight = sorted.reduce((sum, el) => sum + (el.height ?? 15), 0);
+        const totalGap = maxY - minY - totalElemHeight;
+        const gap = Math.max(0, totalGap / (sorted.length - 1));
+
+        let currentPos = minY;
+        const newPosMap = new Map<string, number>();
+        sorted.forEach((el) => {
+          newPosMap.set(el.id, Math.round(currentPos * 10) / 10);
+          currentPos += (el.height ?? 15) + gap;
+        });
+
+        const newElements = designState.elements.map((el) => {
+          if (newPosMap.has(el.id) && !el.locked) {
+            return { ...el, y: newPosMap.get(el.id)! };
+          }
+          return el;
+        });
+
+        updateStateAndHistory({ ...designState, elements: newElements });
+      }
+    },
+    [designState, selectedElementIds, updateStateAndHistory]
+  );
+
+  const handleBatchLock = useCallback(
+    (locked: boolean) => {
+      const ids = selectedElementIds.length > 0 ? selectedElementIds : selectedElementId ? [selectedElementId] : [];
+      if (ids.length === 0) return;
+      const newElements = designState.elements.map((el) => (ids.includes(el.id) ? { ...el, locked } : el));
+      updateStateAndHistory({ ...designState, elements: newElements });
+    },
+    [designState, selectedElementId, selectedElementIds, updateStateAndHistory]
+  );
+
+  const handleBatchHide = useCallback(
+    (visible: boolean) => {
+      const ids = selectedElementIds.length > 0 ? selectedElementIds : selectedElementId ? [selectedElementId] : [];
+      if (ids.length === 0) return;
+      const newElements = designState.elements.map((el) => (ids.includes(el.id) ? { ...el, visible } : el));
+      updateStateAndHistory({ ...designState, elements: newElements });
+    },
+    [designState, selectedElementId, selectedElementIds, updateStateAndHistory]
+  );
+
+  const handleBatchDelete = useCallback(() => {
+    const ids = selectedElementIds.length > 0 ? selectedElementIds : selectedElementId ? [selectedElementId] : [];
+    if (ids.length === 0) return;
+    const newElements = designState.elements.filter((el) => !ids.includes(el.id));
+    updateStateAndHistory({ ...designState, elements: newElements });
+    setSelectedElementId(null);
+    setSelectedElementIds([]);
+  }, [designState, selectedElementId, selectedElementIds, updateStateAndHistory]);
+
+  const handleBatchDuplicate = useCallback(() => {
+    const ids = selectedElementIds.length > 0 ? selectedElementIds : selectedElementId ? [selectedElementId] : [];
+    if (ids.length === 0) return;
+    const targets = designState.elements.filter((el) => ids.includes(el.id));
+    const newElementsToAdd: CanvasElement[] = [];
+    const newSelectedIds: string[] = [];
+
+    targets.forEach((t) => {
+      const newId = `el-${t.type}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+      newElementsToAdd.push({
+        ...t,
+        id: newId,
+        name: `${t.name} (Copy)`,
+        x: Math.min(85, t.x + 3),
+        y: Math.min(85, t.y + 3),
+        zIndex: (designState.elements.length + newElementsToAdd.length) * 5,
+      });
+      newSelectedIds.push(newId);
+    });
+
+    const updated = {
+      ...designState,
+      elements: [...designState.elements, ...newElementsToAdd],
+    };
+    updateStateAndHistory(updated);
+    setSelectedElementIds(newSelectedIds);
+    if (newSelectedIds.length > 0) setSelectedElementId(newSelectedIds[0]);
+  }, [designState, selectedElementId, selectedElementIds, updateStateAndHistory]);
+
   // GLOBAL KEYBOARD SHORTCUTS LISTENER
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -238,10 +548,38 @@ export default function PostDesigner() {
         return;
       }
 
+      // Group / Ungroup
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleUngroupSelected();
+        } else {
+          handleGroupSelected();
+        }
+        return;
+      }
+
+      // Bring Forward / Send Backward / Bring to Front / Send to Back
+      if ((e.ctrlKey || e.metaKey) && (e.key === "]" || e.key === "[")) {
+        e.preventDefault();
+        if (selectedElementId) {
+          if (e.key === "]") {
+            if (e.shiftKey) handleMoveLayerToTop(selectedElementId);
+            else handleMoveLayer(selectedElementId, "up");
+          } else if (e.key === "[") {
+            if (e.shiftKey) handleMoveLayerToBottom(selectedElementId);
+            else handleMoveLayer(selectedElementId, "down");
+          }
+        }
+        return;
+      }
+
       // Duplicate
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
         e.preventDefault();
-        if (selectedElementId) {
+        if (selectedElementIds.length > 1) {
+          handleBatchDuplicate();
+        } else if (selectedElementId) {
           handleDuplicateElement(selectedElementId);
         }
         return;
@@ -249,7 +587,9 @@ export default function PostDesigner() {
 
       // Delete
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (selectedElementId) {
+        if (selectedElementIds.length > 1) {
+          handleBatchDelete();
+        } else if (selectedElementId) {
           handleDeleteElement(selectedElementId);
         }
         return;
@@ -278,7 +618,27 @@ export default function PostDesigner() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [designState, selectedElementId, historyIndex, historyStack, currentProject, updateProject, handleDuplicateElement, handleDeleteElement, handleUndo, handleRedo, handleUpdateElement]);
+  }, [
+    designState,
+    selectedElementId,
+    selectedElementIds,
+    historyIndex,
+    historyStack,
+    currentProject,
+    updateProject,
+    handleDuplicateElement,
+    handleDeleteElement,
+    handleBatchDuplicate,
+    handleBatchDelete,
+    handleGroupSelected,
+    handleUngroupSelected,
+    handleMoveLayer,
+    handleMoveLayerToTop,
+    handleMoveLayerToBottom,
+    handleUndo,
+    handleRedo,
+    handleUpdateElement,
+  ]);
   const [activeTool, setActiveTool] = useState<ToolMode>("select");
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>("elements");
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
@@ -773,59 +1133,6 @@ export default function PostDesigner() {
     updateStateAndHistory(updatedState);
   };
 
-  // MOVE LAYER Z-INDEX UP/DOWN/TOP/BOTTOM & REORDER
-  const handleMoveLayer = (id: string, direction: "up" | "down") => {
-    const idx = designState.elements.findIndex((el) => el.id === id);
-    if (idx === -1) return;
-    const targetIdx = direction === "up" ? idx + 1 : idx - 1;
-    if (targetIdx < 0 || targetIdx >= designState.elements.length) return;
-
-    const newElements = [...designState.elements];
-    const temp = newElements[idx];
-    newElements[idx] = newElements[targetIdx];
-    newElements[targetIdx] = temp;
-
-    const updated = {
-      ...designState,
-      elements: newElements.map((el, i) => ({ ...el, zIndex: (i + 1) * 5 })),
-    };
-    updateStateAndHistory(updated);
-  };
-
-  const handleMoveLayerToTop = (id: string) => {
-    const idx = designState.elements.findIndex((el) => el.id === id);
-    if (idx === -1 || idx === designState.elements.length - 1) return;
-    const item = designState.elements[idx];
-    const rest = designState.elements.filter((el) => el.id !== id);
-    const newElements = [...rest, item].map((el, i) => ({ ...el, zIndex: (i + 1) * 5 }));
-    updateStateAndHistory({ ...designState, elements: newElements });
-  };
-
-  const handleMoveLayerToBottom = (id: string) => {
-    const idx = designState.elements.findIndex((el) => el.id === id);
-    if (idx === -1 || idx === 0) return;
-    const item = designState.elements[idx];
-    const rest = designState.elements.filter((el) => el.id !== id);
-    const newElements = [item, ...rest].map((el, i) => ({ ...el, zIndex: (i + 1) * 5 }));
-    updateStateAndHistory({ ...designState, elements: newElements });
-  };
-
-  const handleReorderLayers = (draggedId: string, targetId: string) => {
-    const draggedIdx = designState.elements.findIndex((el) => el.id === draggedId);
-    const targetIdx = designState.elements.findIndex((el) => el.id === targetId);
-    if (draggedIdx === -1 || targetIdx === -1 || draggedIdx === targetIdx) return;
-
-    const newElements = [...designState.elements];
-    const [removed] = newElements.splice(draggedIdx, 1);
-    newElements.splice(targetIdx, 0, removed);
-
-    const updated = {
-      ...designState,
-      elements: newElements.map((el, i) => ({ ...el, zIndex: (i + 1) * 5 })),
-    };
-    updateStateAndHistory(updated);
-  };
-
   // RELINK ASSET
   const handleRelinkAsset = (diagnosticId: string, newUrlOrData: string) => {
     if (diagnosticId === "bg-image") {
@@ -1262,7 +1569,9 @@ export default function PostDesigner() {
                 <LayersPanel
                   state={designState}
                   selectedElementId={selectedElementId}
+                  selectedElementIds={selectedElementIds}
                   onSelectElement={setSelectedElementId}
+                  onSelectMultipleElements={setSelectedElementIds}
                   onUpdateElement={handleUpdateElementObject}
                   onDuplicateElement={handleDuplicateElement}
                   onDeleteElement={handleDeleteElement}
@@ -1270,6 +1579,14 @@ export default function PostDesigner() {
                   onMoveLayerToTop={handleMoveLayerToTop}
                   onMoveLayerToBottom={handleMoveLayerToBottom}
                   onReorderLayers={handleReorderLayers}
+                  onGroupSelected={handleGroupSelected}
+                  onUngroupSelected={handleUngroupSelected}
+                  onAlignSelected={handleAlignSelected}
+                  onDistributeSelected={handleDistributeSelected}
+                  onBatchLock={handleBatchLock}
+                  onBatchHide={handleBatchHide}
+                  onBatchDelete={handleBatchDelete}
+                  onBatchDuplicate={handleBatchDuplicate}
                 />
               )}
             </div>
